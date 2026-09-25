@@ -29,17 +29,19 @@ const OPERATIONS: { value: Operation; label: string }[] = [
     { value: 'halftone', label: 'Halftone' },
 ];
 
+const operationAsset = (name: string) => `${import.meta.env.BASE_URL}assets/operations/${name}.png`;
+
 const OPERATION_IMAGES: Partial<Record<Operation, string>> = {
-    'profile-outside': '/assets/operations/outside.png',
-    'profile-inside': '/assets/operations/inside.png',
-    pocket: '/assets/operations/pocket.png',
-    engrave: '/assets/operations/engrave.png',
-    chamfer: '/assets/operations/chamfer.png',
-    vcarve: '/assets/operations/vcarve.png',
-    'laser-cut': '/assets/operations/engrave.png',
-    'laser-raster': '/assets/operations/engrave.png',
-    'wavy-raster': '/assets/operations/pocket.png',
-    halftone: '/assets/operations/pocket.png',
+    'profile-outside': operationAsset('outside'),
+    'profile-inside': operationAsset('inside'),
+    pocket: operationAsset('pocket'),
+    engrave: operationAsset('engrave'),
+    chamfer: operationAsset('chamfer'),
+    vcarve: operationAsset('vcarve'),
+    'laser-cut': operationAsset('engrave'),
+    'laser-raster': operationAsset('engrave'),
+    'wavy-raster': operationAsset('pocket'),
+    halftone: operationAsset('pocket'),
 };
 
 /**
