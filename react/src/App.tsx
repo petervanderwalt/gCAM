@@ -2541,11 +2541,19 @@ export default function App() {
                     <form
                         className="relative grid w-full max-w-sm gap-3 rounded-lg border border-slate-300 bg-slate-100 p-4 text-sm text-slate-900 shadow-xl dark:border-robin-900 dark:bg-dark dark:text-white"
                         onMouseDown={(event) => event.stopPropagation()}
-                        onSubmit={(event) => {
+                        onSubmit={async (event) => {
                             event.preventDefault();
                             const anchor = textAnchor;
-                            setTextAnchor(null);
-                            void handleCommitText(anchor);
+                            try {
+                                await handleCommitText(anchor);
+                                setTextAnchor(null);
+                            } catch (error) {
+                                setStatus(
+                                    error instanceof Error
+                                        ? error.message
+                                        : 'Could not add text.',
+                                );
+                            }
                         }}
                     >
                         <div className="text-base font-semibold">Add Vector Text</div>

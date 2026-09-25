@@ -460,6 +460,9 @@ const GLYPHS = {
     ],
 };
 
+const publicAssetUrl = (asset) =>
+    `${import.meta.env.BASE_URL || '/'}${asset}`;
+
 export const FONT_OPTIONS = [
     {
         id: 'single-line',
@@ -637,7 +640,7 @@ function registerCatalogFontFaces() {
     style.id = 'cad-font-catalog';
     style.textContent = EXTRA_FONT_OPTIONS.map(
         ({ family, asset }) =>
-            `@font-face { font-family: "${family}"; src: url("${asset}") format("truetype"); font-display: swap; }`,
+            `@font-face { font-family: "${family}"; src: url("${publicAssetUrl(asset)}") format("truetype"); font-display: swap; }`,
     ).join('\n');
     document.head.append(style);
 }
@@ -675,7 +678,7 @@ export async function loadOutlineFont(fontId) {
     if (outlineFontCache.has(fontId)) {
         return outlineFontCache.get(fontId);
     }
-    const response = await fetch(option.asset);
+    const response = await fetch(publicAssetUrl(option.asset));
     if (!response.ok) {
         throw new Error(`Could not load ${option.name}.`);
     }
