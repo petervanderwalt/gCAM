@@ -91,7 +91,6 @@ export function ToolpathPanel({
     const [operation, setOperation] = useState<Operation>('profile-outside');
     const [toolDiameter, setToolDiameter] = useState(6);
     const [cutDepth, setCutDepth] = useState(18);
-    const [cutterAngle, setCutterAngle] = useState(90);
     const [trochoid, setTrochoid] = useState(false);
     const [engagement, setEngagement] = useState(10);
     const [laserFeed, setLaserFeed] = useState(3000);
@@ -137,10 +136,10 @@ export function ToolpathPanel({
         if (slot.plungeRate != null) setPlungeRate(slot.plungeRate);
         if (slot.spindle != null) setSpindle(slot.spindle);
         if (slot.passDepthMm != null) setPassDepth(slot.passDepthMm);
-        if (slot.fluteAngleDeg != null) setCutterAngle(slot.fluteAngleDeg);
         setToolNumber(slot.slot);
     };
     const activeSlot = slots.find((s) => s.slot === slotNum) ?? null;
+    const cutterAngle = activeSlot?.fluteAngleDeg ?? 90;
     // V-bit operations need a V-bit slot (camcanvas validateToolSlotForOperation).
     const NEEDS_VBIT: Operation[] = [
         'vcarve',
@@ -174,7 +173,6 @@ export function ToolpathPanel({
         setOperation(a.operation);
         setToolDiameter(num(a.toolDiameter, 6));
         setCutDepth(num(a.cutDepth, 18));
-        setCutterAngle(num(a.cutterAngle, 90));
         setTrochoid(Boolean(a.trochoidEnabled));
         setEngagement(num(a.trochoidEngagementPercent, 10));
         setLaserFeed(num(a.laserFeed, 3000));
@@ -639,21 +637,6 @@ export function ToolpathPanel({
                     </label>
                 )}
             </div>
-            {(operation === 'vcarve' || operation === 'chamfer') && (
-                <label className="space-y-1 block">
-                    <span className="text-slate-500 dark:text-slate-400">
-                        V-bit angle
-                    </span>
-                    <input
-                        type="number"
-                        min={1}
-                        max={179}
-                        value={cutterAngle}
-                        onChange={(e) => setCutterAngle(Number(e.target.value))}
-                        className="w-full rounded bg-slate-100 dark:bg-dark-lighter border border-slate-300 dark:border-robin-900 px-2 py-1 text-slate-900 dark:text-white"
-                    />
-                </label>
-            )}
             {operation === 'halftone' && (
                 <div className="grid grid-cols-2 gap-2">
                     <label className="space-y-1">
