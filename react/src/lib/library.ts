@@ -89,7 +89,7 @@ export const LIBRARY_SOURCES: LibrarySource[] = [
 export async function loadToolLibraries(
     fetchFn: typeof fetch = fetch,
     sources: LibrarySource[] = LIBRARY_SOURCES,
-    base = '/',
+    base = import.meta.env.BASE_URL || '/',
 ): Promise<LibraryTool[]> {
     const tools: LibraryTool[] = [];
     for (const source of sources) {
