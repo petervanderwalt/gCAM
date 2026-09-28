@@ -144,6 +144,8 @@ export default function App() {
         setEmitArcs,
         units,
         setUnits,
+        machineProfileId,
+        setMachineProfileId,
     } = useAppPreferences();
     const formatLength = (valueMm: number, decimals = 2) =>
         formatLengthValue(valueMm, units, decimals);
@@ -470,6 +472,7 @@ export default function App() {
         stack,
         units,
         emitArcs,
+        machineProfileId,
         editingId,
         editingEntry,
         tabMode,
@@ -502,6 +505,8 @@ export default function App() {
         onEmitArcsChange: setEmitArcs,
         units,
         onUnitsChange: setUnits,
+        machineProfileId,
+        onMachineProfileChange: setMachineProfileId,
         onActionsChange: setConfigActions,
     };
     const workspaceModel = createWorkspaceModel({

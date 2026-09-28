@@ -1,5 +1,5 @@
 /**
- * Tests: blank library has 12 unconfigured slots; configured slot round-trips through storage; legacy camcanvas key migrates forward; corrupt storage yields blanks, not throws.
+ * Tests: blank library has 12 unconfigured slots; cutter geometry round-trips through storage; legacy camcanvas key migrates forward; corrupt storage yields blanks, not throws.
  */
 import {
     blankSlots,
@@ -27,10 +27,6 @@ const FULL: ToolSlot = {
     flutes: 2,
     cutterMaterial: 'Solid carbide',
     fluteAngleDeg: null,
-    feedRate: 1800,
-    plungeRate: 600,
-    spindle: 18000,
-    passDepthMm: 3,
     libraryToolId: null,
     vendor: '',
     vendorDisplayName: '',

@@ -20,10 +20,6 @@ export interface ToolSlot {
     flutes: number | null;
     cutterMaterial: string;
     fluteAngleDeg: number | null;
-    feedRate: number | null;
-    plungeRate: number | null;
-    spindle: number | null;
-    passDepthMm: number | null;
     libraryToolId: string | null;
     vendor: string;
     vendorDisplayName: string;
@@ -45,10 +41,6 @@ export function blankSlots(): ToolSlot[] {
         flutes: null,
         cutterMaterial: '',
         fluteAngleDeg: null,
-        feedRate: null,
-        plungeRate: null,
-        spindle: null,
-        passDepthMm: null,
         libraryToolId: null,
         vendor: '',
         vendorDisplayName: '',
@@ -61,10 +53,8 @@ export function isConfigured(slot: ToolSlot): boolean {
     return Boolean(
         slot.name &&
             Number.isFinite(slot.cuttingDiameterMm) &&
-            Number.isFinite(slot.feedRate) &&
-            Number.isFinite(slot.plungeRate) &&
-            Number.isFinite(slot.spindle) &&
-            Number.isFinite(slot.passDepthMm),
+            Number.isFinite(slot.flutes) &&
+            (slot.toolType !== 'v-bit' || Number.isFinite(slot.fluteAngleDeg)),
     );
 }
 
@@ -94,10 +84,6 @@ function normalize(raw: unknown, slot: number): ToolSlot {
         flutes: num(r.flutes),
         cutterMaterial: str(r.cutterMaterial),
         fluteAngleDeg: num(r.fluteAngleDeg),
-        feedRate: num(r.feedRate),
-        plungeRate: num(r.plungeRate),
-        spindle: num(r.spindle),
-        passDepthMm: num(r.passDepthMm),
         libraryToolId:
             typeof r.libraryToolId === 'string' ? r.libraryToolId : null,
         vendor: str(r.vendor),

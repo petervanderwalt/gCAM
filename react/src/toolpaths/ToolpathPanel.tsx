@@ -2,6 +2,13 @@
  * Purpose: Implementation module for ToolpathPanel in the react domain.
  */
 import { useEffect, useRef, useState } from 'react';
+import {
+    DEFAULT_MACHINE_PROFILE,
+    machineProfileById,
+} from '../cutting-parameters/machines';
+import { recommendCuttingParameters } from '../cutting-parameters/recommend';
+import { MATERIAL_RECIPES } from '../cutting-parameters/recipes';
+import type { MaterialId, RotaryOperation } from '../cutting-parameters/types';
 import type { ViewLoop } from '../canvas/types';
 import {
     buildToolpathGcode,
@@ -25,6 +32,7 @@ import { ToolSelectionFields } from './ToolSelectionFields';
 import { ToolpathFormAlerts } from './ToolpathFormAlerts';
 import { ToolpathSubmitControls } from './ToolpathSubmitControls';
 import { ToolpathEmptyState } from './ToolpathEmptyState';
+import { CuttingRecipeFields } from './CuttingRecipeFields';
 
 type DraftContour = { x: number; y: number }[] & {
     _intensity?: number;
@@ -57,6 +65,7 @@ export function ToolpathPanel({
     onUpdate,
     onCancelEdit,
     units = 'metric',
+    machineProfileId = 'longmill-router',
 }: {
     loops: ViewLoop[];
     selected: string[];
@@ -83,6 +92,7 @@ export function ToolpathPanel({
     onUpdate?: (id: string, r: ToolpathResult, args: ProfileArgs) => void;
     onCancelEdit?: () => void;
     units?: UnitSystem;
+    machineProfileId?: string;
 }) {
     const [operation, setOperation] = useState<Operation>('profile-outside');
     const [toolDiameter, setToolDiameter] = useState(6);
@@ -109,6 +119,7 @@ export function ToolpathPanel({
     const [spindle, setSpindle] = useState(18000);
     const [safeZ, setSafeZ] = useState(6);
     const [passDepth, setPassDepth] = useState(3);
+    const [material, setMaterial] = useState<MaterialId>('sheet-goods');
     const [arcs, setArcs] = useState(defaultArcs);
     const [toolNumber, setToolNumber] = useState(1);
     const [overlap, setOverlap] = useState(40);
@@ -132,13 +143,41 @@ export function ToolpathPanel({
     const applySlot = (slot: ToolSlot) => {
         if (slot.cuttingDiameterMm != null)
             setToolDiameter(slot.cuttingDiameterMm);
-        if (slot.feedRate != null) setFeedRate(slot.feedRate);
-        if (slot.plungeRate != null) setPlungeRate(slot.plungeRate);
-        if (slot.spindle != null) setSpindle(slot.spindle);
-        if (slot.passDepthMm != null) setPassDepth(slot.passDepthMm);
         setToolNumber(slot.slot);
     };
     const activeSlot = slots.find((s) => s.slot === slotNum) ?? null;
+    const machine =
+        machineProfileById(machineProfileId) ?? DEFAULT_MACHINE_PROFILE;
+    const recipeOperation: RotaryOperation | null =
+        operation === 'wavy-raster' ||
+        operation === 'halftone' ||
+        operation === 'chamfer'
+            ? 'engrave'
+            : operation === 'laser-cut' || operation === 'laser-raster'
+              ? null
+              : operation;
+    const recommendation = (() => {
+        if (!activeSlot || !recipeOperation) return null;
+        if (!(activeSlot.cuttingDiameterMm && activeSlot.flutes)) return null;
+        try {
+            return recommendCuttingParameters({
+                material,
+                machine,
+                operation: recipeOperation,
+                stockDepthMm: cutDepth,
+                cutter: {
+                    toolType: activeSlot.toolType,
+                    diameterMm: activeSlot.cuttingDiameterMm,
+                    flutes: activeSlot.flutes,
+                    cuttingLengthMm: activeSlot.cuttingLengthMm,
+                    cutterMaterial: activeSlot.cutterMaterial ?? undefined,
+                    fluteAngleDeg: activeSlot.fluteAngleDeg,
+                },
+            });
+        } catch {
+            return null;
+        }
+    })();
     const cutterAngle = activeSlot?.fluteAngleDeg ?? 90;
     const NEEDS_VBIT: Operation[] = [
         'vcarve',
@@ -192,6 +231,9 @@ export function ToolpathPanel({
         setTextureType(
             a.textureType === 'crosshatch' ? 'crosshatch' : 'voronoi',
         );
+        if (typeof a.material === 'string' && a.material in MATERIAL_RECIPES) {
+            setMaterial(a.material as MaterialId);
+        }
         setFeedRate(num(a.feedRate, 1800));
         setPlungeRate(num(a.plungeRate, 600));
         setSpindle(num(a.spindle, 18000));
@@ -281,6 +323,8 @@ export function ToolpathPanel({
             halftoneResolution: halftoneRes,
             halftoneInvert,
             textureType,
+            material,
+            machineProfileId,
             textureSpacing,
             crosshatchAngle,
             bitmap,
@@ -289,11 +333,14 @@ export function ToolpathPanel({
                 (operation === 'profile-outside' ||
                     operation === 'profile-inside'),
             trochoidEngagementPercent: engagement,
-            feedRate,
-            plungeRate,
-            spindle,
+            feedRate: recommendation?.feedMmMin ?? feedRate,
+            plungeRate: recommendation?.plungeMmMin ?? plungeRate,
+            spindle: recommendation?.rpm ?? spindle,
             safeZ,
-            passDepth: operation === 'texture-fill' ? cutDepth : passDepth,
+            passDepth:
+                operation === 'texture-fill'
+                    ? cutDepth
+                    : (recommendation?.passDepthMm ?? passDepth),
             arcs: defaultArcs,
             overlapPercent: overlap,
             tabWidth,
@@ -504,6 +551,8 @@ export function ToolpathPanel({
         textureType,
         textureSpacing,
         crosshatchAngle,
+        material,
+        machineProfileId,
         solidDraftPreview,
         feedRate,
         plungeRate,
@@ -563,6 +612,14 @@ export function ToolpathPanel({
                 }}
                 onConfiguredSlot={applySlot}
             />
+            {recipeOperation && (
+                <CuttingRecipeFields
+                    material={material}
+                    onMaterialChange={setMaterial}
+                    recommendation={recommendation}
+                    units={units}
+                />
+            )}
             <CuttingFields
                 operation={operation}
                 units={units}

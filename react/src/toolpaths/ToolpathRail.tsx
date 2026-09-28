@@ -26,6 +26,7 @@ interface ToolpathRailProps {
     stack: ToolpathStackEntry[];
     units: UnitSystem;
     emitArcs: boolean;
+    machineProfileId: string;
     editingId: string | null;
     editingEntry: ToolpathStackEntry | null;
     tabMode: boolean;
@@ -58,6 +59,7 @@ export function ToolpathRail({
     stack,
     units,
     emitArcs,
+    machineProfileId,
     editingId,
     editingEntry,
     tabMode,
@@ -90,6 +92,7 @@ export function ToolpathRail({
                     submitLabel="Add Toolpath"
                     onResult={onResult}
                     defaultArcs={emitArcs}
+                    machineProfileId={machineProfileId}
                     units={units}
                     onDraftPreview={(contours) =>
                         setDraftPreview(contours ?? [])
@@ -159,6 +162,7 @@ function CommittedToolpaths({
     | 'bitmaps'
     | 'units'
     | 'emitArcs'
+    | 'machineProfileId'
     | 'editingEntry'
     | 'setDraftPreview'
     | 'setDraftProgress'

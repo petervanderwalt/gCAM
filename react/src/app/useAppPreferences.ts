@@ -29,6 +29,12 @@ export function useAppPreferences() {
             ? 'imperial'
             : 'metric';
     });
+    const [machineProfileId, setMachineProfileId] = useState(() => {
+        if (typeof window === 'undefined') return 'longmill-router';
+        return (
+            localStorage.getItem('gcam.machineProfileId') ?? 'longmill-router'
+        );
+    });
 
     useEffect(() => saveGrid(grid), [grid]);
     useEffect(
@@ -36,6 +42,10 @@ export function useAppPreferences() {
         [emitArcs],
     );
     useEffect(() => localStorage.setItem('gcam.units', units), [units]);
+    useEffect(
+        () => localStorage.setItem('gcam.machineProfileId', machineProfileId),
+        [machineProfileId],
+    );
 
     return {
         grid,
@@ -52,5 +62,7 @@ export function useAppPreferences() {
         setEmitArcs,
         units,
         setUnits,
+        machineProfileId,
+        setMachineProfileId,
     };
 }
