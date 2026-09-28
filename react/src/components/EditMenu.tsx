@@ -100,7 +100,9 @@ export function EditMenu(props: EditMenuProps) {
                     className="absolute left-0 top-11 z-40 w-72 rounded-xl border border-slate-200 dark:border-robin-900 bg-white dark:bg-dark p-3 space-y-3 shadow-xl max-h-[70vh] overflow-y-auto"
                 >
                     <Section title="Transform">
-                        <Row label={`Position X/Y (${lengthUnit(props.units)})`}>
+                        <Row
+                            label={`Position X/Y (${lengthUnit(props.units)})`}
+                        >
                             <input
                                 type="number"
                                 step={0.01}
@@ -212,7 +214,9 @@ export function EditMenu(props: EditMenuProps) {
                                 step={0.5}
                                 value={displayLength(props.cornerRadius)}
                                 onChange={(e) =>
-                                    props.onCornerRadius(parseLength(e.target.value))
+                                    props.onCornerRadius(
+                                        parseLength(e.target.value),
+                                    )
                                 }
                                 aria-label={`Corner radius in ${lengthUnit(props.units)}`}
                                 className={numCls}
@@ -256,7 +260,9 @@ export function EditMenu(props: EditMenuProps) {
                                 step={0.5}
                                 value={displayLength(props.offsetAmount)}
                                 onChange={(e) =>
-                                    props.onOffsetAmount(parseLength(e.target.value))
+                                    props.onOffsetAmount(
+                                        parseLength(e.target.value),
+                                    )
                                 }
                                 aria-label={`Offset amount in ${lengthUnit(props.units)}`}
                                 className={numCls}

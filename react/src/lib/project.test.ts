@@ -37,6 +37,24 @@ test('legacy camcanvas envelopes still load', () => {
     expect(deserializeProject(raw).fileName).toBe('demo');
 });
 
+test('v1 projects migrate to the current snapshot shape', () => {
+    const raw = JSON.stringify({
+        kind: 'gcam.project',
+        version: 1,
+        fileName: 'legacy',
+        snapshot: { loops: [], stack: [] },
+    });
+    expect(deserializeProject(raw)).toEqual({
+        loops: [],
+        selected: [],
+        hidden: [],
+        stack: [],
+        bitmaps: [],
+        guides: [],
+        fileName: 'legacy',
+    });
+});
+
 test('garbage is rejected with a clear error', () => {
     expect(() => deserializeProject('nope')).toThrow(/valid gCAM/);
     expect(() =>

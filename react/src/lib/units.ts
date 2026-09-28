@@ -27,13 +27,26 @@ export function toMmPerMinute(value: number, units: UnitSystem): number {
 }
 
 /** Stable display precision without leaking binary conversion noise into inputs. */
-export function displayValue(valueMm: number, units: UnitSystem, decimals = 3): number {
+export function displayValue(
+    valueMm: number,
+    units: UnitSystem,
+    decimals = 3,
+): number {
     const value = fromMm(valueMm, units);
     const factor = 10 ** decimals;
     return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
-export function displayFeed(valueMmPerMinute: number, units: UnitSystem, decimals = 1): number {
+/** Formats a canonical millimetre length for a user-facing command message. */
+export function formatLength(valueMm: number, units: UnitSystem, decimals = 2) {
+    return `${displayValue(valueMm, units, decimals)}${lengthUnit(units)}`;
+}
+
+export function displayFeed(
+    valueMmPerMinute: number,
+    units: UnitSystem,
+    decimals = 1,
+): number {
     return displayValue(valueMmPerMinute, units, decimals);
 }
 
@@ -46,20 +59,32 @@ export function gcodeForUnits(gcodeMm: string, units: UnitSystem): string {
     if (units === 'metric') return gcodeMm;
     const converted = gcodeMm
         .replace(/^G21$/m, 'G20')
-        .replace(/\b([XYZIJRKF])(-?(?:\d+\.?\d*|\.\d+))/g, (_word, axis: string, raw: string) => {
-            const converted = Number(raw) / MM_PER_INCH;
-            const precision = axis === 'F' ? 4 : 5;
-            return `${axis}${Number(converted.toFixed(precision))}`;
-        });
+        .replace(
+            /\b([XYZIJRKF])(-?(?:\d+\.?\d*|\.\d+))/g,
+            (_word, axis: string, raw: string) => {
+                const converted = Number(raw) / MM_PER_INCH;
+                const precision = axis === 'F' ? 4 : 5;
+                return `${axis}${Number(converted.toFixed(precision))}`;
+            },
+        );
     // Operation comments are user-visible output too. Convert their metric
     // dimensions while leaving program words and arbitrary prose intact.
     return converted
         .split(/(\r?\n)/)
-        .map((line) => line.trimStart().startsWith('(')
-            ? line
-                .replace(/(-?(?:\d+\.?\d*|\.\d+))(?=mm|→)/g, (_value, raw: string) =>
-                    String(Number((Number(raw) / MM_PER_INCH).toFixed(5))))
-                .replace(/mm/g, 'in')
-            : line)
+        .map((line) =>
+            line.trimStart().startsWith('(')
+                ? line
+                      .replace(
+                          /(-?(?:\d+\.?\d*|\.\d+))(?=mm|→)/g,
+                          (_value, raw: string) =>
+                              String(
+                                  Number(
+                                      (Number(raw) / MM_PER_INCH).toFixed(5),
+                                  ),
+                              ),
+                      )
+                      .replace(/mm/g, 'in')
+                : line,
+        )
         .join('');
 }

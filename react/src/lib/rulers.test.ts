@@ -1,4 +1,4 @@
-import { rulerStep } from './draw';
+import { rulerStep } from '../draw/geometry';
 
 test('ruler step keeps ticks 48px apart or wider', () => {
     expect(rulerStep(10)).toBe(5);

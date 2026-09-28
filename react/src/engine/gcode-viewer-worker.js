@@ -149,7 +149,9 @@ async function build(version, gcode) {
         let pz = z;
         for (let s = 1; s <= divisions; s += 1) {
             const t = s / divisions;
-            const a = clockwise ? startAngle - sweep * t : startAngle + sweep * t;
+            const a = clockwise
+                ? startAngle - sweep * t
+                : startAngle + sweep * t;
             const qx = cx + radius * Math.cos(a);
             const qy = cy + radius * Math.sin(a);
             const qz = z + (tz - z) * t;
@@ -289,7 +291,15 @@ async function build(version, gcode) {
             const tz = nz !== nz ? z : absolute ? nz : z + nz;
             const isRapid = motion === 1;
             if (motion === 3 || motion === 4) {
-                pushArc(tx, ty, tz, ni !== ni ? 0 : ni, nj !== nj ? 0 : nj, motion === 3, isRapid);
+                pushArc(
+                    tx,
+                    ty,
+                    tz,
+                    ni !== ni ? 0 : ni,
+                    nj !== nj ? 0 : nj,
+                    motion === 3,
+                    isRapid,
+                );
             } else {
                 pushSegment(x, y, z, tx, ty, tz, isRapid);
             }
@@ -347,8 +357,11 @@ self.addEventListener('message', ({ data }) => {
     if (!data || data.type !== 'build') return;
     const version = Number(data.version) || 0;
     latestVersion = version;
-    const inputMB = (typeof data.gcode === 'string' ? data.gcode.length : 0) / 1048576;
-    console.log(`[gcode-viewer-worker] build v${version} start, input ${inputMB.toFixed(1)}MB`);
+    const inputMB =
+        (typeof data.gcode === 'string' ? data.gcode.length : 0) / 1048576;
+    console.log(
+        `[gcode-viewer-worker] build v${version} start, input ${inputMB.toFixed(1)}MB`,
+    );
     build(version, data.gcode || '')
         .then((result) => {
             if (!result || version !== latestVersion) return;
@@ -367,9 +380,15 @@ self.addEventListener('message', ({ data }) => {
                         lineCount: result.lineCount,
                         segmentCount: result.segmentCount,
                     },
-                    [result.positions.buffer, result.colors.buffer, result.frames.buffer],
+                    [
+                        result.positions.buffer,
+                        result.colors.buffer,
+                        result.frames.buffer,
+                    ],
                 );
-                console.log(`[gcode-viewer-worker] build v${version} posted complete`);
+                console.log(
+                    `[gcode-viewer-worker] build v${version} posted complete`,
+                );
             } catch (error) {
                 self.postMessage({
                     type: 'error',

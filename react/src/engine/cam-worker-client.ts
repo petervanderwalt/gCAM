@@ -1,175 +1,150 @@
-const CAM_WORKER_VERSION = '20260824-worker1';
+import {
+    isWorkerError,
+    isWorkerProgress,
+    type CamWorkerMessage,
+    type CamWorkerProgress,
+    type BuildGcodeRequest,
+    type BuildToolpathRequest,
+    type SerializedCamLoop,
+    type SerializedCamToolpath,
+} from './cam-worker-protocol';
 
 let workerRef: Worker | null = null;
 let requestId = 0;
-const pendingRequests = new Map<
-    number,
-    {
-        resolve: (value: any) => void;
-        reject: (reason: Error) => void;
-        onProgress?: (progress: { percent: number; label: string }) => void;
-    }
->();
+
+interface PendingRequest<T> {
+    resolve: (value: T) => void;
+    reject: (reason: Error) => void;
+    onProgress?: (progress: CamWorkerProgress) => void;
+}
+
+const pendingRequests = new Map<number, PendingRequest<unknown>>();
+type RequestWithoutId =
+    | Omit<BuildToolpathRequest, 'id'>
+    | Omit<BuildGcodeRequest, 'id'>;
 
 function getWorker(): Worker {
-    if (workerRef) {
-        return workerRef;
-    }
-    // Use Vite's worker import syntax
+    if (workerRef) return workerRef;
     workerRef = new Worker(new URL('./cam-worker.ts', import.meta.url), {
         type: 'module',
     });
     workerRef.addEventListener('message', handleWorkerMessage);
     workerRef.addEventListener('error', (event) => {
-        const error = new Error(event.message || 'CAM worker failed.');
-        rejectAllPending(error);
+        rejectAllPending(new Error(event.message || 'CAM worker failed.'));
     });
     return workerRef;
 }
 
-function handleWorkerMessage(event: MessageEvent) {
-    const { id, result, error, progress } = event.data || {};
-    const pending = pendingRequests.get(id);
-    if (!pending) {
+function handleWorkerMessage(event: MessageEvent<CamWorkerMessage>) {
+    const message = event.data;
+    const pending = pendingRequests.get(message.id);
+    if (!pending) return;
+    if (isWorkerProgress(message)) {
+        pending.onProgress?.(message.progress);
         return;
     }
-
-    if (progress) {
-        pending.onProgress?.(progress);
+    pendingRequests.delete(message.id);
+    if (isWorkerError(message)) {
+        const error = new Error(message.error);
+        if (message.stack) error.stack = message.stack;
+        pending.reject(error);
         return;
     }
-
-    pendingRequests.delete(id);
-
-    if (error) {
-        const err = new Error(error);
-        if (event.data?.stack) err.stack = event.data.stack;
-        console.error(
-            `[cam-worker-client] worker error: ${error}`,
-            event.data?.stack || '',
-        );
-        pending.reject(err);
-        return;
-    }
-
-    pending.resolve(result);
+    pending.resolve(message.result);
 }
 
 function rejectAllPending(error: Error) {
-    for (const pending of pendingRequests.values()) {
-        pending.reject(error);
-    }
+    for (const pending of pendingRequests.values()) pending.reject(error);
     pendingRequests.clear();
 }
 
 function postWorkerRequest<T>(
-    type: string,
-    payload: Record<string, any>,
-    options: {
-        onProgress?: (progress: { percent: number; label: string }) => void;
-    } = {},
-): Promise<T> {
+    request: RequestWithoutId,
+    onProgress?: (progress: CamWorkerProgress) => void,
+): { promise: Promise<T>; cancel: () => void } {
     const worker = getWorker();
     const id = ++requestId;
-    return new Promise((resolve, reject) => {
+    let settled = false;
+    const promise = new Promise<T>((resolve, reject) => {
         pendingRequests.set(id, {
-            resolve,
-            reject,
-            onProgress: options.onProgress,
+            resolve: (value) => {
+                settled = true;
+                resolve(value as T);
+            },
+            reject: (error) => {
+                settled = true;
+                reject(error);
+            },
+            onProgress,
         });
-        worker.postMessage({ id, type, ...payload });
+        worker.postMessage({ ...request, id });
     });
+    return {
+        promise,
+        cancel: () => {
+            if (settled || !pendingRequests.has(id)) return;
+            pendingRequests.delete(id);
+            worker.postMessage({
+                id: ++requestId,
+                type: 'cancel',
+                targetId: id,
+            });
+        },
+    };
 }
 
-export interface SerializedLoop {
-    id?: string;
-    points: { x: number; y: number }[];
-    isBitmap?: boolean;
-    bounds?: { minX: number; minY: number; maxX: number; maxY: number };
-}
-
-export interface SerializedToolpath {
-    id: string;
-    label: string;
-    operation: string;
-    toolDiameter: number;
-    toolRadius: number;
-    cutDepth: number;
-    passDepth: number;
-    trochoidEnabled: boolean;
-    trochoidRadius: number;
-    trochoidEngagementPercent: number;
-    tabWidth: number;
-    tabHeight: number;
-    safeZ: number;
-    feedRate: number;
-    plungeRate: number;
-    spindle: number;
-    previewContours: { x: number; y: number }[][];
-    motionPaths: {
-        safeToClose: boolean;
-        points: { x: number; y: number; z: number }[];
-    }[];
-    tabs: {
-        contourIndex: number;
-        along: number;
-        point: { x: number; y: number } | null;
-    }[];
-}
+export type SerializedLoop = SerializedCamLoop;
+export type SerializedToolpath = SerializedCamToolpath;
 
 function serializeLoop(loop: SerializedLoop): SerializedLoop {
     return {
         id: loop.id,
         points: loop.points.map((point) => ({ x: point.x, y: point.y })),
         isBitmap: loop.isBitmap ?? false,
-        bounds: loop.bounds ?? undefined,
+        bounds: loop.bounds ? { ...loop.bounds } : undefined,
     };
 }
 
 export function createToolpathInWorker(
     selectedLoops: SerializedLoop[],
-    config: Record<string, any>,
+    config: Record<string, unknown>,
     options: {
         id?: string;
         label?: string;
-        onProgress?: (progress: { percent: number; label: string }) => void;
+        onProgress?: (progress: CamWorkerProgress) => void;
     } = {},
-): Promise<any> {
-    return postWorkerRequest(
-        'build-toolpath',
+): Promise<SerializedToolpath> {
+    return postWorkerRequest<SerializedToolpath>(
         {
+            type: 'build-toolpath',
             selectedLoops: selectedLoops.map(serializeLoop),
             config: { ...config },
-            toolpathOptions: {
-                id: options.id,
-                label: options.label,
-            },
+            toolpathOptions: { id: options.id, label: options.label },
         },
-        { onProgress: options.onProgress },
-    );
+        options.onProgress,
+    ).promise;
 }
 
 export function buildGcodeInWorker(params: {
     toolpaths: SerializedToolpath[];
     fileName: string;
     forcePolylineArcs: boolean;
-    onProgress?: (progress: { percent: number; label: string }) => void;
+    onProgress?: (progress: CamWorkerProgress) => void;
 }): Promise<string> {
-    return postWorkerRequest(
-        'build-gcode',
+    return postWorkerRequest<string>(
         {
+            type: 'build-gcode',
             toolpaths: params.toolpaths,
             fileName: params.fileName,
             forcePolylineArcs: params.forcePolylineArcs,
         },
-        { onProgress: params.onProgress },
-    );
+        params.onProgress,
+    ).promise;
 }
 
 export function terminateWorker() {
-    if (workerRef) {
-        workerRef.terminate();
-        workerRef = null;
-        rejectAllPending(new Error('Worker terminated'));
-    }
+    if (!workerRef) return;
+    workerRef.terminate();
+    workerRef = null;
+    rejectAllPending(new Error('Worker terminated.'));
 }

@@ -42,7 +42,13 @@ export function TraceModal({
     const workRef = useRef<HTMLCanvasElement>(null);
     const previewRef = useRef<HTMLCanvasElement>(null);
     const tracedRef = useRef<PlacedTrace[]>([]);
-    const optsRef = useRef({ threshold, brightness, contrast, invert, turdsize });
+    const optsRef = useRef({
+        threshold,
+        brightness,
+        contrast,
+        invert,
+        turdsize,
+    });
     optsRef.current = { threshold, brightness, contrast, invert, turdsize };
 
     useEffect(() => {
@@ -82,8 +88,6 @@ export function TraceModal({
             wctx.putImageData(image, 0, 0);
             preview.width = pw;
             preview.height = ph;
-            const pctx = preview.getContext('2d');
-            pctx?.drawImage(work, 0, 0);
             traceProcessedCanvas(
                 work,
                 pw,
@@ -98,6 +102,27 @@ export function TraceModal({
                     if (cancelled) return;
                     tracedRef.current = traced;
                     setVectorCount(traced.length);
+                    const pctx = preview.getContext('2d');
+                    if (pctx) {
+                        // This is deliberately a geometry preview, not the
+                        // thresholded bitmap: it shows exactly what Import
+                        // will put on the canvas.
+                        pctx.fillStyle = '#ffffff';
+                        pctx.fillRect(0, 0, pw, ph);
+                        pctx.strokeStyle = '#0f766e';
+                        pctx.lineWidth = 1.5;
+                        for (const path of traced) {
+                            if (path.points.length < 2) continue;
+                            pctx.beginPath();
+                            path.points.forEach((point, index) => {
+                                const x = ((point.x - originX) / widthMm) * pw;
+                                const y = ((point.y - originY) / heightMm) * ph;
+                                if (index === 0) pctx.moveTo(x, y);
+                                else pctx.lineTo(x, y);
+                            });
+                            pctx.stroke();
+                        }
+                    }
                     setWorking(false);
                 },
                 () => {
@@ -112,7 +137,18 @@ export function TraceModal({
             cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [img, originX, originY, widthMm, heightMm, threshold, brightness, contrast, invert, turdsize]);
+    }, [
+        img,
+        originX,
+        originY,
+        widthMm,
+        heightMm,
+        threshold,
+        brightness,
+        contrast,
+        invert,
+        turdsize,
+    ]);
 
     return (
         <div
@@ -132,10 +168,7 @@ export function TraceModal({
                             id="trace-title"
                             className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2"
                         >
-                            <ScanLine
-                                size={20}
-                                className="text-robin-400"
-                            />
+                            <ScanLine size={20} className="text-robin-400" />
                             Trace Bitmap
                         </h2>
                         <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -153,7 +186,7 @@ export function TraceModal({
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                            Scan preview
+                            Vector preview
                         </div>
                         <canvas
                             ref={previewRef}

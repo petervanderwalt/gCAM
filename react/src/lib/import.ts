@@ -1,6 +1,7 @@
 import { parseDxf } from '../engine/dxf.js';
 import { parseSvg } from '../engine/svg.js';
-import { buildLoops, mergeBounds } from '../engine/paths.js';
+import { buildLoops } from '../geometry/loops.js';
+import { mergeBounds } from '../geometry/bounds.js';
 
 export interface ImportResult {
     fileName: string;

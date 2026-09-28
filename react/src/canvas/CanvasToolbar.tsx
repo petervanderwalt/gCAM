@@ -1,0 +1,106 @@
+import { useEffect, useRef, useState } from 'react';
+import { applyBoolean, offsetLoops } from '../lib/engine';
+import { ToolbarCommands } from './toolbar/ToolbarCommands';
+import { ToolbarForms } from './toolbar/ToolbarForms';
+import { ToolbarMenus } from './toolbar/ToolbarMenus';
+import type { CanvasToolbarProps, ToolbarAction } from './toolbar/types';
+
+export type { CanvasToolbarProps, ToolbarAction } from './toolbar/types';
+
+/** Composition root for independently maintained canvas toolbar groups. */
+export function CanvasToolbar(props: CanvasToolbarProps) {
+    const [open, setOpen] = useState<ToolbarAction>(null);
+    const [booleanOperation, setBooleanOperation] =
+        useState<Parameters<CanvasToolbarProps['onBoolean']>[0]>('union');
+    const rootRef = useRef<HTMLDivElement>(null);
+    const close = () => setOpen(null);
+    const toggle = (action: Exclude<ToolbarAction, null>) =>
+        setOpen((current) => (current === action ? null : action));
+
+    useEffect(() => {
+        const onPointerDown = (event: PointerEvent) => {
+            if (
+                rootRef.current &&
+                !rootRef.current.contains(event.target as Node)
+            )
+                close();
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                props.onTransformMode(null);
+                close();
+            }
+        };
+        window.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('keydown', onKeyDown);
+        return () => {
+            window.removeEventListener('pointerdown', onPointerDown);
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [props.onTransformMode]);
+
+    useEffect(() => {
+        if (
+            open !== 'offset' ||
+            !props.offsetSource.length ||
+            !props.offsetAmount
+        ) {
+            props.onOffsetPreview([]);
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            try {
+                props.onOffsetPreview(
+                    offsetLoops(props.offsetSource, props.offsetAmount).map(
+                        (result) => result.points,
+                    ),
+                );
+            } catch {
+                props.onOffsetPreview([]);
+            }
+        }, 300);
+        return () => window.clearTimeout(timer);
+    }, [open, props.offsetAmount, props.offsetSource, props.onOffsetPreview]);
+
+    useEffect(() => {
+        if (open !== 'boolean' || !props.canBoolean) {
+            props.onBooleanPreview([]);
+            return;
+        }
+        try {
+            props.onBooleanPreview(
+                applyBoolean(props.booleanSource, booleanOperation).map(
+                    (loop) => loop.points,
+                ),
+            );
+        } catch {
+            props.onBooleanPreview([]);
+        }
+    }, [
+        booleanOperation,
+        open,
+        props.booleanSource,
+        props.canBoolean,
+        props.onBooleanPreview,
+    ]);
+
+    return (
+        <div ref={rootRef} className="shrink-0 flex flex-col">
+            <div
+                className="flex flex-wrap items-center gap-0.5 overflow-visible"
+                role="toolbar"
+                aria-label="Canvas tools"
+            >
+                <ToolbarMenus props={props} openAction={toggle} close={close} />
+                <ToolbarCommands props={props} open={open} close={close} />
+            </div>
+            <ToolbarForms
+                props={props}
+                open={open}
+                booleanOperation={booleanOperation}
+                onBooleanOperation={setBooleanOperation}
+                close={close}
+            />
+        </div>
+    );
+}

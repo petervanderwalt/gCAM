@@ -1,217 +1,25 @@
 // Lightweight stock-removal preview. It rasterizes the actual cutter envelope
 // into a height field, then draws that field as an isometric surface mesh.
 
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import {
+    paintCutterSample,
+    previewSampleAt,
+} from './preview-3d/playback-mesh.js';
+import { previewWorkerToolpaths } from './preview-3d/worker-input.js';
+import {
+    createPreviewCamera,
+    installPreviewPointerControls,
+    panPreviewCamera,
+    previewOrbitView,
+    rotatePreviewCamera,
+    setPreviewCameraHome,
+} from './preview-3d/camera-controls.js';
+import { createPreviewProjection } from './preview-3d/scene-projection.js';
+import { getSurfaceTexture } from './preview-3d/surface-texture.js';
+import { drawPreviewOriginAndAxes } from './preview-3d/origin-overlay.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
-
-function workerPoint(point) {
-    const x = Number(point?.x);
-    const y = Number(point?.y);
-    const z = Number(point?.z ?? 0);
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
-        throw new Error('3D preview contains an invalid toolpath coordinate.');
-    }
-    return { x, y, z };
-}
-
-// Toolpath points can be geometry class instances. Workers can only receive
-// structured-cloneable data, so keep their input to the preview essentials.
-function workerToolpaths(toolpaths) {
-    return (toolpaths || []).map((toolpath) => ({
-        previewContours: (toolpath.previewContours || []).map((contour) =>
-            contour.map(workerPoint),
-        ),
-        motionPaths: (toolpath.motionPaths || []).map((path) => ({
-            points: (path.points || []).map(workerPoint),
-        })),
-        tabs: (toolpath.tabs || []).map((tab) => ({
-            contourIndex: Number(tab.contourIndex) || 0,
-            along: Number(tab.along) || 0,
-        })),
-        passDepths: (toolpath.passDepths || [])
-            .map(Number)
-            .filter(Number.isFinite),
-        toolDiameter: Number(toolpath.toolDiameter) || 0,
-        trochoidEnabled: Boolean(toolpath.trochoidEnabled),
-        trochoidRadius: Number(toolpath.trochoidRadius) || 0,
-        operation: toolpath.operation || '',
-        cutterAngle: Number(toolpath.cutterAngle) || 0,
-        tabHeight: Number(toolpath.tabHeight) || 0,
-        tabWidth: Number(toolpath.tabWidth) || 0,
-        cutDepth: Number(toolpath.cutDepth) || 0,
-    }));
-}
-
-function boundsFor(toolpaths) {
-    const points = [];
-    for (const toolpath of toolpaths) {
-        for (const contour of toolpath.previewContours || [])
-            points.push(...contour);
-        for (const path of toolpath.motionPaths || [])
-            points.push(...(path.points || []));
-    }
-    if (!points.length) return null;
-    let minX = Infinity,
-        minY = Infinity,
-        maxX = -Infinity,
-        maxY = -Infinity;
-    for (const point of points) {
-        if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
-        minX = Math.min(minX, point.x);
-        minY = Math.min(minY, point.y);
-        maxX = Math.max(maxX, point.x);
-        maxY = Math.max(maxY, point.y);
-    }
-    if (!Number.isFinite(minX)) return null;
-    // Stock always extends to the machine origin so zero stays on the stock.
-    return {
-        minX: Math.min(minX, 0),
-        minY: Math.min(minY, 0),
-        maxX: Math.max(maxX, 0),
-        maxY: Math.max(maxY, 0),
-    };
-}
-
-function tabDepth(toolpath, contour, along, cutDepth) {
-    const tabs = (toolpath.tabs || []).filter(
-        (tab) => tab.contourIndex === toolpath.previewContours.indexOf(contour),
-    );
-    if (!tabs.length || !toolpath.tabHeight) return cutDepth;
-    const total = contour.reduce(
-        (sum, point, index) =>
-            index ? sum + dist(contour[index - 1], point) : sum,
-        0,
-    );
-    const ramp = Math.max((toolpath.toolDiameter || 1) * 0.75, 0.5);
-    const width = Math.max(
-        toolpath.tabWidth || 0,
-        (toolpath.toolDiameter || 0) * 1.5,
-    );
-    const span = width + (toolpath.toolDiameter || 0);
-    const top = -Math.max(0, (toolpath.cutDepth || 0) - toolpath.tabHeight);
-    if (cutDepth >= top) return cutDepth;
-    let result = cutDepth;
-    for (const tab of tabs) {
-        const start = Math.max(0, tab.along - span / 2);
-        const end = Math.min(total, tab.along + span / 2);
-        const rampStart = Math.max(0, start - ramp);
-        const rampEnd = Math.min(total, end + ramp);
-        let factor = 0;
-        if (along >= start && along <= end) factor = 1;
-        else if (along >= rampStart && along < start)
-            factor = (along - rampStart) / Math.max(0.001, start - rampStart);
-        else if (along > end && along <= rampEnd)
-            factor = 1 - (along - end) / Math.max(0.001, rampEnd - end);
-        result = Math.max(result, cutDepth + (top - cutDepth) * factor);
-    }
-    return result;
-}
-
-function contourSamples(toolpath, contour, depth, step) {
-    const segments = [];
-    let total = 0;
-    for (let index = 1; index < contour.length; index += 1) {
-        const length = dist(contour[index - 1], contour[index]);
-        segments.push(length);
-        total += length;
-    }
-    const output = [];
-    let travelled = 0;
-    for (let index = 1; index < contour.length; index += 1) {
-        const a = contour[index - 1],
-            b = contour[index],
-            length = segments[index - 1];
-        const count = Math.max(1, Math.ceil(length / step));
-        for (let sample = 0; sample <= count; sample += 1) {
-            const ratio = sample / count;
-            const along = travelled + length * ratio;
-            output.push({
-                x: a.x + (b.x - a.x) * ratio,
-                y: a.y + (b.y - a.y) * ratio,
-                z: tabDepth(toolpath, contour, along, depth),
-            });
-        }
-        travelled += length;
-    }
-    return output;
-}
-
-function motionSamples(points, step) {
-    const output = [];
-    for (let index = 1; index < points.length; index += 1) {
-        const a = points[index - 1],
-            b = points[index],
-            length = dist(a, b);
-        const count = Math.max(1, Math.ceil(length / step));
-        for (let sample = 0; sample <= count; sample += 1) {
-            const ratio = sample / count;
-            output.push({
-                x: a.x + (b.x - a.x) * ratio,
-                y: a.y + (b.y - a.y) * ratio,
-                z: (a.z || 0) + ((b.z || 0) - (a.z || 0)) * ratio,
-            });
-        }
-    }
-    return output;
-}
-
-function paintSampleInto(grid, sample, geometry) {
-    if (sample.z >= -0.0001) return;
-    const { bounds, columns, rows, cellX, cellY } = geometry;
-    const tangent = Math.tan((sample.angle * Math.PI) / 180 / 2);
-    // A V-bit cuts a cone, not a slot: the footprint grows with tip depth
-    // (surface half-width = depth * tan(half-angle)). Using the body diameter
-    // here modelled it as a flat endmill, so v-carves rendered as thin slots
-    // instead of grooves that widen as the bit plunges deeper.
-    const depth = -sample.z;
-    const radius = sample.vbit
-        ? Math.max(
-              depth * tangent + sample.trochoidRadius,
-              Math.max(cellX, cellY) * 0.68,
-          )
-        : Math.max(
-              sample.cutter / 2 + sample.trochoidRadius,
-              Math.max(cellX, cellY) * 0.68,
-          );
-    const minColumn = clamp(
-        Math.floor((sample.x - radius - bounds.minX) / cellX),
-        0,
-        columns - 1,
-    );
-    const maxColumn = clamp(
-        Math.ceil((sample.x + radius - bounds.minX) / cellX),
-        0,
-        columns - 1,
-    );
-    const minRow = clamp(
-        Math.floor((sample.y - radius - bounds.minY) / cellY),
-        0,
-        rows - 1,
-    );
-    const maxRow = clamp(
-        Math.ceil((sample.y + radius - bounds.minY) / cellY),
-        0,
-        rows - 1,
-    );
-    for (let row = minRow; row <= maxRow; row += 1) {
-        const y = bounds.minY + row * cellY;
-        for (let column = minColumn; column <= maxColumn; column += 1) {
-            const x = bounds.minX + column * cellX;
-            const radial = Math.hypot(x - sample.x, y - sample.y);
-            if (radial > radius) continue;
-            const z = sample.vbit
-                ? Math.min(0, sample.z + radial / tangent)
-                : sample.z;
-            grid[row * columns + column] = Math.min(
-                grid[row * columns + column],
-                z,
-            );
-        }
-    }
-}
 
 export class CutPreview3D {
     constructor(canvas, statusElement) {
@@ -221,46 +29,12 @@ export class CutPreview3D {
         this.dark = true;
         this.showEdges = true;
         this.data = null;
-        this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100000);
-        this.controls = new OrbitControls(this.camera, canvas);
-        // The surface is rendered on a fitted 2D canvas, so OrbitControls'
-        // perspective pan/rotate deltas do not match its screen geometry. Keep
-        // OrbitControls for wheel zoom, and map rotate/pan directly to the same
-        // projection used by render().
-        this.controls.enableRotate = false;
-        this.controls.enablePan = false;
-        this.cameraHomeDistance = 1;
-        this.controls.addEventListener('change', () => this.render());
+        const view = createPreviewCamera(canvas, () => this.render());
+        this.camera = view.camera;
+        this.controls = view.controls;
+        this.cameraHomeDistance = view.homeDistance;
         this.drag = null;
-        canvas.addEventListener('contextmenu', (event) => event.preventDefault());
-        canvas.addEventListener('pointerdown', (event) => {
-            if (event.button !== 0 && event.button !== 2) return;
-            this.drag = {
-                button: event.button,
-                pointerId: event.pointerId,
-                x: event.clientX,
-                y: event.clientY,
-            };
-            canvas.setPointerCapture?.(event.pointerId);
-            event.preventDefault();
-        });
-        canvas.addEventListener('pointermove', (event) => {
-            if (!this.drag || event.pointerId !== this.drag.pointerId) return;
-            const dx = event.clientX - this.drag.x;
-            const dy = event.clientY - this.drag.y;
-            this.drag.x = event.clientX;
-            this.drag.y = event.clientY;
-            if (this.drag.button === 0) this.rotateFromDrag(dx, dy);
-            else this.panFromDrag(dx, dy);
-            event.preventDefault();
-        });
-        const endDrag = (event) => {
-            if (!this.drag || event.pointerId !== this.drag.pointerId) return;
-            canvas.releasePointerCapture?.(event.pointerId);
-            this.drag = null;
-        };
-        canvas.addEventListener('pointerup', endDrag);
-        canvas.addEventListener('pointercancel', endDrag);
+        installPreviewPointerControls(this);
         this.setCameraHome();
         this.version = 0;
         this.surfaceRevision = null;
@@ -301,86 +75,19 @@ export class CutPreview3D {
     }
 
     setCameraHome(top = false) {
-        const bounds = this.data?.bounds;
-        const width = bounds ? bounds.maxX - bounds.minX : 100;
-        const height = bounds ? bounds.maxY - bounds.minY : 100;
-        const thickness =
-            this.data?.stockThickness || Math.max(width, height) * 0.1;
-        const targetX = bounds ? bounds.minX + width / 2 : 0;
-        const targetZ = bounds ? bounds.minY + height / 2 : 0;
-        const distance = Math.max(20, (width + height + thickness) * 0.92);
-        const yaw = top ? 0 : 0.7;
-        const pitch = top ? 0.02 : 0.72;
-        const sinPitch = Math.sin(pitch);
-
-        this.controls.target.set(targetX, 0, targetZ);
-        this.camera.position.set(
-            targetX + distance * sinPitch * Math.sin(yaw),
-            distance * Math.cos(pitch),
-            targetZ + distance * sinPitch * Math.cos(yaw),
-        );
-        this.cameraHomeDistance = distance;
-        this.camera.lookAt(this.controls.target);
-        this.controls.update();
+        setPreviewCameraHome(this, top);
     }
 
     orbitView() {
-        const offset = this.camera.position.clone().sub(this.controls.target);
-        const distance = Math.max(offset.length(), 0.001);
-        return {
-            yaw: Math.atan2(offset.x, offset.z),
-            pitch: Math.acos(clamp(offset.y / distance, -1, 1)),
-            scale: this.cameraHomeDistance / distance,
-            targetX: this.controls.target.x,
-            targetY: this.controls.target.z,
-        };
+        return previewOrbitView(this);
     }
 
     rotateFromDrag(dx, dy) {
-        const offset = this.camera.position.clone().sub(this.controls.target);
-        const spherical = new THREE.Spherical().setFromVector3(offset);
-        const sensitivity = 0.0025;
-        // Match the familiar horizontal orbit direction, but invert vertical
-        // motion so dragging up moves the view up and dragging down moves it down.
-        spherical.theta -= dx * sensitivity;
-        spherical.phi = clamp(
-            spherical.phi + dy * sensitivity,
-            0.08,
-            Math.PI - 0.08,
-        );
-        offset.setFromSpherical(spherical);
-        this.camera.position.copy(this.controls.target).add(offset);
-        this.camera.lookAt(this.controls.target);
-        this.render();
+        rotatePreviewCamera(this, dx, dy);
     }
 
     panFromDrag(dx, dy) {
-        const rect = this.canvas.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-        const view = this.orbitView();
-        const bounds = this.data?.bounds;
-        const width = bounds ? bounds.maxX - bounds.minX : 100;
-        const height = bounds ? bounds.maxY - bounds.minY : 100;
-        const thickness = this.data?.stockThickness || Math.max(width, height) * 0.1;
-        const baseScale =
-            Math.min(
-                rect.width / (width + height),
-                rect.height / ((width + height) * 0.62 + thickness * 1.25),
-            ) * view.scale;
-        const cos = Math.cos(view.yaw);
-        const sin = Math.sin(view.yaw);
-        const cosPitch = Math.max(0.08, Math.cos(view.pitch));
-        // Invert the renderer's affine screen transform directly. This keeps
-        // the stock under the pointer instead of applying camera-space pan
-        // math intended for a perspective-rendered scene.
-        const targetDeltaX = (-cos * dx - sin * dy) / baseScale;
-        const targetDeltaZ = (-sin * dx + (cos * dy) / cosPitch) / baseScale;
-        this.controls.target.x += targetDeltaX;
-        this.controls.target.z += targetDeltaZ;
-        this.camera.position.x += targetDeltaX;
-        this.camera.position.z += targetDeltaZ;
-        this.camera.lookAt(this.controls.target);
-        this.render();
+        panPreviewCamera(this, dx, dy);
     }
 
     resize() {
@@ -424,18 +131,7 @@ export class CutPreview3D {
     }
 
     sampleAt(index) {
-        const offset = index * 6;
-        const data = this.data?.sampleData;
-        if (!data || offset + 5 >= data.length) return null;
-        return {
-            x: data[offset],
-            y: data[offset + 1],
-            z: data[offset + 2],
-            cutter: data[offset + 3],
-            trochoidRadius: data[offset + 4],
-            angle: data[offset + 5],
-            vbit: Boolean(this.data.sampleKinds?.[index]),
-        };
+        return previewSampleAt(this.data, index);
     }
 
     setPlaybackStatus() {
@@ -515,7 +211,7 @@ export class CutPreview3D {
             while (this.playback.index < target) {
                 const sample = this.sampleAt(this.playback.index);
                 if (!sample) break;
-                paintSampleInto(this.playback.grid, sample, this.data);
+                paintCutterSample(this.playback.grid, sample, this.data);
                 this.playback.activeSample = sample;
                 this.playback.index += 1;
             }
@@ -570,7 +266,7 @@ export class CutPreview3D {
             this.worker.postMessage({
                 type: 'build',
                 version,
-                toolpaths: workerToolpaths(toolpaths),
+                toolpaths: previewWorkerToolpaths(toolpaths),
             });
         } catch (error) {
             this.data = null;
@@ -687,23 +383,7 @@ export class CutPreview3D {
                 rect.width / (width + height),
                 rect.height / ((width + height) * 0.62 + stockThickness * 1.25),
             ) * view.scale;
-        const cos = Math.cos(view.yaw),
-            sin = Math.sin(view.yaw),
-            cp = Math.cos(view.pitch),
-            sp = Math.sin(view.pitch);
-        const project = (x, y, z) => {
-            // Canvas coordinates run down the screen; invert Y here so the 3D stock
-            // matches the 2D workspace orientation rather than mirroring it.
-            const xx = x - view.targetX,
-                yy = view.targetY - y;
-            const rx = xx * cos - yy * sin,
-                ry = xx * sin + yy * cos;
-            // Negative Z is down into the stock, so it must project lower on screen.
-            return {
-                x: rect.width / 2 + rx * baseScale,
-                y: rect.height / 2 + (ry * cp - z * sp) * baseScale,
-            };
-        };
+        const project = createPreviewProjection(rect, view, baseScale);
         const fillFace = (
             points,
             fill,
@@ -780,7 +460,11 @@ export class CutPreview3D {
         // Cut-edge overlay (three.js EdgesHelper equivalent): crisp outlines
         // where the height field steps, so pockets/profiles read clearly
         // against the smoothly shaded surface. Same warp as the surface.
-        if (this.showEdges && this.edgeCanvas && this.edgeRevision === this.surfaceRevision) {
+        if (
+            this.showEdges &&
+            this.edgeCanvas &&
+            this.edgeRevision === this.surfaceRevision
+        ) {
             ctx.save();
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
@@ -819,118 +503,15 @@ export class CutPreview3D {
             ctx.lineWidth = 1.2;
             ctx.stroke();
         }
-        // Floating origin callout so users know where to zero the machine.
-        // The worker already extends the stock to include (0,0); mark it here.
-        const originTop = project(0, 0, 0);
-        const lift = Math.max(
-            stockThickness * 0.6,
-            Math.max(width, height) * 0.08,
-            5,
-        );
-        const originFloat = project(0, 0, lift);
-        ctx.save();
-        ctx.strokeStyle = this.dark
-            ? 'rgba(62, 133, 199, 0.9)'
-            : '#3E85C7';
-        ctx.lineWidth = 1.2;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.moveTo(originTop.x, originTop.y);
-        ctx.lineTo(originFloat.x, originFloat.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.beginPath();
-        ctx.arc(originTop.x, originTop.y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        const label = 'Zero here';
-        ctx.font = '600 11px Segoe UI, system-ui, sans-serif';
-        const textWidth = ctx.measureText(label).width;
-        const padX = 7;
-        const pillW = textWidth + padX * 2;
-        const pillH = 20;
-        const pillX = originFloat.x - pillW / 2;
-        const pillY = originFloat.y - pillH - 6;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-            ctx.roundRect(pillX, pillY, pillW, pillH, 10);
-        } else {
-            ctx.rect(pillX, pillY, pillW, pillH);
-        }
-        ctx.fillStyle = '#3E85C7';
-        ctx.fill();
-        ctx.strokeStyle = this.dark
-            ? 'rgba(255, 255, 255, 0.9)'
-            : '#2c5d8b';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = '#ffffff';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, pillX + padX, pillY + pillH / 2 + 0.5);
-        ctx.restore();
-        // X/Y direction indicators from the zero corner. They start a small
-        // margin away from the origin dot so they never cover it, then run as
-        // dashed lines with arrowheads + axis labels in gSender axis colors.
-        const axisLen = clamp(Math.max(width, height) * 0.16, 12, 60);
-        const axisMargin = clamp(axisLen * 0.22, 4, 12);
-        const axisZ = Math.max(stockThickness * 0.05, 0.5);
-        const drawAxisIndicator = (start, end, color, text) => {
-            const p0 = project(start.x, start.y, start.z);
-            const p1 = project(end.x, end.y, end.z);
-            const dx = p1.x - p0.x;
-            const dy = p1.y - p0.y;
-            const len = Math.hypot(dx, dy);
-            if (!(len > 1)) return;
-            const ux = dx / len;
-            const uy = dy / len;
-            ctx.save();
-            ctx.strokeStyle = color;
-            ctx.fillStyle = color;
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([5, 4]);
-            ctx.beginPath();
-            ctx.moveTo(p0.x, p0.y);
-            ctx.lineTo(p1.x, p1.y);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            // Filled arrowhead oriented along the projected direction.
-            const headLen = 8;
-            const headHalf = 3.4;
-            const bx = p1.x - ux * headLen;
-            const by = p1.y - uy * headLen;
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(bx - uy * headHalf, by + ux * headHalf);
-            ctx.lineTo(bx + uy * headHalf, by - ux * headHalf);
-            ctx.closePath();
-            ctx.fill();
-            // Axis letter just past the tip with a halo for readability.
-            ctx.font = '700 12px Segoe UI, system-ui, sans-serif';
-            ctx.textBaseline = 'middle';
-            const lx = p1.x + ux * 10;
-            const ly = p1.y + uy * 10;
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = this.dark ? '#0b1220' : '#e8e8e8';
-            ctx.strokeText(text, lx - 4, ly);
-            ctx.fillStyle = color;
-            ctx.fillText(text, lx - 4, ly);
-            ctx.restore();
-        };
-        drawAxisIndicator(
-            { x: axisMargin, y: 0, z: axisZ },
-            { x: axisMargin + axisLen, y: 0, z: axisZ },
-            '#df3b3b',
-            'X',
-        );
-        drawAxisIndicator(
-            { x: 0, y: axisMargin, z: axisZ },
-            { x: 0, y: axisMargin + axisLen, z: axisZ },
-            '#06b881',
-            'Y',
-        );
+        drawPreviewOriginAndAxes({
+            ctx,
+            project,
+            bounds,
+            width,
+            height,
+            stockThickness,
+            dark: this.dark,
+        });
         const corner = project(bounds.minX, bounds.minY, 0);
         ctx.fillStyle = this.dark
             ? 'rgba(203, 213, 225, 0.75)'
@@ -944,164 +525,6 @@ export class CutPreview3D {
     }
 
     getSurfaceTexture(grid, columns, rows, maxDepth, revision) {
-        // The simulation grid may be millions of cells. A capped texture is visually
-        // indistinguishable at canvas scale, while avoiding a costly full-grid paint
-        // on every playback refresh.
-        const textureScale = Math.min(1, 800 / Math.max(columns, rows));
-        const textureColumns = Math.max(1, Math.round(columns * textureScale));
-        const textureRows = Math.max(1, Math.round(rows * textureScale));
-        if (
-            !this.surfaceCanvas ||
-            this.surfaceCanvas.width !== textureColumns ||
-            this.surfaceCanvas.height !== textureRows
-        ) {
-            this.surfaceCanvas = document.createElement('canvas');
-            this.surfaceCanvas.width = textureColumns;
-            this.surfaceCanvas.height = textureRows;
-            this.surfaceContext = this.surfaceCanvas.getContext('2d', {
-                alpha: false,
-            });
-        }
-        if (
-            !this.edgeCanvas ||
-            this.edgeCanvas.width !== textureColumns ||
-            this.edgeCanvas.height !== textureRows
-        ) {
-            this.edgeCanvas = document.createElement('canvas');
-            this.edgeCanvas.width = textureColumns;
-            this.edgeCanvas.height = textureRows;
-            this.edgeContext = this.edgeCanvas.getContext('2d');
-        }
-        const signature = `${columns}x${rows}:${textureColumns}x${textureRows}:${revision}`;
-        if (this.surfaceRevision === signature) return this.surfaceCanvas;
-        const image = this.surfaceContext.createImageData(
-            textureColumns,
-            textureRows,
-        );
-        const pixels = image.data;
-        const edgeImage = this.edgeContext.createImageData(
-            textureColumns,
-            textureRows,
-        );
-        const edgePixels = edgeImage.data;
-        const sourceIndex = (row, column) => {
-            const sourceRow = clamp(
-                Math.round((row / Math.max(1, textureRows - 1)) * (rows - 1)),
-                0,
-                rows - 1,
-            );
-            const sourceColumn = clamp(
-                Math.round(
-                    (column / Math.max(1, textureColumns - 1)) * (columns - 1),
-                ),
-                0,
-                columns - 1,
-            );
-            return sourceRow * columns + sourceColumn;
-        };
-        for (let row = 0; row < textureRows; row += 1) {
-            for (let column = 0; column < textureColumns; column += 1) {
-                const index = sourceIndex(row, column);
-                const center = grid[index];
-                const left = grid[sourceIndex(row, Math.max(0, column - 1))];
-                const right =
-                    grid[
-                        sourceIndex(
-                            row,
-                            Math.min(textureColumns - 1, column + 1),
-                        )
-                    ];
-                const above = grid[sourceIndex(Math.max(0, row - 1), column)];
-                const below =
-                    grid[
-                        sourceIndex(Math.min(textureRows - 1, row + 1), column)
-                    ];
-                const diagonalTopLeft =
-                    grid[
-                        sourceIndex(
-                            Math.max(0, row - 1),
-                            Math.max(0, column - 1),
-                        )
-                    ];
-                const diagonalTopRight =
-                    grid[
-                        sourceIndex(
-                            Math.max(0, row - 1),
-                            Math.min(textureColumns - 1, column + 1),
-                        )
-                    ];
-                const diagonalBottomLeft =
-                    grid[
-                        sourceIndex(
-                            Math.min(textureRows - 1, row + 1),
-                            Math.max(0, column - 1),
-                        )
-                    ];
-                const diagonalBottomRight =
-                    grid[
-                        sourceIndex(
-                            Math.min(textureRows - 1, row + 1),
-                            Math.min(textureColumns - 1, column + 1),
-                        )
-                    ];
-                // A weighted 3x3 filter gives continuous cutter edges while leaving
-                // the underlying depth data untouched for playback.
-                const softened =
-                    (center * 4 +
-                        left * 2 +
-                        right * 2 +
-                        above * 2 +
-                        below * 2 +
-                        diagonalTopLeft +
-                        diagonalTopRight +
-                        diagonalBottomLeft +
-                        diagonalBottomRight) /
-                    16;
-                const depth = clamp(-softened / maxDepth, 0, 1);
-                const slopeX = (right - left) / Math.max(maxDepth, 0.01);
-                const slopeY = (below - above) / Math.max(maxDepth, 0.01);
-                const slope = clamp(slopeX * 0.7 + slopeY * 0.45, -1, 1);
-                const edgeShade = clamp(
-                    Math.hypot(slopeX, slopeY) * 0.42,
-                    0,
-                    0.2,
-                );
-                const shade = clamp(
-                    1 - depth * 0.33 - slope * 0.12 - edgeShade,
-                    0.43,
-                    1,
-                );
-                const pixel = (row * textureColumns + column) * 4;
-                // Retain a solid stock colour, then darken only removed areas.
-                const base = 220;
-                const depthFactor = Math.round(depth * 45);
-                pixels[pixel] = Math.round((base - depthFactor) * shade);
-                pixels[pixel + 1] = Math.round((base - depthFactor) * shade);
-                pixels[pixel + 2] = Math.round((base - depthFactor) * shade);
-                pixels[pixel + 3] = 255;
-                // Edge overlay: raw (unsoftened) step between neighbours, so
-                // cut walls stay crisp instead of inheriting the blur above.
-                const step = Math.max(
-                    Math.abs(center - left),
-                    Math.abs(center - right),
-                    Math.abs(center - above),
-                    Math.abs(center - below),
-                );
-                const edgePixel = (row * textureColumns + column) * 4;
-                if (step > Math.max(0.12, maxDepth * 0.03)) {
-                    edgePixels[edgePixel] = 35;
-                    edgePixels[edgePixel + 1] = 35;
-                    edgePixels[edgePixel + 2] = 35;
-                    edgePixels[edgePixel + 3] = 165;
-                } else {
-                    edgePixels[edgePixel + 3] = 0;
-                }
-            }
-        }
-        this.surfaceContext.putImageData(image, 0, 0);
-        this.edgeContext.putImageData(edgeImage, 0, 0);
-        this.surfaceRevision = signature;
-        this.edgeRevision = signature;
-        return this.surfaceCanvas;
+        return getSurfaceTexture(this, grid, columns, rows, maxDepth, revision);
     }
 }

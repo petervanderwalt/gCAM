@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import cx from 'classnames';
-import type { ViewLoop } from './CanvasStage';
-import { FONT_OPTIONS } from '../lib/text';
+import type { ViewLoop } from '../canvas/types';
+import { FONT_OPTIONS } from '../draw/textGeometry';
 import { lengthUnit, type UnitSystem } from '../lib/units';
 import { UnitInput } from './UnitInput';
 
@@ -50,14 +50,15 @@ export function CadInspector({
     const [width, setWidth] = useState(w);
     const [height, setHeight] = useState(h);
     const [deg, setDeg] = useState(angle);
-    const isCircle = loop.sourceType === 'circle' || loop.exportGeometry?.type === 'circle';
+    const isCircle =
+        loop.sourceType === 'circle' || loop.exportGeometry?.type === 'circle';
     const isPolygon = loop.sourceType === 'polygon';
     const isText = loop.sourceType === 'text';
-    const [radius, setRadius] = useState(
-        loop.radius ?? Math.min(w, h) / 2,
-    );
+    const [radius, setRadius] = useState(loop.radius ?? Math.min(w, h) / 2);
     const [sides, setSides] = useState(loop.sides ?? 6);
-    const [polygonMode, setPolygonMode] = useState(loop.polygonMode ?? 'inscribed');
+    const [polygonMode, setPolygonMode] = useState(
+        loop.polygonMode ?? 'inscribed',
+    );
     const [text, setText] = useState(loop.text ?? 'TEXT');
     const [fontId, setFontId] = useState(loop.fontId ?? 'single-line');
     const [fontSize, setFontSize] = useState(loop.fontSize ?? h);
@@ -78,7 +79,19 @@ export function CadInspector({
     useEffect(() => {
         onPreview?.(currentPatch());
         return () => onPreview?.(null);
-    }, [x, y, width, height, deg, radius, sides, polygonMode, text, fontId, fontSize]);
+    }, [
+        x,
+        y,
+        width,
+        height,
+        deg,
+        radius,
+        sides,
+        polygonMode,
+        text,
+        fontId,
+        fontSize,
+    ]);
 
     const numCls =
         'w-full rounded-lg bg-white dark:bg-dark-lighter border border-slate-300 dark:border-robin-900 px-2 py-1.5 text-slate-900 dark:text-white text-sm';
@@ -192,7 +205,17 @@ export function CadInspector({
                             onChange={(e) => setSides(Number(e.target.value))}
                             className={numCls}
                         />
-                        <select value={polygonMode} onChange={(e) => setPolygonMode(e.target.value as 'inscribed' | 'circumscribed')} className={numCls}>
+                        <select
+                            value={polygonMode}
+                            onChange={(e) =>
+                                setPolygonMode(
+                                    e.target.value as
+                                        | 'inscribed'
+                                        | 'circumscribed',
+                                )
+                            }
+                            className={numCls}
+                        >
                             <option value="inscribed">Inscribed</option>
                             <option value="circumscribed">Circumscribed</option>
                         </select>
@@ -201,18 +224,43 @@ export function CadInspector({
                 {isText && (
                     <>
                         <label className="space-y-1 col-span-2">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Text</span>
-                            <input value={text} onChange={(e) => setText(e.target.value)} className={numCls} />
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Text
+                            </span>
+                            <input
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                                className={numCls}
+                            />
                         </label>
                         <label className="space-y-1 col-span-2">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Font</span>
-                            <select value={fontId} onChange={(e) => setFontId(e.target.value)} className={numCls}>
-                                {FONT_OPTIONS.map((font) => <option key={font.id} value={font.id}>{font.name}</option>)}
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Font
+                            </span>
+                            <select
+                                value={fontId}
+                                onChange={(e) => setFontId(e.target.value)}
+                                className={numCls}
+                            >
+                                {FONT_OPTIONS.map((font) => (
+                                    <option key={font.id} value={font.id}>
+                                        {font.name}
+                                    </option>
+                                ))}
                             </select>
                         </label>
                         <label className="space-y-1 col-span-2">
-                            <span className="text-xs text-slate-500 dark:text-slate-400">Font size ({lengthUnit(units)})</span>
-                            <UnitInput units={units} minMm={1} stepMm={0.1} valueMm={fontSize} onChangeMm={setFontSize} className={numCls} />
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Font size ({lengthUnit(units)})
+                            </span>
+                            <UnitInput
+                                units={units}
+                                minMm={1}
+                                stepMm={0.1}
+                                valueMm={fontSize}
+                                onChangeMm={setFontSize}
+                                className={numCls}
+                            />
                         </label>
                     </>
                 )}

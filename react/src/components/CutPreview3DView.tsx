@@ -10,7 +10,9 @@ interface PreviewInstance {
     resetPlayback(opts?: { render?: boolean }): void;
     replay(): void;
     resetCamera(top?: boolean): void;
-    onPlaybackChange?: ((playback: { running?: boolean; speed?: number }) => void) | null;
+    onPlaybackChange?:
+        | ((playback: { running?: boolean; speed?: number }) => void)
+        | null;
 }
 
 export interface PreviewControls {
@@ -49,7 +51,10 @@ export function CutPreview3DView({
             canvas,
             status,
         ) as unknown as PreviewInstance;
-        instance.onPlaybackChange = (playback: { running?: boolean; speed?: number }) => {
+        instance.onPlaybackChange = (playback: {
+            running?: boolean;
+            speed?: number;
+        }) => {
             setRunning(Boolean(playback?.running));
         };
         instanceRef.current = instance;
@@ -107,10 +112,7 @@ export function CutPreview3DView({
         });
     }, [empty, running]);
 
-    useEffect(
-        () => () => controlsCallbackRef.current?.(null),
-        [],
-    );
+    useEffect(() => () => controlsCallbackRef.current?.(null), []);
 
     return (
         <div

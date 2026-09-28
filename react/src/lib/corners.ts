@@ -47,16 +47,30 @@ export function filletCorner(
     const towardPrevious = norm(sub(prev, curr));
     const towardNext = norm(sub(next, curr));
     const angle = Math.acos(
-        Math.min(1, Math.max(-1, towardPrevious.x * towardNext.x + towardPrevious.y * towardNext.y)),
+        Math.min(
+            1,
+            Math.max(
+                -1,
+                towardPrevious.x * towardNext.x +
+                    towardPrevious.y * towardNext.y,
+            ),
+        ),
     );
     if (angle < 1e-6 || Math.PI - angle < 1e-6) return null;
     const effectiveRadius = Math.min(radius, left / 2, right / 2);
-    const trim = Math.min(effectiveRadius / Math.tan(angle / 2), left / 2, right / 2);
+    const trim = Math.min(
+        effectiveRadius / Math.tan(angle / 2),
+        left / 2,
+        right / 2,
+    );
     if (!(trim > 1e-9)) return null;
     const a = add(curr, mul(towardPrevious, trim));
     const b = add(curr, mul(towardNext, trim));
     const bisector = norm(add(towardPrevious, towardNext));
-    const center = add(curr, mul(bisector, effectiveRadius / Math.sin(angle / 2)));
+    const center = add(
+        curr,
+        mul(bisector, effectiveRadius / Math.sin(angle / 2)),
+    );
     const startAngle = Math.atan2(a.y - center.y, a.x - center.x);
     const endAngle = Math.atan2(b.y - center.y, b.x - center.x);
     let sweep = endAngle - startAngle;
@@ -112,7 +126,10 @@ export function dogboneCorner(
     const center = add(curr, mul(bisector, radius / bisectorLength));
     return Array.from({ length: segments + 1 }, (_, i) => {
         const angle = (i / segments) * Math.PI * 2;
-        return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius };
+        return {
+            x: center.x + Math.cos(angle) * radius,
+            y: center.y + Math.sin(angle) * radius,
+        };
     });
 }
 
@@ -135,7 +152,16 @@ export function filletLoop(
         const next = ring[(i + 1) % ring.length];
         const towardPrevious = norm(sub(prev, curr));
         const towardNext = norm(sub(next, curr));
-        const angle = Math.acos(Math.min(1, Math.max(-1, towardPrevious.x * towardNext.x + towardPrevious.y * towardNext.y)));
+        const angle = Math.acos(
+            Math.min(
+                1,
+                Math.max(
+                    -1,
+                    towardPrevious.x * towardNext.x +
+                        towardPrevious.y * towardNext.y,
+                ),
+            ),
+        );
         if (angle < 1e-6 || Math.PI - angle < 1e-6) {
             out.push(curr);
             continue;
@@ -152,7 +178,10 @@ export function filletLoop(
         const t2 = add(curr, mul(towardNext, dist));
         // Arc center along the angle bisector.
         const bisector = norm(add(towardPrevious, towardNext));
-        const center = add(curr, mul(bisector, effectiveRadius / Math.sin(angle / 2)));
+        const center = add(
+            curr,
+            mul(bisector, effectiveRadius / Math.sin(angle / 2)),
+        );
         const a0 = Math.atan2(t1.y - center.y, t1.x - center.x);
         let a1 = Math.atan2(t2.y - center.y, t2.x - center.x);
         // Sweep the short way through the corner.

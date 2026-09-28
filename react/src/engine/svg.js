@@ -6,8 +6,8 @@ import {
     parseSvgTransform,
     parseSvgPoints,
     sampleEllipsePoints,
-    closePoints,
-} from './paths.js';
+} from '../geometry/matrix.js';
+import { closePoints } from '../geometry/primitives.js';
 
 export function parseSvg(text) {
     const parser = new DOMParser();

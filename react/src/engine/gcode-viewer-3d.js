@@ -4,69 +4,10 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
-function makeTextSprite(text) {
-    const pad = 12;
-    const font = '600 28px Segoe UI, system-ui, sans-serif';
-    const measure = document.createElement('canvas').getContext('2d');
-    measure.font = font;
-    const textWidth = Math.ceil(measure.measureText(text).width);
-    const canvas = document.createElement('canvas');
-    canvas.width = textWidth + pad * 2;
-    canvas.height = 56;
-    const ctx = canvas.getContext('2d');
-    const radius = 26;
-    ctx.beginPath();
-    if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(1, 1, canvas.width - 2, canvas.height - 2, radius);
-    } else {
-        ctx.rect(1, 1, canvas.width - 2, canvas.height - 2);
-    }
-    // gSender primary blue in both modes so the pill matches gSender chrome.
-    ctx.fillStyle = '#3E85C7';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.font = font;
-    ctx.fillStyle = '#ffffff';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, pad, canvas.height / 2 + 1);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
-    const sprite = new THREE.Sprite(material);
-    const scale = 0.055;
-    sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
-    sprite.renderOrder = 10;
-    return sprite;
-}
-
-function makeAxisLabelSprite(text, color) {
-    const font = '700 44px Segoe UI, system-ui, sans-serif';
-    const measure = document.createElement('canvas').getContext('2d');
-    measure.font = font;
-    const textWidth = Math.ceil(measure.measureText(text).width);
-    const canvas = document.createElement('canvas');
-    canvas.width = textWidth + 24;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    ctx.font = font;
-    ctx.textBaseline = 'middle';
-    ctx.lineWidth = 7;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.strokeText(text, 12, canvas.height / 2 + 2);
-    ctx.fillStyle = color;
-    ctx.fillText(text, 12, canvas.height / 2 + 2);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true });
-    const sprite = new THREE.Sprite(material);
-    const scale = 0.055;
-    sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
-    sprite.renderOrder = 9;
-    return sprite;
-}
+import {
+    makeAxisLabelSprite,
+    makeTextSprite,
+} from './gcode-viewer-3d/sprites.js';
 
 export class GcodeViewer3D {
     constructor(canvas, statusElement) {
@@ -96,16 +37,25 @@ export class GcodeViewer3D {
         this.scene.add(dir);
 
         this.resize();
-        this.worker = new Worker(new URL('./gcode-viewer-worker.js', import.meta.url), {
-            type: 'module',
-        });
-        this.worker.addEventListener('message', ({ data }) => this.handleWorkerMessage(data));
+        this.worker = new Worker(
+            new URL('./gcode-viewer-worker.js', import.meta.url),
+            {
+                type: 'module',
+            },
+        );
+        this.worker.addEventListener('message', ({ data }) =>
+            this.handleWorkerMessage(data),
+        );
         this.worker.addEventListener('error', (event) => {
-            console.error('[gcode-viewer] worker error:', event?.message || event);
+            console.error(
+                '[gcode-viewer] worker error:',
+                event?.message || event,
+            );
             this.data = null;
             this.rebuildScene();
             if (this.statusElement) {
-                this.statusElement.textContent = 'G-code viewer worker failed. Rebuild to try again.';
+                this.statusElement.textContent =
+                    'G-code viewer worker failed. Rebuild to try again.';
             }
         });
         this.render();
@@ -113,14 +63,18 @@ export class GcodeViewer3D {
 
     setTheme(dark) {
         this.dark = dark !== false;
-        this.scene.background = new THREE.Color(this.dark ? '#0b1220' : '#f8fafc');
+        this.scene.background = new THREE.Color(
+            this.dark ? '#0b1220' : '#f8fafc',
+        );
         this.rebuildScene();
         this.render();
     }
 
     resize() {
         const parent = this.canvas.parentElement;
-        const rect = parent ? parent.getBoundingClientRect() : this.canvas.getBoundingClientRect();
+        const rect = parent
+            ? parent.getBoundingClientRect()
+            : this.canvas.getBoundingClientRect();
         const w = Math.max(1, Math.round(rect.width));
         const h = Math.max(1, Math.round(rect.height));
         this.renderer.setSize(w, h, false);
@@ -134,11 +88,23 @@ export class GcodeViewer3D {
         const sane = (v) => Number.isFinite(v);
         const validBounds =
             bounds &&
-            [bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ].every(sane);
+            [
+                bounds.minX,
+                bounds.minY,
+                bounds.minZ,
+                bounds.maxX,
+                bounds.maxY,
+                bounds.maxZ,
+            ].every(sane);
         const cx = validBounds ? (bounds.minX + bounds.maxX) / 2 : 0;
         const cy = validBounds ? (bounds.minY + bounds.maxY) / 2 : 0;
         let size = validBounds
-            ? Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, bounds.maxZ - bounds.minZ, 10)
+            ? Math.max(
+                  bounds.maxX - bounds.minX,
+                  bounds.maxY - bounds.minY,
+                  bounds.maxZ - bounds.minZ,
+                  10,
+              )
             : 120;
         if (!sane(size) || size <= 0) size = 120;
         if (!sane(cx) || !sane(cy)) {
@@ -172,7 +138,8 @@ export class GcodeViewer3D {
             this.rebuildScene();
             this.render();
             if (this.statusElement) {
-                this.statusElement.textContent = 'Add a toolpath to preview G-code.';
+                this.statusElement.textContent =
+                    'Add a toolpath to preview G-code.';
             }
             return;
         }
@@ -185,7 +152,8 @@ export class GcodeViewer3D {
             this.worker.postMessage({ type: 'build', version, gcode });
         } catch {
             if (this.statusElement) {
-                this.statusElement.textContent = 'G-code could not be sent to the viewer worker.';
+                this.statusElement.textContent =
+                    'G-code could not be sent to the viewer worker.';
             }
         }
     }
@@ -196,8 +164,7 @@ export class GcodeViewer3D {
             if (this.statusElement) {
                 const pct = Number(data.progress) || 0;
                 const lines = Number(data.lineCount) || 0;
-                this.statusElement.textContent =
-                    `Parsing G-code… ${pct}% (${lines.toLocaleString()} lines)`;
+                this.statusElement.textContent = `Parsing G-code… ${pct}% (${lines.toLocaleString()} lines)`;
             }
             return;
         }
@@ -205,9 +172,13 @@ export class GcodeViewer3D {
             this.data = null;
             this.rebuildScene();
             this.render();
-            console.error('[gcode-viewer]', data.message || 'G-code parse failed.');
+            console.error(
+                '[gcode-viewer]',
+                data.message || 'G-code parse failed.',
+            );
             if (this.statusElement) {
-                this.statusElement.textContent = data.message || 'G-code parse failed.';
+                this.statusElement.textContent =
+                    data.message || 'G-code parse failed.';
             }
             return;
         }
@@ -221,8 +192,7 @@ export class GcodeViewer3D {
         // Paint the status first: the scene rebuild + GPU upload below is
         // synchronous and can take seconds on huge files.
         if (this.statusElement) {
-            this.statusElement.textContent =
-                `Rendering ${segmentCount.toLocaleString()} segments…`;
+            this.statusElement.textContent = `Rendering ${segmentCount.toLocaleString()} segments…`;
         }
         await new Promise((resolve) => setTimeout(resolve, 30));
         if (version !== this.version) return;
@@ -240,12 +210,26 @@ export class GcodeViewer3D {
                     rawBounds.maxZ,
                 ].every(Number.isFinite)
             ) {
-                throw new Error('G-code contains coordinates outside the viewable range.');
+                throw new Error(
+                    'G-code contains coordinates outside the viewable range.',
+                );
             }
             this.data = {
-                positions: new Float32Array(data.positions, 0, Number(data.positionsLen) || 0),
-                colors: new Float32Array(data.colors, 0, Number(data.colorsLen) || 0),
-                frames: new Uint32Array(data.frames, 0, Number(data.framesLen) || 0),
+                positions: new Float32Array(
+                    data.positions,
+                    0,
+                    Number(data.positionsLen) || 0,
+                ),
+                colors: new Float32Array(
+                    data.colors,
+                    0,
+                    Number(data.colorsLen) || 0,
+                ),
+                frames: new Uint32Array(
+                    data.frames,
+                    0,
+                    Number(data.framesLen) || 0,
+                ),
                 bounds: data.bounds,
                 lineCount: data.lineCount,
                 segmentCount,
@@ -254,7 +238,8 @@ export class GcodeViewer3D {
             this.resetCamera(false);
             if (this.statusElement) {
                 if (!this.data.bounds) {
-                    this.statusElement.textContent = 'No motion found in G-code.';
+                    this.statusElement.textContent =
+                        'No motion found in G-code.';
                 } else {
                     const b = this.data.bounds;
                     this.statusElement.textContent =
@@ -272,8 +257,7 @@ export class GcodeViewer3D {
             this.rebuildScene();
             this.render();
             if (this.statusElement) {
-                this.statusElement.textContent =
-                    `G-code view failed (${error?.message || error}). The file may be too large to render.`;
+                this.statusElement.textContent = `G-code view failed (${error?.message || error}). The file may be too large to render.`;
             }
         }
     }
@@ -321,7 +305,10 @@ export class GcodeViewer3D {
         const axisMargin = Math.max(2, span * 0.02);
         const axisZ = Math.max(0.5, span * 0.004);
         const mkDashedAxis = (from, to, colorHex) => {
-            const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                from,
+                to,
+            ]);
             const material = new THREE.LineDashedMaterial({
                 color: colorHex,
                 dashSize: Math.max(1, span * 0.012),
@@ -339,7 +326,10 @@ export class GcodeViewer3D {
             const material = new THREE.MeshBasicMaterial({ color: colorHex });
             const cone = new THREE.Mesh(geometry, material);
             cone.position.copy(tip).addScaledVector(dir, -height / 2);
-            cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+            cone.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                dir.clone().normalize(),
+            );
             return cone;
         };
         const axes = new THREE.Group();
@@ -367,10 +357,14 @@ export class GcodeViewer3D {
             })(),
         );
         const xLabel = makeAxisLabelSprite('X', '#df3b3b');
-        xLabel.position.copy(xTo).add(new THREE.Vector3(Math.max(2, span * 0.02), 0, 0));
+        xLabel.position
+            .copy(xTo)
+            .add(new THREE.Vector3(Math.max(2, span * 0.02), 0, 0));
         axes.add(xLabel);
         const yLabel = makeAxisLabelSprite('Y', '#06b881');
-        yLabel.position.copy(yTo).add(new THREE.Vector3(0, Math.max(2, span * 0.02), 0));
+        yLabel.position
+            .copy(yTo)
+            .add(new THREE.Vector3(0, Math.max(2, span * 0.02), 0));
         axes.add(yLabel);
         axes.rotation.x = -Math.PI / 2;
         this.group.add(axes);
@@ -392,7 +386,11 @@ export class GcodeViewer3D {
         this.group.add(
             new THREE.Line(
                 stemGeometry,
-                new THREE.LineDashedMaterial({ color: 0x3e85c7, dashSize: 2, gapSize: 1.5 }),
+                new THREE.LineDashedMaterial({
+                    color: 0x3e85c7,
+                    dashSize: 2,
+                    gapSize: 1.5,
+                }),
             ),
         );
         const stem = this.group.children[this.group.children.length - 1];
@@ -400,7 +398,10 @@ export class GcodeViewer3D {
 
         if (this.data && this.data.positions.length >= 6) {
             const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.BufferAttribute(this.data.positions, 3));
+            geometry.setAttribute(
+                'position',
+                new THREE.BufferAttribute(this.data.positions, 3),
+            );
             const colors = this.data.colors.slice();
             if (!this.dark) {
                 // Darken the cutting/rapid colors against the light viewer
@@ -412,8 +413,15 @@ export class GcodeViewer3D {
                     colors[i + 2] = rapid ? 0.24 : 0.58;
                 }
             }
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 });
+            geometry.setAttribute(
+                'color',
+                new THREE.BufferAttribute(colors, 3),
+            );
+            const material = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.95,
+            });
             const lines = new THREE.LineSegments(geometry, material);
             // Map machine XYZ onto Three.js XZ with Y-up.
             lines.rotation.x = -Math.PI / 2;
