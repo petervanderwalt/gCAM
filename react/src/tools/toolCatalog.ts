@@ -7,10 +7,7 @@ import type { ToolSlot, ToolType } from './library';
 export const REQUIRED_TOOL_FIELDS: Record<string, string> = {
     name: 'Tool name',
     cuttingDiameterMm: 'Diameter',
-    feedRate: 'Feed Rate',
-    plungeRate: 'Plunge Rate',
-    spindle: 'Spindle RPM',
-    passDepthMm: 'Pass Depth',
+    flutes: 'Flute count',
     fluteAngleDeg: 'V Angle',
 };
 
@@ -56,10 +53,7 @@ export function slotIssues(slot: ToolSlot): string[] {
     if (!slot.name.trim()) missing.push(REQUIRED_TOOL_FIELDS.name);
     if (need(slot.cuttingDiameterMm))
         missing.push(REQUIRED_TOOL_FIELDS.cuttingDiameterMm);
-    if (need(slot.feedRate)) missing.push(REQUIRED_TOOL_FIELDS.feedRate);
-    if (need(slot.plungeRate)) missing.push(REQUIRED_TOOL_FIELDS.plungeRate);
-    if (need(slot.spindle)) missing.push(REQUIRED_TOOL_FIELDS.spindle);
-    if (need(slot.passDepthMm)) missing.push(REQUIRED_TOOL_FIELDS.passDepthMm);
+    if (need(slot.flutes)) missing.push(REQUIRED_TOOL_FIELDS.flutes);
     if (slot.toolType === 'v-bit' && need(slot.fluteAngleDeg))
         missing.push(REQUIRED_TOOL_FIELDS.fluteAngleDeg);
     return missing;
@@ -71,9 +65,6 @@ export function rowHasAnyData(slot: ToolSlot): boolean {
             slot.name.trim() ||
             slot.cuttingDiameterMm ||
             slot.fluteAngleDeg ||
-            slot.feedRate ||
-            slot.plungeRate ||
-            slot.spindle ||
-            slot.passDepthMm,
+            slot.flutes,
     );
 }

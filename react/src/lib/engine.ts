@@ -61,6 +61,9 @@ export interface ProfileArgs {
     textureType?: 'voronoi' | 'crosshatch';
     textureSpacing?: number;
     crosshatchAngle?: number;
+    /** Material and machine used to calculate this toolpath's saved recipe. */
+    material?: string;
+    machineProfileId?: string;
     /** Emit G2/G3 arcs for circles (default) or G1-only polylines. */
     arcs?: boolean;
     feedRate?: number;

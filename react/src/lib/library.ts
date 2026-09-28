@@ -16,6 +16,12 @@ export interface LibraryTool {
         | 'specialty';
     operationHints: string[];
     cuttingDiameterMm: number | null;
+    cuttingLengthMm: number | null;
+    shankDiameterMm: number | null;
+    flutes: number | null;
+    fluteType: string;
+    cutterMaterial: string;
+    coating: string;
     fluteAngleDeg: number | null;
     image: string;
     storeUrl: string;
@@ -53,6 +59,12 @@ export function normalizeLibraryTool(raw: unknown): LibraryTool {
               )
             : [],
         cuttingDiameterMm: num(r.cuttingDiameterMm),
+        cuttingLengthMm: num(r.cuttingLengthMm),
+        shankDiameterMm: num(r.shankDiameterMm),
+        flutes: num(r.flutes),
+        fluteType: str(r.fluteType),
+        cutterMaterial: str(r.material),
+        coating: str(r.coating),
         fluteAngleDeg: num(r.fluteAngleDeg),
         image: str(r.image),
         storeUrl: str(r.storeUrl) || str(r.purchaseUrl) || str(r.productUrl),
@@ -94,6 +106,12 @@ export function resolveLibraryImage(
     base = import.meta.env.BASE_URL || '/',
 ) {
     if (!image || /^(?:https?:|data:|\/)/.test(image)) return image;
+    // Saved tool-rack entries from earlier releases may already contain a
+    // public-library path.  Treat it as rooted at the app base rather than
+    // nesting the source directory again on every reload.
+    if (image.startsWith('library/')) {
+        return `${base}${image}`.replace(/(?<!:)\/+/g, '/');
+    }
     const sourceDirectory = sourceUrl.slice(0, sourceUrl.lastIndexOf('/') + 1);
     return `${base}${sourceDirectory}${image}`.replace(/(?<!:)\/+/g, '/');
 }

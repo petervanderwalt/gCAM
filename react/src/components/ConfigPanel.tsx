@@ -6,6 +6,7 @@ import { Box, Grid, Layers, Lightbulb, Ruler, Settings } from 'lucide-react';
 import cx from 'classnames';
 import { lengthUnit, type UnitSystem } from '../lib/units';
 import { UnitInput } from './UnitInput';
+import { MACHINE_PROFILES } from '../cutting-parameters/machines';
 
 export type GridStyle = 'lines' | 'dots';
 
@@ -63,6 +64,8 @@ interface ConfigPanelProps {
     onEmitArcsChange: (v: boolean) => void;
     units: UnitSystem;
     onUnitsChange: (units: UnitSystem) => void;
+    machineProfileId: string;
+    onMachineProfileChange: (id: string) => void;
     onActionsChange?: (actions: ConfigActions | null) => void;
 }
 
@@ -91,6 +94,8 @@ export function ConfigPanel({
     onEmitArcsChange,
     units,
     onUnitsChange,
+    machineProfileId,
+    onMachineProfileChange,
     onActionsChange,
 }: ConfigPanelProps) {
     const importInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +123,7 @@ export function ConfigPanel({
             grid,
             emitArcs,
             units,
+            machineProfileId,
             toastTimeout,
         };
         const blob = new Blob([JSON.stringify(config, null, 2)], {
@@ -146,6 +152,14 @@ export function ConfigPanel({
                     onEmitArcsChange(config.emitArcs);
                 if (config.units === 'metric' || config.units === 'imperial')
                     onUnitsChange(config.units);
+                if (
+                    typeof config.machineProfileId === 'string' &&
+                    MACHINE_PROFILES.some(
+                        (profile) => profile.id === config.machineProfileId,
+                    )
+                ) {
+                    onMachineProfileChange(config.machineProfileId);
+                }
                 if (typeof config.toastTimeout === 'number')
                     setToastTimeout(config.toastTimeout);
                 flash('Configuration imported');
@@ -167,6 +181,7 @@ export function ConfigPanel({
         });
         onEmitArcsChange(true);
         onUnitsChange('metric');
+        onMachineProfileChange('longmill-router');
         setToastTimeout(3000);
         flash('Configuration reset to defaults');
     };
@@ -177,7 +192,16 @@ export function ConfigPanel({
             importConfig: () => importInputRef.current?.click(),
             resetConfig: handleResetConfig,
         });
-    }, [darkMode, emitArcs, grid, onActionsChange, toastTimeout, units]);
+    }, [
+        darkMode,
+        emitArcs,
+        grid,
+        machineProfileId,
+        onActionsChange,
+        onMachineProfileChange,
+        toastTimeout,
+        units,
+    ]);
 
     return (
         <div className="flex flex-col h-full overflow-y-auto p-4 space-y-6 bg-slate-100 dark:bg-slate-800">
@@ -190,6 +214,34 @@ export function ConfigPanel({
                     Application preferences and defaults
                 </p>
             </header>
+
+            <section className="space-y-4">
+                <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                    <Box size={16} className="text-robin-400" />
+                    Machine
+                </h3>
+                <div className="space-y-3 bg-white dark:bg-slate-800/80 rounded-lg border border-slate-300 dark:border-robin-900/70 p-4 shadow-sm dark:shadow-[0_4px_16px_rgba(2,6,23,0.18)]">
+                    <SettingRow
+                        label="Machine and spindle"
+                        description="Sets safe motion and spindle limits for automatic cutting recommendations"
+                    >
+                        <select
+                            value={machineProfileId}
+                            onChange={(event) =>
+                                onMachineProfileChange(event.target.value)
+                            }
+                            className={cx(inputCls, 'max-w-[190px] text-left')}
+                            aria-label="Machine and spindle profile"
+                        >
+                            {MACHINE_PROFILES.map((profile) => (
+                                <option key={profile.id} value={profile.id}>
+                                    {profile.displayName}
+                                </option>
+                            ))}
+                        </select>
+                    </SettingRow>
+                </div>
+            </section>
 
             <section className="space-y-4">
                 <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">

@@ -13,15 +13,7 @@ import {
     type ToolType,
 } from './library';
 import { loadToolLibraries, type LibraryTool } from '../lib/library';
-import {
-    displayFeed,
-    displayValue,
-    feedUnit,
-    lengthUnit,
-    toMm,
-    toMmPerMinute,
-    type UnitSystem,
-} from '../lib/units';
+import { displayValue, lengthUnit, toMm, type UnitSystem } from '../lib/units';
 import { REQUIRED_TOOL_FIELDS, rowHasAnyData, slotIssues } from './toolCatalog';
 import { ToolCatalogSelect } from './ToolCatalogSelect';
 import { ToolSlotRow } from './ToolSlotRow';
@@ -256,10 +248,10 @@ function ToolSlotEditor({
         slot.cuttingDiameterMm?.toString() ?? '',
     );
     const [angle, setAngle] = useState(slot.fluteAngleDeg?.toString() ?? '');
-    const [feed, setFeed] = useState(slot.feedRate?.toString() ?? '');
-    const [plunge, setPlunge] = useState(slot.plungeRate?.toString() ?? '');
-    const [rpm, setRpm] = useState(slot.spindle?.toString() ?? '');
-    const [pass, setPass] = useState(slot.passDepthMm?.toString() ?? '');
+    const [flutes, setFlutes] = useState(slot.flutes?.toString() ?? '');
+    const [cuttingLength, setCuttingLength] = useState(
+        slot.cuttingLengthMm?.toString() ?? '',
+    );
     const [touched, setTouched] = useState(false);
 
     const num = (v: string) => {
@@ -270,21 +262,16 @@ function ToolSlotEditor({
         const n = num(v);
         return n == null ? '' : displayValue(n, units);
     };
-    const displayRate = (v: string) => {
-        const n = num(v);
-        return n == null ? '' : displayFeed(n, units);
-    };
     const draft: ToolSlot = {
         ...slot,
         name,
         toolType,
         libraryToolId: libraryToolId || null,
         cuttingDiameterMm: num(diameter),
+        cuttingLengthMm: num(cuttingLength),
+        flutes: num(flutes),
+        cutterMaterial: slot.cutterMaterial,
         fluteAngleDeg: num(angle),
-        feedRate: num(feed),
-        plungeRate: num(plunge),
-        spindle: num(rpm),
-        passDepthMm: num(pass),
     };
     const issues = rowHasAnyData(draft) ? slotIssues(draft) : [];
     const invalid = (field: string) =>
@@ -308,6 +295,9 @@ function ToolSlotEditor({
         setToolType(tool.toolType);
         if (tool.cuttingDiameterMm != null)
             setDiameter(String(tool.cuttingDiameterMm));
+        if (tool.cuttingLengthMm != null)
+            setCuttingLength(String(tool.cuttingLengthMm));
+        if (tool.flutes != null) setFlutes(String(tool.flutes));
         if (tool.fluteAngleDeg != null) setAngle(String(tool.fluteAngleDeg));
     };
 
@@ -416,81 +406,32 @@ function ToolSlotEditor({
                 )}
                 <label className="space-y-1">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Feed ({feedUnit(units)}) *
-                    </span>
-                    <input
-                        type="number"
-                        min={displayFeed(1, units)}
-                        value={displayRate(feed)}
-                        onChange={(e) => {
-                            setFeed(
-                                e.target.value === ''
-                                    ? ''
-                                    : String(
-                                          toMmPerMinute(
-                                              Number(e.target.value),
-                                              units,
-                                          ),
-                                      ),
-                            );
-                            setTouched(true);
-                        }}
-                        aria-invalid={invalid('feedRate')}
-                        className={fieldCls(invalid('feedRate'))}
-                    />
-                </label>
-                <label className="space-y-1">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Plunge ({feedUnit(units)}) *
-                    </span>
-                    <input
-                        type="number"
-                        min={displayFeed(1, units)}
-                        value={displayRate(plunge)}
-                        onChange={(e) => {
-                            setPlunge(
-                                e.target.value === ''
-                                    ? ''
-                                    : String(
-                                          toMmPerMinute(
-                                              Number(e.target.value),
-                                              units,
-                                          ),
-                                      ),
-                            );
-                            setTouched(true);
-                        }}
-                        aria-invalid={invalid('plungeRate')}
-                        className={fieldCls(invalid('plungeRate'))}
-                    />
-                </label>
-                <label className="space-y-1">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Spindle (RPM) *
+                        Flutes *
                     </span>
                     <input
                         type="number"
                         min={1}
-                        value={rpm}
+                        max={12}
+                        value={flutes}
                         onChange={(e) => {
-                            setRpm(e.target.value);
+                            setFlutes(e.target.value);
                             setTouched(true);
                         }}
-                        aria-invalid={invalid('spindle')}
-                        className={fieldCls(invalid('spindle'))}
+                        aria-invalid={invalid('flutes')}
+                        className={fieldCls(invalid('flutes'))}
                     />
                 </label>
                 <label className="space-y-1">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Pass Depth ({lengthUnit(units)}) *
+                        Cutting length ({lengthUnit(units)})
                     </span>
                     <input
                         type="number"
+                        min={0}
                         step={displayValue(0.1, units)}
-                        min={displayValue(0.1, units)}
-                        value={displayLength(pass)}
+                        value={displayLength(cuttingLength)}
                         onChange={(e) => {
-                            setPass(
+                            setCuttingLength(
                                 e.target.value === ''
                                     ? ''
                                     : String(
@@ -499,8 +440,7 @@ function ToolSlotEditor({
                             );
                             setTouched(true);
                         }}
-                        aria-invalid={invalid('passDepthMm')}
-                        className={fieldCls(invalid('passDepthMm'))}
+                        className={fieldCls(false)}
                     />
                 </label>
             </div>
@@ -536,11 +476,10 @@ function ToolSlotEditor({
                             storeUrl: tool?.storeUrl ?? '',
                             image: tool?.image ?? '',
                             cuttingDiameterMm: num(diameter),
+                            cuttingLengthMm: num(cuttingLength),
+                            flutes: num(flutes),
+                            cutterMaterial: tool?.cutterMaterial ?? '',
                             fluteAngleDeg: num(angle),
-                            feedRate: num(feed),
-                            plungeRate: num(plunge),
-                            spindle: num(rpm),
-                            passDepthMm: num(pass),
                         });
                     }}
                     disabled={!valid}

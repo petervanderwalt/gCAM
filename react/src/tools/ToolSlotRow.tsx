@@ -3,13 +3,7 @@
  */
 import { Edit2, Trash2 } from 'lucide-react';
 import cx from 'classnames';
-import {
-    displayFeed,
-    displayValue,
-    feedUnit,
-    lengthUnit,
-    type UnitSystem,
-} from '../lib/units';
+import { displayValue, lengthUnit, type UnitSystem } from '../lib/units';
 import { isConfigured, type ToolSlot } from './library';
 import { ToolImage } from './ImagePicker';
 import { toolTypeLabel } from './toolCatalog';
@@ -77,10 +71,10 @@ export function ToolSlotRow({
                                       slot.toolType === 'v-bit'
                                           ? `${slot.fluteAngleDeg}°`
                                           : null,
-                                      `F${displayFeed(slot.feedRate ?? 0, units)} ${feedUnit(units)}`,
-                                      `P${displayFeed(slot.plungeRate ?? 0, units)} ${feedUnit(units)}`,
-                                      `S${slot.spindle}`,
-                                      `D${displayValue(slot.passDepthMm ?? 0, units)}${lengthUnit(units)}`,
+                                      `${slot.flutes ?? '?'}F`,
+                                      slot.cuttingLengthMm
+                                          ? `L${displayValue(slot.cuttingLengthMm, units)}${lengthUnit(units)}`
+                                          : null,
                                       slot.vendorDisplayName || null,
                                   ]
                                       .filter(Boolean)
