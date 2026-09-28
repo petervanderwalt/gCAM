@@ -1,14 +1,8 @@
 # gCAM
 
-gCAM is a browser-only CAD/CAM companion for gSender. It imports and draws
-geometry, produces CNC and laser toolpaths, previews the result, and exports
-G-code. It does not connect to or control a machine.
+gCAM is a exploration of CAM workflows - to become a CAM app at some point
 
 **Live app:** [petervanderwalt.github.io/gCAM](https://petervanderwalt.github.io/gCAM/)
-
-The application lives in [`react/`](react/). The repository root intentionally
-contains only repository automation and this overview; run all application
-commands from `react/`.
 
 ## Development
 
@@ -23,9 +17,7 @@ Useful checks are `yarn test`, `yarn check-types`, `yarn lint`,
 
 ## Structure
 
-`*.test.*` files are the tests for their adjacent feature. Third-party and
-binary asset directories are called out as groups so the tree stays useful to
-navigate rather than becoming a list of hundreds of font/image files.
+`*.test.*` files are the tests for their adjacent feature. 
 
 ```text
 gCAM/
@@ -338,18 +330,6 @@ gCAM/
             ├── file.ts                 File API stub
             └── orbit-controls.ts       Three.js OrbitControls stub
 ```
-
-## Where new code goes
-
-- A new CAM algorithm belongs in `src/cam/operations/` (one file per operation)
-  with its form in `src/toolpaths/` and its operation metadata in
-  `src/toolpaths/operationCatalog.ts`.
-- Canvas rendering and pointer input belong in `src/canvas/`; drawing creation
-  belongs in `src/draw/`; edit/selection commands belong in `src/interactions/`.
-- File/import/persistence work belongs in `src/document/`; pure reusable
-  geometry belongs in `src/geometry/`.
-- Keep `App.tsx` as composition only. It should wire domain hooks together, not
-  absorb a canvas, CAM, import, or geometry implementation.
 
 See [`react/docs/architecture.md`](react/docs/architecture.md) for the concise
 boundary rules used during implementation and review.
