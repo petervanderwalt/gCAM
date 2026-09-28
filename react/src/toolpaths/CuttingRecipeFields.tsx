@@ -49,10 +49,7 @@ export function CuttingRecipeFields({
             </select>
             {recommendation ? (
                 <div className="pt-1 text-xs text-slate-600 dark:text-slate-300">
-                    <div className="font-medium text-slate-800 dark:text-white">
-                        Starting recommendation
-                    </div>
-                    <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">
                         <span>Feed</span>
                         <span className="text-right">
                             {displayFeed(recommendation.feedMmMin, units)}{' '}
@@ -73,14 +70,6 @@ export function CuttingRecipeFields({
                             {lengthUnit(units)}
                         </span>
                     </div>
-                    <p className="mt-2 text-slate-500 dark:text-slate-400">
-                        Prioritises{' '}
-                        {recommendation.recipe.primaryConstraint.replace(
-                            '-',
-                            ' ',
-                        )}
-                        . Validate with a test cut.
-                    </p>
                 </div>
             ) : (
                 <p className="text-xs text-amber-700 dark:text-amber-300">
