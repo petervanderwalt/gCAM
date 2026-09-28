@@ -16,6 +16,12 @@ export interface LibraryTool {
         | 'specialty';
     operationHints: string[];
     cuttingDiameterMm: number | null;
+    cuttingLengthMm: number | null;
+    shankDiameterMm: number | null;
+    flutes: number | null;
+    fluteType: string;
+    cutterMaterial: string;
+    coating: string;
     fluteAngleDeg: number | null;
     image: string;
     storeUrl: string;
@@ -53,6 +59,12 @@ export function normalizeLibraryTool(raw: unknown): LibraryTool {
               )
             : [],
         cuttingDiameterMm: num(r.cuttingDiameterMm),
+        cuttingLengthMm: num(r.cuttingLengthMm),
+        shankDiameterMm: num(r.shankDiameterMm),
+        flutes: num(r.flutes),
+        fluteType: str(r.fluteType),
+        cutterMaterial: str(r.material),
+        coating: str(r.coating),
         fluteAngleDeg: num(r.fluteAngleDeg),
         image: str(r.image),
         storeUrl: str(r.storeUrl) || str(r.purchaseUrl) || str(r.productUrl),

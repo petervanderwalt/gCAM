@@ -1,0 +1,88 @@
+/**
+ * Purpose: Curated material recipe fixtures used by the recommendation engine.
+ * These values are conservative starting envelopes, not a substitute for validation.
+ */
+import type { MaterialId, MaterialRecipe } from './types';
+
+export const MATERIAL_RECIPES: Record<MaterialId, MaterialRecipe> = {
+    softwood: {
+        id: 'softwood',
+        label: 'Softwood',
+        primaryConstraint: 'finish-grain',
+        surfaceSpeedMMin: { min: 250, max: 400 },
+        chipLoadMmTooth: { min: 0.08, max: 0.2 },
+        maxPassDepthDiameterRatio: 0.75,
+        maxStepoverPercent: 45,
+        plungeFeedPercent: 25,
+    },
+    hardwood: {
+        id: 'hardwood',
+        label: 'Hardwood',
+        primaryConstraint: 'finish-grain',
+        surfaceSpeedMMin: { min: 180, max: 300 },
+        chipLoadMmTooth: { min: 0.05, max: 0.14 },
+        maxPassDepthDiameterRatio: 0.45,
+        maxStepoverPercent: 35,
+        plungeFeedPercent: 20,
+    },
+    'sheet-goods': {
+        id: 'sheet-goods',
+        label: 'Plywood and MDF',
+        primaryConstraint: 'finish-grain',
+        surfaceSpeedMMin: { min: 180, max: 280 },
+        chipLoadMmTooth: { min: 0.05, max: 0.12 },
+        maxPassDepthDiameterRatio: 0.4,
+        maxStepoverPercent: 35,
+        plungeFeedPercent: 20,
+    },
+    aluminium: {
+        id: 'aluminium',
+        label: 'Aluminium',
+        primaryConstraint: 'force-power',
+        surfaceSpeedMMin: { min: 80, max: 160 },
+        chipLoadMmTooth: { min: 0.02, max: 0.06 },
+        maxPassDepthDiameterRatio: 0.2,
+        maxStepoverPercent: 20,
+        plungeFeedPercent: 10,
+    },
+    brass: {
+        id: 'brass',
+        label: 'Brass',
+        primaryConstraint: 'force-power',
+        surfaceSpeedMMin: { min: 100, max: 200 },
+        chipLoadMmTooth: { min: 0.025, max: 0.07 },
+        maxPassDepthDiameterRatio: 0.25,
+        maxStepoverPercent: 25,
+        plungeFeedPercent: 12,
+    },
+    acrylic: {
+        id: 'acrylic',
+        label: 'Acrylic',
+        primaryConstraint: 'thermal',
+        surfaceSpeedMMin: { min: 120, max: 220 },
+        chipLoadMmTooth: { min: 0.08, max: 0.18 },
+        maxPassDepthDiameterRatio: 0.35,
+        maxStepoverPercent: 30,
+        plungeFeedPercent: 15,
+    },
+    hdpe: {
+        id: 'hdpe',
+        label: 'HDPE',
+        primaryConstraint: 'thermal',
+        surfaceSpeedMMin: { min: 120, max: 220 },
+        chipLoadMmTooth: { min: 0.1, max: 0.22 },
+        maxPassDepthDiameterRatio: 0.45,
+        maxStepoverPercent: 35,
+        plungeFeedPercent: 18,
+    },
+    foam: {
+        id: 'foam',
+        label: 'Foam',
+        primaryConstraint: 'finish',
+        surfaceSpeedMMin: { min: 150, max: 300 },
+        chipLoadMmTooth: { min: 0.1, max: 0.3 },
+        maxPassDepthDiameterRatio: 1,
+        maxStepoverPercent: 50,
+        plungeFeedPercent: 30,
+    },
+};

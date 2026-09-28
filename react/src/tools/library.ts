@@ -16,6 +16,9 @@ export interface ToolSlot {
     name: string;
     toolType: ToolType;
     cuttingDiameterMm: number | null;
+    cuttingLengthMm: number | null;
+    flutes: number | null;
+    cutterMaterial: string;
     fluteAngleDeg: number | null;
     feedRate: number | null;
     plungeRate: number | null;
@@ -38,6 +41,9 @@ export function blankSlots(): ToolSlot[] {
         name: '',
         toolType: 'flat' as ToolType,
         cuttingDiameterMm: null,
+        cuttingLengthMm: null,
+        flutes: null,
+        cutterMaterial: '',
         fluteAngleDeg: null,
         feedRate: null,
         plungeRate: null,
@@ -84,6 +90,9 @@ function normalize(raw: unknown, slot: number): ToolSlot {
         name: str(r.name),
         toolType,
         cuttingDiameterMm: num(r.cuttingDiameterMm),
+        cuttingLengthMm: num(r.cuttingLengthMm),
+        flutes: num(r.flutes),
+        cutterMaterial: str(r.cutterMaterial),
         fluteAngleDeg: num(r.fluteAngleDeg),
         feedRate: num(r.feedRate),
         plungeRate: num(r.plungeRate),

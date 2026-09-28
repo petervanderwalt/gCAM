@@ -26,6 +26,28 @@ describe('normalizeLibraryTool', () => {
         expect(tool.storeUrl).toBe('https://example.com/buy');
     });
 
+    it('retains cutter geometry needed for recommendations', () => {
+        const tool = normalizeLibraryTool({
+            id: 'x-geometry',
+            cuttingDiameterMm: 6.35,
+            cuttingLengthMm: 20,
+            shankDiameterMm: 6.35,
+            flutes: 2,
+            fluteType: 'Upcut',
+            material: 'Solid carbide',
+            coating: 'ZrN',
+        });
+        expect(tool).toMatchObject({
+            cuttingDiameterMm: 6.35,
+            cuttingLengthMm: 20,
+            shankDiameterMm: 6.35,
+            flutes: 2,
+            fluteType: 'Upcut',
+            cutterMaterial: 'Solid carbide',
+            coating: 'ZrN',
+        });
+    });
+
     it('rejects unknown tool types', () => {
         const tool = normalizeLibraryTool({ id: 'x-3', toolType: 'torus' });
         expect(tool.toolType).toBe('flat');
