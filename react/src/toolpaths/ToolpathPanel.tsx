@@ -293,7 +293,7 @@ export function ToolpathPanel({
             plungeRate,
             spindle,
             safeZ,
-            passDepth,
+            passDepth: operation === 'texture-fill' ? cutDepth : passDepth,
             arcs: defaultArcs,
             overlapPercent: overlap,
             tabWidth,
@@ -604,9 +604,11 @@ export function ToolpathPanel({
                     textureType={textureType}
                     textureSpacing={textureSpacing}
                     crosshatchAngle={crosshatchAngle}
+                    cutDepth={cutDepth}
                     onTypeChange={setTextureType}
                     onSpacingChange={setTextureSpacing}
                     onCrosshatchAngleChange={setCrosshatchAngle}
+                    onCutDepthChange={setCutDepth}
                 />
             )}
             <RasterLaserFields

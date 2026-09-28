@@ -5,6 +5,7 @@ import {
     libraryMetaLine,
     loadToolLibraries,
     normalizeLibraryTool,
+    resolveLibraryImage,
     toolSupportsOperation,
 } from './library';
 
@@ -69,6 +70,7 @@ describe('loadToolLibraries', () => {
                                   id: 's-1',
                                   name: 'Surfacing',
                                   vendor: 'sienci',
+                                  image: 'images/surfacing.jpg',
                               },
                           ],
                       }
@@ -82,6 +84,9 @@ describe('loadToolLibraries', () => {
             ],
         );
         expect(tools.map((t) => t.id)).toEqual(['s-1', 'o-1']);
+        expect(tools[0].image).toBe(
+            '/library/tools/sienci/images/surfacing.jpg',
+        );
         expect(tools[1].vendor).toBe('test-fixture');
     });
 
@@ -93,4 +98,14 @@ describe('loadToolLibraries', () => {
             ]),
         ).rejects.toThrow('Failed to load sienci tool library.');
     });
+});
+
+test('resolves bundled tool images from the site base path', () => {
+    expect(
+        resolveLibraryImage(
+            'images/bit.jpg',
+            'library/tools/sienci/tools.json',
+            '/gCAM/',
+        ),
+    ).toBe('/gCAM/library/tools/sienci/images/bit.jpg');
 });

@@ -1,6 +1,7 @@
 /**
  * Purpose: Implementation module for library in the react domain.
  */
+import { resolveLibraryImage } from '../lib/library';
 export type ToolType =
     | 'flat'
     | 'ball'
@@ -93,7 +94,13 @@ function normalize(raw: unknown, slot: number): ToolSlot {
         vendor: str(r.vendor),
         vendorDisplayName: str(r.vendorDisplayName),
         storeUrl: str(r.storeUrl),
-        image: str(r.image),
+        image:
+            r.vendor && str(r.image)
+                ? resolveLibraryImage(
+                      str(r.image),
+                      `library/tools/${str(r.vendor)}/tools.json`,
+                  )
+                : str(r.image),
     };
 }
 

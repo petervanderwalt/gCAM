@@ -88,6 +88,16 @@ export const LIBRARY_SOURCES: LibrarySource[] = [
     { url: 'library/tools/sienci/tools.json', vendor: 'sienci' },
 ];
 
+export function resolveLibraryImage(
+    image: string,
+    sourceUrl: string,
+    base = import.meta.env.BASE_URL || '/',
+) {
+    if (!image || /^(?:https?:|data:|\/)/.test(image)) return image;
+    const sourceDirectory = sourceUrl.slice(0, sourceUrl.lastIndexOf('/') + 1);
+    return `${base}${sourceDirectory}${image}`.replace(/(?<!:)\/+/g, '/');
+}
+
 /** Fetch + normalize vendor catalogs (served from public/). */
 export async function loadToolLibraries(
     fetchFn: typeof fetch = fetch,
@@ -113,6 +123,7 @@ export async function loadToolLibraries(
             if (!tool.id) continue;
             if (!tool.vendor) tool.vendor = source.vendor;
             if (!tool.vendorDisplayName) tool.vendorDisplayName = source.vendor;
+            tool.image = resolveLibraryImage(tool.image, source.url, base);
             tools.push(tool);
         }
     }

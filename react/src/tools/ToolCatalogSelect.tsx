@@ -5,6 +5,7 @@ import { ExternalLink } from 'lucide-react';
 import type { LibraryTool } from '../lib/library';
 import type { UnitSystem } from '../lib/units';
 import { displayValue, lengthUnit } from '../lib/units';
+import { ImagePicker } from './ImagePicker';
 import { catalogGroups } from './toolCatalog';
 
 function catalogMetaLine(tool: LibraryTool, units: UnitSystem): string {
@@ -40,23 +41,29 @@ export function ToolCatalogSelect({
             <span className="text-xs text-slate-500 dark:text-slate-400">
                 Catalog tool
             </span>
-            <select
+            <ImagePicker
+                ariaLabel="Catalog tool"
                 value={selectedId}
-                onChange={(event) => onSelect(event.target.value)}
+                onChange={onSelect}
                 className={className}
-                aria-label="Catalog tool"
-            >
-                <option value="">Custom tool (manual entry)</option>
-                {catalogGroups(catalog).map((group) => (
-                    <optgroup key={group.value} label={group.label}>
-                        {group.tools.map((tool) => (
-                            <option key={tool.id} value={tool.id}>
-                                {tool.name} — {catalogMetaLine(tool, units)}
-                            </option>
-                        ))}
-                    </optgroup>
-                ))}
-            </select>
+                placeholder="Custom tool (manual entry)"
+                groups={[
+                    {
+                        options: [
+                            { id: '', label: 'Custom tool (manual entry)' },
+                        ],
+                    },
+                    ...catalogGroups(catalog).map((group) => ({
+                        label: group.label,
+                        options: group.tools.map((tool) => ({
+                            id: tool.id,
+                            label: tool.name,
+                            detail: catalogMetaLine(tool, units),
+                            image: tool.image,
+                        })),
+                    })),
+                ]}
+            />
             {catalogError && (
                 <p className="text-xs text-red-500">{catalogError}</p>
             )}

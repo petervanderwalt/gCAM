@@ -4,6 +4,7 @@
 import { Settings } from 'lucide-react';
 import { displayValue, lengthUnit, type UnitSystem } from '../lib/units';
 import type { ToolSlot } from '../tools/library';
+import { ImagePicker } from '../tools/ImagePicker';
 
 interface ToolSlotSelectorProps {
     slots: ToolSlot[];
@@ -37,18 +38,26 @@ export function ToolSlotSelector({
                     <Settings size={18} />
                 </button>
             </div>
-            <select
-                value={slotNum}
-                onChange={(event) => onSelect(Number(event.target.value))}
+            <ImagePicker
+                ariaLabel="Tool library slot"
+                value={String(slotNum)}
+                onChange={(value) => onSelect(Number(value))}
                 className="w-full rounded-lg bg-slate-100 dark:bg-dark-lighter border border-slate-300 dark:border-robin-900 px-2 py-2.5 text-slate-900 dark:text-white text-sm"
-                aria-label="Tool library slot"
-            >
-                {slots.map((slot) => (
-                    <option key={slot.slot} value={slot.slot}>
-                        {`T${slot.slot} — ${slot.name || 'empty'}${slot.cuttingDiameterMm != null ? ` — Ø${displayValue(slot.cuttingDiameterMm, units)}${lengthUnit(units)}` : ''}`}
-                    </option>
-                ))}
-            </select>
+                placeholder="Select a tool"
+                groups={[
+                    {
+                        options: slots.map((slot) => ({
+                            id: String(slot.slot),
+                            label: `T${slot.slot} — ${slot.name || 'empty'}`,
+                            detail:
+                                slot.cuttingDiameterMm != null
+                                    ? `Ø${displayValue(slot.cuttingDiameterMm, units)}${lengthUnit(units)}`
+                                    : 'Not configured',
+                            image: slot.image,
+                        })),
+                    },
+                ]}
+            />
         </div>
     );
 }

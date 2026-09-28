@@ -11,6 +11,7 @@ import {
     type UnitSystem,
 } from '../lib/units';
 import { isConfigured, type ToolSlot } from './library';
+import { ToolImage } from './ImagePicker';
 import { toolTypeLabel } from './toolCatalog';
 
 export function ToolSlotRow({
@@ -47,6 +48,12 @@ export function ToolSlotRow({
                     >
                         T{slot.slot}
                     </div>
+                    {configured && (
+                        <ToolImage
+                            image={slot.image}
+                            alt={`${slot.name} cutter`}
+                        />
+                    )}
                     <div className="min-w-0">
                         <div
                             className={cx(
