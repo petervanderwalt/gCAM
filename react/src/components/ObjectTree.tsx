@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import type { ViewLoop } from './CanvasStage';
+import type { ViewLoop } from '../canvas/types';
 import { displayValue, lengthUnit, type UnitSystem } from '../lib/units';
 
 export interface TreeBitmap {
@@ -51,7 +51,11 @@ export function ObjectTree({
     units: UnitSystem;
 }) {
     const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-    const [context, setContext] = useState<{ id: string; x: number; y: number } | null>(null);
+    const [context, setContext] = useState<{
+        id: string;
+        x: number;
+        y: number;
+    } | null>(null);
     const hide = new Set(hidden);
     const groupNames = Array.from(
         new Set(loops.map((loop) => loop.groupId).filter(Boolean) as string[]),
@@ -68,7 +72,9 @@ export function ObjectTree({
     return (
         <aside className="absolute top-2 left-2 z-10 w-52 max-h-[60%] flex flex-col rounded border border-slate-300 bg-white/95 text-xs text-slate-700 shadow-lg dark:border-robin-900 dark:bg-dark/95 dark:text-slate-200">
             <div className="flex items-center justify-between px-2 py-1.5 border-b border-slate-200 dark:border-robin-900">
-                <span className="font-medium text-slate-900 dark:text-white">Objects</span>
+                <span className="font-medium text-slate-900 dark:text-white">
+                    Objects
+                </span>
                 <button
                     onClick={onClose}
                     aria-label="Close object browser"
@@ -97,9 +103,33 @@ export function ObjectTree({
                             Ungroup
                         </button>
                     )}
-                    {onEdit && <button onClick={onEdit} disabled={!selected.length} className="flex-1 rounded border border-slate-300 px-1.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 dark:border-robin-700 dark:text-slate-300 dark:hover:bg-dark-lighter disabled:opacity-40">Edit</button>}
-                    {onMove && <button onClick={onMove} disabled={!selected.length} className="flex-1 rounded border border-slate-300 px-1.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 dark:border-robin-700 dark:text-slate-300 dark:hover:bg-dark-lighter disabled:opacity-40">Move</button>}
-                    {onResize && <button onClick={onResize} disabled={!selected.length} className="flex-1 rounded border border-slate-300 px-1.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 dark:border-robin-700 dark:text-slate-300 dark:hover:bg-dark-lighter disabled:opacity-40">Resize</button>}
+                    {onEdit && (
+                        <button
+                            onClick={onEdit}
+                            disabled={!selected.length}
+                            className="flex-1 rounded border border-slate-300 px-1.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 dark:border-robin-700 dark:text-slate-300 dark:hover:bg-dark-lighter disabled:opacity-40"
+                        >
+                            Edit
+                        </button>
+                    )}
+                    {onMove && (
+                        <button
+                            onClick={onMove}
+                            disabled={!selected.length}
+                            className="flex-1 rounded border border-slate-300 px-1.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 dark:border-robin-700 dark:text-slate-300 dark:hover:bg-dark-lighter disabled:opacity-40"
+                        >
+                            Move
+                        </button>
+                    )}
+                    {onResize && (
+                        <button
+                            onClick={onResize}
+                            disabled={!selected.length}
+                            className="flex-1 rounded border border-slate-300 px-1.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 dark:border-robin-700 dark:text-slate-300 dark:hover:bg-dark-lighter disabled:opacity-40"
+                        >
+                            Resize
+                        </button>
+                    )}
                 </div>
             )}
             <div className="overflow-y-auto no-scrollbar">
@@ -115,20 +145,27 @@ export function ObjectTree({
                     >
                         <button
                             className="flex w-full items-center gap-1 text-left"
-                            onClick={() => setCollapsed((previous) => {
-                                const next = new Set(previous);
-                                if (next.has(groupId)) next.delete(groupId);
-                                else next.add(groupId);
-                                return next;
-                            })}
+                            onClick={() =>
+                                setCollapsed((previous) => {
+                                    const next = new Set(previous);
+                                    if (next.has(groupId)) next.delete(groupId);
+                                    else next.add(groupId);
+                                    return next;
+                                })
+                            }
                         >
-                            {collapsed.has(groupId) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                            {collapsed.has(groupId) ? (
+                                <ChevronRight size={13} />
+                            ) : (
+                                <ChevronDown size={13} />
+                            )}
                             Group {groupId.replace(/^group-/, '')}
                         </button>
                     </div>
                 ))}
                 {loops.map((loop, i) => {
-                    if (loop.groupId && collapsed.has(loop.groupId)) return null;
+                    if (loop.groupId && collapsed.has(loop.groupId))
+                        return null;
                     const isHidden = hide.has(loop.id);
                     const isSelected = selected.includes(loop.id);
                     return (
@@ -137,7 +174,11 @@ export function ObjectTree({
                             onContextMenu={(event) => {
                                 event.preventDefault();
                                 onSelect([loop.id]);
-                                setContext({ id: loop.id, x: event.clientX, y: event.clientY });
+                                setContext({
+                                    id: loop.id,
+                                    x: event.clientX,
+                                    y: event.clientY,
+                                });
                             }}
                             className={`flex items-center gap-1 px-2 py-1 ${loop.groupId ? 'pl-4' : ''} ${
                                 isSelected
@@ -151,7 +192,9 @@ export function ObjectTree({
                                     if (event.ctrlKey || event.metaKey) {
                                         onSelect(
                                             isSelected
-                                                ? selected.filter((id) => id !== loop.id)
+                                                ? selected.filter(
+                                                      (id) => id !== loop.id,
+                                                  )
                                                 : [...selected, loop.id],
                                         );
                                     } else {
@@ -193,9 +236,33 @@ export function ObjectTree({
                     style={{ left: context.x, top: context.y }}
                     onMouseLeave={() => setContext(null)}
                 >
-                    <button className="block w-full rounded px-2 py-1 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-dark-lighter" onClick={() => { onSelect([context.id]); setContext(null); }}>Select</button>
-                    <button className="block w-full rounded px-2 py-1 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-dark-lighter" onClick={() => { onToggleHidden(context.id); setContext(null); }}>Toggle visibility</button>
-                    <button className="block w-full rounded px-2 py-1 text-left text-red-500 hover:bg-slate-100 dark:text-red-300 dark:hover:bg-dark-lighter" onClick={() => { onDelete(context.id); setContext(null); }}>Delete</button>
+                    <button
+                        className="block w-full rounded px-2 py-1 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-dark-lighter"
+                        onClick={() => {
+                            onSelect([context.id]);
+                            setContext(null);
+                        }}
+                    >
+                        Select
+                    </button>
+                    <button
+                        className="block w-full rounded px-2 py-1 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-dark-lighter"
+                        onClick={() => {
+                            onToggleHidden(context.id);
+                            setContext(null);
+                        }}
+                    >
+                        Toggle visibility
+                    </button>
+                    <button
+                        className="block w-full rounded px-2 py-1 text-left text-red-500 hover:bg-slate-100 dark:text-red-300 dark:hover:bg-dark-lighter"
+                        onClick={() => {
+                            onDelete(context.id);
+                            setContext(null);
+                        }}
+                    >
+                        Delete
+                    </button>
                 </div>
             )}
         </aside>

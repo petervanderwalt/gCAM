@@ -5,13 +5,18 @@ import {
     createToolpathFromLoops,
     createToolpathFromLoopsAsync,
     offsetCompositePolygons,
-} from '../engine/cam-ops.js';
-import { boundsOfPoints } from '../engine/paths.js';
+} from '../cam/cam-ops.js';
+import { boundsOfPoints } from '../geometry/bounds.js';
 import {
     createToolpathInWorker,
     buildGcodeInWorker,
     terminateWorker,
 } from '../engine/cam-worker-client.ts';
+import {
+    assertToolpathRequest,
+    makeToolpathConfig,
+    prepareRasterInput,
+} from '../toolpaths/toolpathRequest';
 
 export type Operation =
     | 'profile-outside'
@@ -20,6 +25,7 @@ export type Operation =
     | 'engrave'
     | 'chamfer'
     | 'vcarve'
+    | 'texture-fill'
     | 'laser-cut'
     | 'laser-raster'
     | 'wavy-raster'
@@ -49,6 +55,9 @@ export interface ProfileArgs {
     wavyFeed?: number;
     halftoneResolution?: number;
     halftoneInvert?: boolean;
+    textureType?: 'voronoi' | 'crosshatch';
+    textureSpacing?: number;
+    crosshatchAngle?: number;
     /** Emit G2/G3 arcs for circles (default) or G1-only polylines. */
     arcs?: boolean;
     feedRate?: number;
@@ -110,6 +119,9 @@ function makeBase(
         wavyFeed?: number;
         halftoneResolution?: number;
         halftoneInvert?: boolean;
+        textureType?: 'voronoi' | 'crosshatch';
+        textureSpacing?: number;
+        crosshatchAngle?: number;
         feedRate?: number;
         plungeRate?: number;
         spindle?: number;
@@ -140,6 +152,9 @@ function makeBase(
         wavyFeed,
         halftoneResolution = 50,
         halftoneInvert = false,
+        textureType = 'voronoi',
+        textureSpacing = 5,
+        crosshatchAngle = 45,
         feedRate = 1800,
         plungeRate = 600,
         spindle = 18000,
@@ -188,6 +203,9 @@ function makeBase(
         wavyFeed: wavyFeed ?? feedRate,
         halftoneResolution,
         halftoneInvert,
+        textureType,
+        textureSpacing,
+        crosshatchAngle,
     };
 }
 
@@ -210,6 +228,9 @@ export function buildToolpathGcode({
     wavyFeed,
     halftoneResolution = 50,
     halftoneInvert = false,
+    textureType = 'voronoi',
+    textureSpacing = 5,
+    crosshatchAngle = 45,
     arcs = true,
     tabs = [],
     fileName,
@@ -247,7 +268,9 @@ export function buildToolpathGcode({
         return Promise.reject(
             new Error('Cut depth must be greater than zero.'),
         );
-    const base = makeBase(operation, {
+    assertToolpathRequest({ operation, toolDiameter, cutDepth }, bitmap);
+    const base = makeToolpathConfig({
+        operation,
         toolDiameter,
         cutDepth,
         cutterAngle,
@@ -264,6 +287,9 @@ export function buildToolpathGcode({
         wavyFeed,
         halftoneResolution,
         halftoneInvert,
+        textureType,
+        textureSpacing,
+        crosshatchAngle,
         feedRate,
         plungeRate,
         spindle,
@@ -277,28 +303,7 @@ export function buildToolpathGcode({
         toolNumber,
     });
     // Raster ops sample bitmap pixels: flag the loop and hand the entity over.
-    const raster =
-        (operation === 'laser-raster' ||
-            operation === 'wavy-raster' ||
-            operation === 'halftone') &&
-        bitmap
-            ? {
-                  loops: loops.map((loop) => ({
-                      ...loop,
-                      isBitmap: true,
-                      bounds: bitmap.bounds,
-                  })),
-                  options: {
-                      sourceEntities: [
-                          {
-                              type: 'BITMAP',
-                              _imageData: bitmap.imageData,
-                              bounds: bitmap.bounds,
-                          },
-                      ],
-                  },
-              }
-            : { loops, options: {} };
+    const raster = prepareRasterInput(loops, operation, bitmap);
     const withTabs = <T extends object>(toolpath: T): T => {
         (toolpath as { tabs?: PlacedTab[] }).tabs = tabs.map((t) => ({
             ...t,
@@ -416,40 +421,10 @@ export async function buildToolpathGcodeAsync(
     } = args;
 
     if (!loops.length) throw new Error('No vectors selected.');
-    if (operation === 'laser-raster' && !bitmap)
-        throw new Error('Laser Raster needs a bitmap — import an image first.');
-    if (operation === 'wavy-raster' && !bitmap)
-        throw new Error('Wavy needs a bitmap — import an image first.');
-    if (operation === 'halftone' && !bitmap)
-        throw new Error('Halftone needs a bitmap — import an image first.');
-    if (!(config.toolDiameter > 0))
-        throw new Error('Tool diameter must be greater than zero.');
-    if (!(config.cutDepth > 0))
-        throw new Error('Cut depth must be greater than zero.');
+    assertToolpathRequest({ operation, ...config }, bitmap);
 
     // Prepare raster data for bitmap operations
-    const raster =
-        (operation === 'laser-raster' ||
-            operation === 'wavy-raster' ||
-            operation === 'halftone') &&
-        bitmap
-            ? {
-                  loops: loops.map((loop) => ({
-                      ...loop,
-                      isBitmap: true,
-                      bounds: bitmap.bounds,
-                  })),
-                  options: {
-                      sourceEntities: [
-                          {
-                              type: 'BITMAP',
-                              _imageData: bitmap.imageData,
-                              bounds: bitmap.bounds,
-                          },
-                      ],
-                  },
-              }
-            : { loops, options: {} };
+    const raster = prepareRasterInput(loops, operation, bitmap);
 
     // Wrap onProgress to match worker client signature
     const workerProgress = onProgress
@@ -457,7 +432,12 @@ export async function buildToolpathGcodeAsync(
               onProgress(p.percent, p.label)
         : undefined;
 
-    const base = makeBase(operation, config);
+    const base = makeToolpathConfig({
+        operation,
+        ...config,
+        halftoneResolution,
+        halftoneInvert,
+    });
 
     const toolpath = await createToolpathInWorker(
         raster.loops,

@@ -3,7 +3,7 @@ import {
     buildToolpathGcode,
     combineToolpaths,
 } from './lib/engine';
-import { createToolpathFromLoops } from './engine/cam-ops.js';
+import { createToolpathFromLoops } from './cam/cam-ops.js';
 
 const SQUARE = [
     { x: 0, y: 0 },

@@ -1,116 +1,94 @@
-import * as CamOps from './cam-ops.js';
+import * as CamOps from '../cam/cam-ops.js';
+import type {
+    BuildGcodeRequest,
+    BuildToolpathRequest,
+    CamWorkerMessage,
+    CamWorkerRequest,
+} from './cam-worker-protocol';
 
 let clipperReadyPromise: Promise<void> | null = null;
+const cancelledRequestIds = new Set<number>();
 
 async function ensureClipper(): Promise<void> {
-    if (globalThis.ClipperLib) {
-        return;
+    if (globalThis.ClipperLib) return;
+    if (!clipperReadyPromise) {
+        clipperReadyPromise = import('./clipper-shim.js').then(() => undefined);
     }
-    if (clipperReadyPromise) {
-        return clipperReadyPromise;
-    }
-    // In the worker, we need to load ClipperLib from the public folder
-    // We'll use the clipper-shim which sets up ClipperLib globally
-    await import('./clipper-shim.js');
-    // Give it a moment to initialize
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await clipperReadyPromise;
     if (!globalThis.ClipperLib) {
-        throw new Error('ClipperLib failed to initialize in worker');
+        throw new Error('ClipperLib failed to initialize in worker.');
     }
 }
 
-function postProgress(id: number, percent: number, label: string) {
-    self.postMessage({
-        id,
-        progress: { percent, label },
+function post(message: CamWorkerMessage): void {
+    self.postMessage(message);
+}
+
+function postProgress(id: number, percent: number, label: string): void {
+    if (!cancelledRequestIds.has(id))
+        post({ id, progress: { percent, label } });
+}
+
+async function buildToolpath(data: BuildToolpathRequest): Promise<unknown> {
+    const { id, selectedLoops, config, toolpathOptions } = data;
+    postProgress(id, 8, 'Preparing toolpath');
+    const options = {
+        ...toolpathOptions,
+        sourceEntities: config.sourceEntities,
+        onProgress: ((percent: number, label: string) =>
+            postProgress(id, percent, label)) as unknown as () => void,
+    };
+    const result = await CamOps.createToolpathFromLoopsAsync(
+        selectedLoops,
+        config,
+        options,
+    );
+    return result;
+}
+
+async function buildGcode(data: BuildGcodeRequest): Promise<unknown> {
+    const { id, toolpaths, fileName, forcePolylineArcs } = data;
+    postProgress(id, 5, 'Preparing G-code');
+    return CamOps.buildGcodeAsync({
+        toolpaths,
+        fileName,
+        forcePolylineArcs,
+        onProgress: ((percent: number, label: string) =>
+            postProgress(id, percent, label)) as unknown as () => void,
     });
 }
 
-interface BuildToolpathPayload {
-    id: number;
-    type: 'build-toolpath';
-    selectedLoops: any[];
-    config: any;
-    toolpathOptions: any;
-}
-
-interface BuildGcodePayload {
-    id: number;
-    type: 'build-gcode';
-    toolpaths: any[];
-    fileName: string;
-    forcePolylineArcs: boolean;
-}
-
-type WorkerPayload = BuildToolpathPayload | BuildGcodePayload;
-
-function isBuildToolpath(
-    payload: WorkerPayload,
-): payload is BuildToolpathPayload {
-    return payload.type === 'build-toolpath';
-}
-
-function isBuildGcode(payload: WorkerPayload): payload is BuildGcodePayload {
-    return payload.type === 'build-gcode';
-}
-
-self.onmessage = async (event: MessageEvent<WorkerPayload>) => {
+self.onmessage = async (event: MessageEvent<CamWorkerRequest>) => {
     const data = event.data;
-    if (!data) return;
-
+    if (data.type === 'cancel') {
+        cancelledRequestIds.add(data.targetId);
+        return;
+    }
     try {
         await ensureClipper();
-
-        if (isBuildToolpath(data)) {
-            const { id, selectedLoops, config, toolpathOptions } = data;
-            postProgress(id, 8, 'Preparing toolpath');
-            const options: any = {
-                ...(toolpathOptions || {}),
-                onProgress: (percent: number, label: string) => {
-                    postProgress(id, percent, label);
-                },
-            };
-            // @ts-ignore - onProgress signature mismatch due to JS default parameter
-            const result = await CamOps.createToolpathFromLoopsAsync(
-                selectedLoops || [],
-                config || [],
-                options,
+        const result =
+            data.type === 'build-toolpath'
+                ? await buildToolpath(data)
+                : await buildGcode(data);
+        if (!cancelledRequestIds.has(data.id)) {
+            postProgress(
+                data.id,
+                100,
+                data.type === 'build-toolpath'
+                    ? 'Toolpath ready'
+                    : 'G-code ready',
             );
-            postProgress(id, 100, 'Toolpath ready');
-            self.postMessage({ id, result });
-            return;
+            post({ id: data.id, result });
         }
-
-        if (isBuildGcode(data)) {
-            const { id, toolpaths, fileName, forcePolylineArcs } = data;
-            postProgress(id, 5, 'Preparing G-code');
-            const options: any = {
-                toolpaths: toolpaths || [],
-                fileName,
-                forcePolylineArcs,
-                onProgress: (percent: number, label: string) => {
-                    postProgress(id, percent, label);
-                },
-            };
-            // @ts-ignore - onProgress signature mismatch due to JS default parameter
-            const result = await CamOps.buildGcodeAsync(options);
-            postProgress(id, 100, 'G-code ready');
-            self.postMessage({ id, result });
-            return;
-        }
-
-        // This should never happen due to type narrowing, but TypeScript needs it
-        const _exhaustive: never = data;
-        throw new Error(`Unknown CAM worker request: ${_exhaustive}`);
     } catch (error) {
-        console.error(
-            `[cam-worker] ${error instanceof Error ? error.message : String(error)}`,
-            error instanceof Error ? error.stack : '',
-        );
-        self.postMessage({
-            id: data.id,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : null,
-        });
+        if (!cancelledRequestIds.has(data.id)) {
+            post({
+                id: data.id,
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? (error.stack ?? null) : null,
+            });
+        }
+    } finally {
+        cancelledRequestIds.delete(data.id);
     }
 };

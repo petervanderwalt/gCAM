@@ -41,3 +41,14 @@ test('snapshots are deep copies', () => {
     snap.n.push(999);
     expect(undoHistory(h, { n: [2] })).toEqual({ n: [1] });
 });
+
+test('accepts a document-aware clone for non-serializable UI handles', () => {
+    const h = createHistory<{ bitmap: { id: string; image?: unknown } }>(
+        10,
+        (value) => ({ bitmap: { id: value.bitmap.id } }),
+    );
+    pushHistory(h, { bitmap: { id: 'asset-1', image: new Map() } });
+    expect(undoHistory(h, { bitmap: { id: 'asset-2' } })).toEqual({
+        bitmap: { id: 'asset-1' },
+    });
+});

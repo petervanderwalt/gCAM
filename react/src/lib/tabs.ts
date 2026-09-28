@@ -1,9 +1,6 @@
-import { nearestPointOnPolyline } from '../engine/cam-ops.js';
-import {
-    boundsOfPoints,
-    pointAtDistance,
-    polylineLength,
-} from '../engine/paths.js';
+import { nearestPointOnPolyline } from '../cam/cam-ops.js';
+import { pointAtDistance, polylineLength } from '../geometry/primitives.js';
+import { boundsOfPoints } from '../geometry/bounds.js';
 
 export interface ContourTab {
     contourIndex: number;

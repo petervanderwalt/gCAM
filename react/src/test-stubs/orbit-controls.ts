@@ -9,7 +9,10 @@ export class OrbitControls {
             this.target.z = z;
         },
     };
-    constructor(public camera: unknown, public domElement: unknown) {}
+    constructor(
+        public camera: unknown,
+        public domElement: unknown,
+    ) {}
     addEventListener() {}
     update() {}
     dispose() {}

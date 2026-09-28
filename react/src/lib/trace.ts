@@ -3,7 +3,7 @@ import {
     traceCanvas,
     traceImage,
 } from '../engine/potrace-js/index.js';
-import { closePoints } from '../engine/paths.js';
+import { closePoints } from '../geometry/primitives.js';
 
 export interface PixelPoint {
     x: number;
@@ -77,10 +77,10 @@ export function preprocessImageData(
     const { data } = image;
     const brightness = ((opts.brightness || 0) / 100) * 255;
     const contrast = (opts.contrast || 0) / 100;
-    const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+    const factor =
+        (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
     for (let i = 0; i < data.length; i += 4) {
-        let lum =
-            0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        let lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
         lum = factor * (lum - 128) + 128 + brightness;
         if (opts.threshold != null) {
             lum = lum >= opts.threshold ? 255 : 0;

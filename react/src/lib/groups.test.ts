@@ -1,10 +1,11 @@
-import { expandGroupedSelection, groupIdsForSelection, groupLoopIds, ungroupLoopIds } from './groups';
+import {
+    expandGroupedSelection,
+    groupIdsForSelection,
+    groupLoopIds,
+    ungroupLoopIds,
+} from './groups';
 
-const loops = [
-    { id: 'a' },
-    { id: 'b' },
-    { id: 'c', groupId: 'old' },
-];
+const loops = [{ id: 'a' }, { id: 'b' }, { id: 'c', groupId: 'old' }];
 
 test('groups and ungroups selected loops', () => {
     const grouped = groupLoopIds(loops, ['a', 'b'], 'g1');
@@ -15,5 +16,7 @@ test('groups and ungroups selected loops', () => {
 test('group selection expands to all members', () => {
     expect(groupIdsForSelection(loops, ['c'])).toEqual(['old']);
     expect(expandGroupedSelection(loops, ['c'])).toEqual(['c']);
-    expect(expandGroupedSelection([...loops, { id: 'd', groupId: 'old' }], ['c'])).toEqual(['c', 'd']);
+    expect(
+        expandGroupedSelection([...loops, { id: 'd', groupId: 'old' }], ['c']),
+    ).toEqual(['c', 'd']);
 });

@@ -1,5 +1,9 @@
 export interface ProjectSnapshot {
-    loops: { id?: string; points: { x: number; y: number }[]; groupId?: string }[];
+    loops: {
+        id?: string;
+        points: { x: number; y: number }[];
+        groupId?: string;
+    }[];
     selected: string[];
     hidden: string[];
     stack: StackEntryLike[];
@@ -23,6 +27,8 @@ export interface BitmapLike {
     w: number;
     h: number;
     dataUrl: string;
+    /** Browser-local cache key. Exports retain dataUrl for portability. */
+    assetId?: string;
 }
 
 export interface GuideLike {
@@ -31,7 +37,7 @@ export interface GuideLike {
     pos: number;
 }
 
-export interface ProjectEnvelope {
+export interface ProjectEnvelopeV1 {
     kind: string;
     version: 1;
     exportedAt: string;
@@ -39,12 +45,22 @@ export interface ProjectEnvelope {
     snapshot: ProjectSnapshot;
 }
 
+export interface ProjectEnvelopeV2 {
+    kind: 'gcam.project';
+    version: 2;
+    exportedAt: string;
+    fileName: string;
+    snapshot: ProjectSnapshot;
+}
+
+export type ProjectEnvelope = ProjectEnvelopeV1 | ProjectEnvelopeV2;
+
 export const PROJECT_KINDS = ['gcam.project', 'camcanvas.project'];
 
 export function serializeProject(snapshot: ProjectSnapshot): string {
-    const envelope: ProjectEnvelope = {
+    const envelope: ProjectEnvelopeV2 = {
         kind: 'gcam.project',
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
         fileName: snapshot.fileName || '',
         snapshot,
@@ -63,7 +79,7 @@ export function deserializeProject(raw: string): ProjectSnapshot {
     if (
         !doc ||
         !PROJECT_KINDS.includes(doc.kind ?? '') ||
-        doc.version !== 1 ||
+        (doc.version !== 1 && doc.version !== 2) ||
         !snap ||
         !Array.isArray(snap.loops) ||
         !Array.isArray(snap.stack)

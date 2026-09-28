@@ -2,16 +2,23 @@ export interface History<T> {
     undo: T[];
     redo: T[];
     limit: number;
+    clone: (value: T) => T;
 }
 
-export function createHistory<T>(limit = 60): History<T> {
-    return { undo: [], redo: [], limit };
+function defaultClone<T>(value: T): T {
+    if (typeof structuredClone === 'function') return structuredClone(value);
+    return JSON.parse(JSON.stringify(value)) as T;
 }
 
-const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+export function createHistory<T>(
+    limit = 60,
+    clone: (value: T) => T = defaultClone,
+): History<T> {
+    return { undo: [], redo: [], limit, clone };
+}
 
 export function pushHistory<T>(h: History<T>, snapshot: T): void {
-    h.undo.push(clone(snapshot));
+    h.undo.push(h.clone(snapshot));
     if (h.undo.length > h.limit) h.undo.shift();
     h.redo = [];
 }
@@ -19,13 +26,13 @@ export function pushHistory<T>(h: History<T>, snapshot: T): void {
 export function undoHistory<T>(h: History<T>, current: T): T | null {
     const snap = h.undo.pop();
     if (!snap) return null;
-    h.redo.push(clone(current));
+    h.redo.push(h.clone(current));
     return snap;
 }
 
 export function redoHistory<T>(h: History<T>, current: T): T | null {
     const snap = h.redo.pop();
     if (!snap) return null;
-    h.undo.push(clone(current));
+    h.undo.push(h.clone(current));
     return snap;
 }

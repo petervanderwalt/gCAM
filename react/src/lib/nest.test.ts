@@ -2,13 +2,34 @@ import { buildNestUnits, nestPlacements } from './nest';
 
 test('grouped contours share one nesting unit', () => {
     const units = buildNestUnits([
-        { groupId: 'letter-o', points: [{ x: 0, y: 0 }, { x: 40, y: 40 }] },
-        { groupId: 'letter-o', points: [{ x: 10, y: 10 }, { x: 30, y: 30 }] },
-        { points: [{ x: 100, y: 0 }, { x: 120, y: 20 }] },
+        {
+            groupId: 'letter-o',
+            points: [
+                { x: 0, y: 0 },
+                { x: 40, y: 40 },
+            ],
+        },
+        {
+            groupId: 'letter-o',
+            points: [
+                { x: 10, y: 10 },
+                { x: 30, y: 30 },
+            ],
+        },
+        {
+            points: [
+                { x: 100, y: 0 },
+                { x: 120, y: 20 },
+            ],
+        },
     ]);
 
     expect(units).toHaveLength(2);
-    expect(units[0]).toMatchObject({ groupId: 'letter-o', width: 40, height: 40 });
+    expect(units[0]).toMatchObject({
+        groupId: 'letter-o',
+        width: 40,
+        height: 40,
+    });
     expect(units[0].loops).toHaveLength(2);
 });
 

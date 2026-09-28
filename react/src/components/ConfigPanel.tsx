@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-    Box,
-    Grid,
-    Layers,
-    Lightbulb,
-    Ruler,
-    Settings,
-} from 'lucide-react';
+import { Box, Grid, Layers, Lightbulb, Ruler, Settings } from 'lucide-react';
 import cx from 'classnames';
 import { lengthUnit, type UnitSystem } from '../lib/units';
 import { UnitInput } from './UnitInput';
@@ -22,7 +15,8 @@ export interface GridState {
 
 const GRID_STORAGE_KEY = 'gcam.grid.v1';
 
-export function loadGrid(): GridState {    const fallback: GridState = {
+export function loadGrid(): GridState {
+    const fallback: GridState = {
         visible: true,
         spacingMm: 10,
         snap: true,
@@ -162,7 +156,12 @@ export function ConfigPanel({
 
     const handleResetConfig = () => {
         onDarkModeChange(true);
-        onGridChange({ visible: true, spacingMm: 10, snap: true, style: grid.style });
+        onGridChange({
+            visible: true,
+            spacingMm: 10,
+            snap: true,
+            style: grid.style,
+        });
         onEmitArcsChange(true);
         onUnitsChange('metric');
         setToastTimeout(3000);
@@ -217,7 +216,11 @@ export function ConfigPanel({
                         label="Measurement System"
                         description="Convert displayed dimensions, feeds and generated G-code"
                     >
-                        <div className="flex rounded-lg border border-slate-300 dark:border-robin-900 overflow-hidden" role="radiogroup" aria-label="Measurement units">
+                        <div
+                            className="flex rounded-lg border border-slate-300 dark:border-robin-900 overflow-hidden"
+                            role="radiogroup"
+                            aria-label="Measurement units"
+                        >
                             <button
                                 role="radio"
                                 aria-checked={units === 'metric'}
@@ -266,10 +269,7 @@ export function ConfigPanel({
                             disabled={!grid.visible}
                         />
                     </SettingRow>
-                    <SettingRow
-                        label="Grid Style"
-                        description="Lines or dots"
-                    >
+                    <SettingRow label="Grid Style" description="Lines or dots">
                         <div
                             className="flex rounded-lg border border-slate-300 dark:border-robin-900 overflow-hidden"
                             role="radiogroup"
@@ -307,10 +307,7 @@ export function ConfigPanel({
                             onChangeMm={(valueMm) =>
                                 onGridChange({
                                     ...grid,
-                                    spacingMm: Math.max(
-                                        0.5,
-                                        valueMm || 0.5,
-                                    ),
+                                    spacingMm: Math.max(0.5, valueMm || 0.5),
                                 })
                             }
                             className={cx(inputCls, 'w-24')}

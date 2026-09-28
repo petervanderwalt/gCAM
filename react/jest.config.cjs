@@ -1,7 +1,9 @@
 module.exports = {
     testEnvironment: 'jsdom',
+    extensionsToTreatAsEsm: ['.ts', '.tsx'],
     roots: ['<rootDir>/src'],
     moduleNameMapper: {
+        '^(\\.{1,2}/.*)\\.js$': '$1',
         '^three/examples/jsm/controls/OrbitControls\.js$':
             '<rootDir>/src/test-stubs/orbit-controls.ts',
         '^.+\.(svg|png|jpe?g|webp|bmp|gif)$':
