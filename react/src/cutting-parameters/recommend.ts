@@ -7,6 +7,11 @@ import type { CuttingRecommendation, RecommendationInput } from './types';
 const midpoint = (range: { min: number; max: number }) =>
     (range.min + range.max) / 2;
 
+const roundFeed = (value: number) => Math.round(value / 10) * 10;
+const roundRpm = (value: number) => Math.round(value / 100) * 100;
+const roundPassDepth = (value: number) =>
+    value >= 1 ? Math.round(value) : Number(value.toFixed(1));
+
 function clamp(value: number, min: number, max: number) {
     return Math.max(min, Math.min(max, value));
 }
@@ -42,13 +47,13 @@ export function recommendCuttingParameters(
     const targetSurfaceSpeed = midpoint(recipe.surfaceSpeedMMin) * safety;
     const unconstrainedRpm =
         (1000 * targetSurfaceSpeed) / (Math.PI * cutter.diameterMm);
-    const rpm = Math.round(chooseRpm(unconstrainedRpm, input));
+    const rpm = roundRpm(chooseRpm(unconstrainedRpm, input));
     if (rpm !== Math.round(unconstrainedRpm))
         constraints.push('Spindle RPM limit applied.');
 
     const targetChipLoad = midpoint(recipe.chipLoadMmTooth) * safety;
     const requestedFeed = targetChipLoad * cutter.flutes * rpm;
-    const feedMmMin = Math.round(
+    const feedMmMin = roundFeed(
         Math.min(requestedFeed, machine.maxXYFeedMmMin),
     );
     if (feedMmMin < requestedFeed)
@@ -65,8 +70,8 @@ export function recommendCuttingParameters(
         ? cutter.cuttingLengthMm * 0.8
         : Number.POSITIVE_INFINITY;
     const stockLimit = input.stockDepthMm ?? Number.POSITIVE_INFINITY;
-    const passDepthMm = Number(
-        Math.min(recipeDepth, cuttingLengthLimit, stockLimit).toFixed(2),
+    const passDepthMm = roundPassDepth(
+        Math.min(recipeDepth, cuttingLengthLimit, stockLimit),
     );
     if (passDepthMm < recipeDepth)
         constraints.push('Cutter or stock depth limit applied.');

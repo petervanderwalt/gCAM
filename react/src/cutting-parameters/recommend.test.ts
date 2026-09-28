@@ -36,6 +36,23 @@ test('different material recipes produce different recommendations', () => {
     expect(wood.feedMmMin).toBeGreaterThan(aluminium.feedMmMin);
     expect(wood.passDepthMm).toBeGreaterThan(aluminium.passDepthMm);
     expect(aluminium.recipe.primaryConstraint).toBe('force-power');
+    expect(wood.feedMmMin % 10).toBe(0);
+    expect(wood.rpm % 100).toBe(0);
+    expect(Number.isInteger(wood.passDepthMm)).toBe(true);
+});
+
+test('sub-millimetre DOC keeps one decimal place', () => {
+    const recommendation = recommendCuttingParameters({
+        material: 'aluminium',
+        machine,
+        cutter: { ...cutter, diameterMm: 1, cuttingLengthMm: 4 },
+        operation: 'profile-outside',
+    });
+    expect(recommendation.passDepthMm).toBeGreaterThan(0);
+    expect(recommendation.passDepthMm).toBeLessThan(1);
+    expect(recommendation.passDepthMm * 10).toBeCloseTo(
+        Math.round(recommendation.passDepthMm * 10),
+    );
 });
 
 test('cutter length and machine speed limits reduce rather than increase the result', () => {
