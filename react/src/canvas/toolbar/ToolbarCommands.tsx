@@ -159,7 +159,7 @@ export function ToolbarCommands({ props, open, close }: ToolbarCommandsProps) {
                 title="Delete selection"
                 aria-label="Delete selection"
                 disabled={!props.hasSelection}
-                onClick={props.onDeleteSelected}
+                onClick={() => props.onDeleteSelected()}
                 className={cx(
                     `${toolbarButton} w-auto gap-1.5 px-3`,
                     'hover:!text-red-400',
