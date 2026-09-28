@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for geometry in the draw domain.
+ */
 export type DrawTool =
     | 'line'
     | 'rectangle'

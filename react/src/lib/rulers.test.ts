@@ -1,3 +1,6 @@
+/**
+ * Tests: ruler step keeps ticks 48px apart or wider.
+ */
 import { rulerStep } from '../draw/geometry';
 
 test('ruler step keeps ticks 48px apart or wider', () => {

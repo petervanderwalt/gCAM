@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for operationCatalog in the react domain.
+ */
 import type { Operation } from '../lib/engine';
 
 export const OPERATIONS: { value: Operation; label: string }[] = [

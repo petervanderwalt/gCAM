@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ids in the lib domain.
+ */
 /** Creates portable entity IDs without relying on module-level counters. */
 export function createDocumentId(prefix: string): string {
     const random = globalThis.crypto?.randomUUID?.();

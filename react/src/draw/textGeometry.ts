@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for textGeometry in the draw domain.
+ */
 import {
     createOutlineText,
     createStrokeText,

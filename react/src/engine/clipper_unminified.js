@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for clipper_unminified in the engine domain.
+ */
 // rev 452
 /********************************************************************************
  *                                                                              *

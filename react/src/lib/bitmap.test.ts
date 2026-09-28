@@ -1,3 +1,6 @@
+/**
+ * Tests: wide image caps at 80mm preserving aspect; tall image caps at 120mm height; placement centers on the given view center.
+ */
 import { placeBitmap } from './bitmap';
 
 test('wide image caps at 80mm preserving aspect', () => {

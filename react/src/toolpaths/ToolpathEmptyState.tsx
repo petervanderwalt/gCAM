@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolpathEmptyState in the react domain.
+ */
 /** Explains why the form is unavailable before a vector selection exists. */
 export function ToolpathEmptyState() {
     return (

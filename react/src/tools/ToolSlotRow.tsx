@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolSlotRow in the react domain.
+ */
 import { Edit2, Trash2 } from 'lucide-react';
 import cx from 'classnames';
 import {

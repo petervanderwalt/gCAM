@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for ModalLayer.
+ */
 import type { ComponentProps, ReactNode } from 'react';
 import { TraceModal } from '../components/TraceModal';
 import { TextPlacementModal } from '../draw/TextPlacementModal';

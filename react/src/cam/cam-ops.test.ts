@@ -1,3 +1,6 @@
+/**
+ * Tests: profile-outside offsets a 20mm square by the 3mm tool radius; profile-inside insets the square by the tool radius; pocket fills the square with multiple step-over passes; Voronoi texture makes deterministic V-bit cell outlines inside the selected vector; and related cases.
+ */
 import { parseDxf } from '../engine/dxf.js';
 import { buildLoops, boundsOfPoints, polygonArea } from '../engine/paths.js';
 import {

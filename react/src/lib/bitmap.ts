@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for bitmap in the lib domain.
+ */
 export interface BitmapPlacement {
     x: number;
     y: number;

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for rulers in the canvas domain.
+ */
 import { displayValue, type UnitSystem } from '../lib/units';
 import type { CanvasCamera } from './camera';
 

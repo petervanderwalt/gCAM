@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for transform in the lib domain.
+ */
 export interface TPoint {
     x: number;
     y: number;

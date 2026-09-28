@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for tabs in the lib domain.
+ */
 import { nearestPointOnPolyline } from '../cam/cam-ops.js';
 import { pointAtDistance, polylineLength } from '../geometry/primitives.js';
 import { boundsOfPoints } from '../geometry/bounds.js';

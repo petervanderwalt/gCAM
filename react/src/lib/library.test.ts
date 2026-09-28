@@ -1,3 +1,6 @@
+/**
+ * Tests: normalizeLibraryTool; toolSupportsOperation; libraryMetaLine; loadToolLibraries.
+ */
 import {
     libraryMetaLine,
     loadToolLibraries,
@@ -75,11 +78,11 @@ describe('loadToolLibraries', () => {
             fetchFn as unknown as typeof fetch,
             [
                 { url: 'library/tools/sienci/tools.json', vendor: 'sienci' },
-                { url: 'library/tools/ooznest/tools.json', vendor: 'ooznest' },
+                { url: 'fixture-two.json', vendor: 'test-fixture' },
             ],
         );
         expect(tools.map((t) => t.id)).toEqual(['s-1', 'o-1']);
-        expect(tools[1].vendor).toBe('ooznest');
+        expect(tools[1].vendor).toBe('test-fixture');
     });
 
     it('throws per-vendor on fetch failure', async () => {

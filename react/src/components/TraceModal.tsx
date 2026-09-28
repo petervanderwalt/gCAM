@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for TraceModal in the components domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { ScanLine, X } from 'lucide-react';
 import cx from 'classnames';

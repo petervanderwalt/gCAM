@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolbarControls in the canvas domain.
+ */
 import { useState, type ReactNode } from 'react';
 import cx from 'classnames';
 

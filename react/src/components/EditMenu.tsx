@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for EditMenu in the components domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { Link2, PencilRuler, Unlink2 } from 'lucide-react';
 import cx from 'classnames';

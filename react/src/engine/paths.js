@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for paths in the engine domain.
+ */
 // Compatibility façade for the former geometry monolith. New code should import
 // the specific `src/geometry/*` domain it needs; existing callers can migrate
 // incrementally without changing their public contract.

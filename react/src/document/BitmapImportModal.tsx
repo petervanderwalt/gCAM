@@ -1,3 +1,6 @@
+/**
+ * Purpose: Document state, import, file, or persistence module for BitmapImportModal.
+ */
 interface BitmapChoice {
     fileName: string;
 }

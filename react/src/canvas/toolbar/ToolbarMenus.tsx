@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolbarMenus in the canvas domain.
+ */
 import { Eye, File, Group, Scissors } from 'lucide-react';
 import {
     ToolbarMenu,

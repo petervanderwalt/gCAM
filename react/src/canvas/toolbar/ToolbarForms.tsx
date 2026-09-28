@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolbarForms in the canvas domain.
+ */
 import { ToolbarMiniForm } from './ToolbarControls';
 import { numericInput } from './styles';
 import type { BooleanOperation } from '../../lib/engine';

@@ -1,3 +1,6 @@
+/**
+ * Tests: inspector geometry translates and scales a vector selection; inspector geometry derives regular polygon points from side count.
+ */
 import { inspectorGeometry } from './inspectorGeometry';
 
 const square = {

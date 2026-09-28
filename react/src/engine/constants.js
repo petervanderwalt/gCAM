@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for constants in the engine domain.
+ */
 export const CLIPPER_SCALE = 1000;
 export const LOOP_TOLERANCE = 0.05;
 export const RENDER_SAMPLE_STEP = 2;

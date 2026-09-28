@@ -1,3 +1,6 @@
+/**
+ * Tests: stroke text produces one loop per glyph stroke; text height scales the cap height to 6 units; unknown glyphs fall back instead of vanishing; empty text yields no loops.
+ */
 import { textLoops } from './textGeometry';
 
 test('stroke text produces one loop per glyph stroke', () => {

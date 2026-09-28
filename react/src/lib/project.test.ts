@@ -1,3 +1,6 @@
+/**
+ * Tests: project round-trips through the gcam envelope; legacy camcanvas envelopes still load; v1 projects migrate to the current snapshot shape; garbage is rejected with a clear error.
+ */
 import {
     deserializeProject,
     serializeProject,

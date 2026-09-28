@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for gcode-viewer-worker in the engine domain.
+ */
 // G-code → toolpath geometry worker (gSender-style: fast, responsive).
 //
 // Design notes (mirrors src/app/src/workers/Visualize.worker.ts approach):

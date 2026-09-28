@@ -1,3 +1,6 @@
+/**
+ * Tests: normalizes shared CAM defaults once for sync and worker paths; raster requests retain source image data outside the document loops; bitmap operations reject missing image data before CAM runs.
+ */
 import {
     assertToolpathRequest,
     makeToolpathConfig,

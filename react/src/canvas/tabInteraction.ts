@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for tabInteraction in the canvas domain.
+ */
 import {
     getMinimumTabWidth,
     getTabCenterlineSpan,

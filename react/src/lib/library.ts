@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for library in the lib domain.
+ */
 export interface LibraryTool {
     id: string;
     name: string;

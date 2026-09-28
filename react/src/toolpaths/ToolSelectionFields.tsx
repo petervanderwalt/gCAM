@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolSelectionFields in the react domain.
+ */
 import type { ToolSlot } from '../tools/library';
 import { isConfigured } from '../tools/library';
 import { ToolLibraryModal } from '../tools/ToolLibraryModal';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for vcarve in the react domain.
+ */
 const VCARVE_CLIPPER_SCALE = 1270000000 / 25.4;
 const VCARVE_VERSION = '20260730-vcarve8';
 

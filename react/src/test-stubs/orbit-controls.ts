@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for orbit-controls in the react domain.
+ */
 export class OrbitControls {
     target = {
         x: 0,

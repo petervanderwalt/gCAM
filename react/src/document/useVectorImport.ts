@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the VectorImport workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import { importVectorFile } from '../lib/import';
 

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ObjectTree in the components domain.
+ */
 import { ChevronDown, ChevronRight, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { ViewLoop } from '../canvas/types';

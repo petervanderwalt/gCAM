@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolCatalogSelect in the react domain.
+ */
 import { ExternalLink } from 'lucide-react';
 import type { LibraryTool } from '../lib/library';
 import type { UnitSystem } from '../lib/units';

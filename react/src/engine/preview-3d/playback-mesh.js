@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for playback-mesh in the engine domain.
+ */
 import { clamp } from './math.js';
 
 export function previewSampleAt(data, index) {

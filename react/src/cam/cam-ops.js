@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cam-ops in the react domain.
+ */
 import '../engine/clipper-shim.js';
 import {
     clonePoint,

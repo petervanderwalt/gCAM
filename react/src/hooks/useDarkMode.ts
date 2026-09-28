@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DarkMode workflow.
+ */
 import { useEffect, useState } from 'react';
 
 const DARK_MODE_KEY = 'gcam.darkMode';

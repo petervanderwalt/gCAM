@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for sprites in the engine domain.
+ */
 import * as THREE from 'three';
 
 // Canvas-backed labels avoid a browser font dependency in the WebGL viewer.

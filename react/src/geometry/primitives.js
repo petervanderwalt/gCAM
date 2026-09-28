@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for primitives in the geometry domain.
+ */
 import { LOOP_TOLERANCE } from '../engine/constants.js';
 
 /** Small, dependency-free point and numeric helpers shared by geometry domains. */

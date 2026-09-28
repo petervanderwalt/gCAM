@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for pointerState in the canvas domain.
+ */
 import type { CanvasCamera } from './camera';
 
 export type ScreenPoint = { x: number; y: number };

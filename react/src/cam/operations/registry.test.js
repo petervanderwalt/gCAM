@@ -1,3 +1,6 @@
+/**
+ * Tests: every public CAM operation is represented by a registry contract; registry is the source of operation labels and rejects unknown IDs.
+ */
 import {
     getOperation,
     getOperationLabel,

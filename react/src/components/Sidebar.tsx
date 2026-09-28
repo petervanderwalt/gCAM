@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for Sidebar in the components domain.
+ */
 import { Box, FileCode2, Layers, Settings } from 'lucide-react';
 import cx from 'classnames';
 import toolpathsIconUrl from '../../assets/Toolpaths.svg';

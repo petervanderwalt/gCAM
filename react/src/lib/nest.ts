@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for nest in the lib domain.
+ */
 export interface NestItem {
     width: number;
     height: number;

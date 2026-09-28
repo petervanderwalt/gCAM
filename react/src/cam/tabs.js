@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for tabs in the cam domain.
+ */
 import {
     clonePoint,
     dist,

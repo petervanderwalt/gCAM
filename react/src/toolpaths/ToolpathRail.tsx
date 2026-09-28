@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolpathRail in the react domain.
+ */
 import { Layers, Pencil, Trash2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { ToolpathPanel } from './ToolpathPanel';

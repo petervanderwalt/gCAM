@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for library in the react domain.
+ */
 export type ToolType =
     | 'flat'
     | 'ball'

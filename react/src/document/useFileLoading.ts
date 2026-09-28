@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the FileLoading workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 
 interface UseFileLoadingOptions {

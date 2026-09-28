@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the NewCanvasCommand workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 
 interface UseNewCanvasCommandOptions<TLoop, TStack, TBitmap, TGuide> {

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolLibraryModal in the react domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { RotateCcw, Save, Layers, X } from 'lucide-react';
 import cx from 'classnames';

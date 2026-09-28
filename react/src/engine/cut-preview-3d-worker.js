@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cut-preview-3d-worker in the react domain.
+ */
 // Worker-side height-field construction. Keeping cutter sampling and raster
 // painting here prevents complex jobs from blocking canvas interaction.
 

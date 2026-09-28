@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for corners in the lib domain.
+ */
 export interface CornerPoint {
     x: number;
     y: number;

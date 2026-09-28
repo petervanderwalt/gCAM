@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for App in the react domain.
+ */
 import { useState } from 'react';
 import type { ViewLoop } from './canvas/types';
 import { useConfirmation } from './components/ConfirmDialog';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for CanvasToolbar in the react domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { applyBoolean, offsetLoops } from '../lib/engine';
 import { ToolbarCommands } from './toolbar/ToolbarCommands';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cam-worker-client in the engine domain.
+ */
 import {
     isWorkerError,
     isWorkerProgress,

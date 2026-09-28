@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolpathFormAlerts in the react domain.
+ */
 import type { Operation } from '../lib/engine';
 
 interface ToolpathFormAlertsProps {

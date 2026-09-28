@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for theme in the canvas domain.
+ */
 import type { CanvasSceneTheme } from './sceneRenderer';
 
 export interface CanvasTheme extends CanvasSceneTheme {

@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DrawCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import type { DrawTool } from './geometry';
 import { snapToGuides, type Guide } from '../lib/guides';

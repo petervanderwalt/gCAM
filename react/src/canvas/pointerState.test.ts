@@ -1,3 +1,6 @@
+/**
+ * Tests: canvas pointer state.
+ */
 import { hasPointerMoved, startsPan, toWorldPoint } from './pointerState';
 
 describe('canvas pointer state', () => {

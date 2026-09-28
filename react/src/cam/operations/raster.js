@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for raster in the cam domain.
+ */
 import { defineOperation } from './contract.js';
 
 function rasterOperation(id, emission) {

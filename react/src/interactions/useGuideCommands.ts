@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the GuideCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import { createDocumentId } from '../lib/ids';
 import type { Guide } from '../lib/guides';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for GcodeViewer3DView in the components domain.
+ */
 import { useEffect, useRef } from 'react';
 import { GcodeViewer3D } from '../engine/gcode-viewer-3d.js';
 

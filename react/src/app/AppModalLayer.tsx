@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for AppModalLayer.
+ */
 import type {
     ComponentProps,
     Dispatch,

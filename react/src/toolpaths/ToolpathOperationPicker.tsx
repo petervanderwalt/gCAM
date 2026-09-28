@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolpathOperationPicker in the react domain.
+ */
 import type { Operation } from '../lib/engine';
 import { OPERATION_IMAGES } from './operationCatalog';
 

@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the VisibleSelection workflow.
+ */
 import { useMemo } from 'react';
 import type { ViewLoop } from '../canvas/types';
 import { expandGroupedSelection } from '../lib/groups';

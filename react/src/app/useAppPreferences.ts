@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the AppPreferences workflow.
+ */
 import { useEffect, useState } from 'react';
 import type { ConfigActions } from '../components/ConfigPanel';
 import type { PreviewControls } from '../components/CutPreview3DView';

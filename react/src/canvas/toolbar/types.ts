@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for types in the canvas domain.
+ */
 import type { DrawTool } from '../../draw/geometry';
 import type { BooleanOperation } from '../../lib/engine';
 import type { TransformMode } from '../../lib/transform';

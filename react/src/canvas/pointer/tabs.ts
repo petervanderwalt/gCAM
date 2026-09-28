@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for tabs in the canvas domain.
+ */
 import { nearestPointOnPolyline } from '../../cam/cam-ops.js';
 import { findTabHover, findTabMarkerAtScreen } from '../tabInteraction';
 import { worldAtEvent } from './helpers';

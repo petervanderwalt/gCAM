@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ConfigPanel in the components domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { Box, Grid, Layers, Lightbulb, Ruler, Settings } from 'lucide-react';
 import cx from 'classnames';

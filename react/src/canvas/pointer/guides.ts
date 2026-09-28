@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for guides in the canvas domain.
+ */
 import { movedFrom, worldAtEvent } from './helpers';
 import type { CanvasMouseEvent, CanvasPointerControllerProps } from './types';
 

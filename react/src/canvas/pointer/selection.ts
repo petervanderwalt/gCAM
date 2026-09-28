@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for selection in the canvas domain.
+ */
 import { nearestPointOnPolyline } from '../../cam/cam-ops.js';
 import { boundsOfPoints } from '../../geometry/bounds.js';
 import { startsPan } from '../pointerState';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for assets in the react domain.
+ */
 const DB_NAME = 'gcam';
 const DB_VERSION = 2;
 const STORE_NAME = 'bitmap-assets';

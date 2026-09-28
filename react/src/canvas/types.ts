@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for types in the react domain.
+ */
 import type { DrawTool } from '../draw/geometry';
 
 export type Tool = 'select' | 'draw' | 'trim' | 'preview';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for keyboard in the canvas domain.
+ */
 import type React from 'react';
 import type { TransformCommit } from '../../lib/transform';
 import type { LoopMeta, TabMarker } from '../types';

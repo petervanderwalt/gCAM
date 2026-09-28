@@ -1,3 +1,6 @@
+/**
+ * Tests: groups and ungroups selected loops; group selection expands to all members.
+ */
 import {
     expandGroupedSelection,
     groupIdsForSelection,

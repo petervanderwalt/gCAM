@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DocumentState workflow.
+ */
 import { useRef, useState } from 'react';
 import {
     createHistory,

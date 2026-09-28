@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the SelectionCommands workflow.
+ */
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { createDocumentId } from '../lib/ids';
 import {

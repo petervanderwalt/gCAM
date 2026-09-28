@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for texturePreview in the react domain.
+ */
 import '../engine/clipper-shim.js';
 import { CLIPPER_SCALE } from '../engine/constants.js';
 import { polygonArea } from '../geometry/bounds.js';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for trim in the lib domain.
+ */
 export interface Point {
     x: number;
     y: number;

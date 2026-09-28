@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for selectionGeometry in the canvas domain.
+ */
 import { nearestPointOnPolyline } from '../cam/cam-ops.js';
 import { snapToEndpoints } from '../draw/geometry';
 import {

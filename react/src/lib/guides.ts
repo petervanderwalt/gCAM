@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for guides in the lib domain.
+ */
 export interface Guide {
     id: string;
     /** 'x' = vertical line at x=pos; 'y' = horizontal line at y=pos. */

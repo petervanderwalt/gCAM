@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for engine in the lib domain.
+ */
 import {
     booleanPolygons,
     buildGcode as buildRealGcode,

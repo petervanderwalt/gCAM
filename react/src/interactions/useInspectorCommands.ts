@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the InspectorCommands workflow.
+ */
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { ViewLoop } from '../canvas/types';
 import type { InspectorPatch } from '../components/CadInspector';

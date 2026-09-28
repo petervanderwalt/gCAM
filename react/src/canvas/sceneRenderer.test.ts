@@ -1,3 +1,6 @@
+/**
+ * Tests: polylineSlice.
+ */
 import { polylineSlice } from './sceneRenderer';
 
 describe('polylineSlice', () => {

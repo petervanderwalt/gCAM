@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for stroke-glyphs in the engine domain.
+ */
 // Hershey-style single-line glyph catalogue used by the offline stroke font.
 export const GLYPHS = {
     A: [

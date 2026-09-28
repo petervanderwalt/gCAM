@@ -1,3 +1,6 @@
+/**
+ * Tests: tab geometry reports the closest centerline point and display marker; tab operation policy is kept alongside tab geometry.
+ */
 import {
     buildTabMarkerGeometry,
     findNearestPolylinePoint,

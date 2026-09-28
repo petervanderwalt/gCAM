@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the TransformCommands workflow.
+ */
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import {
     rotatePoints,

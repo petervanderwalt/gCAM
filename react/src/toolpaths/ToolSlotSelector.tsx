@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolSlotSelector in the react domain.
+ */
 import { Settings } from 'lucide-react';
 import { displayValue, lengthUnit, type UnitSystem } from '../lib/units';
 import type { ToolSlot } from '../tools/library';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the ToolpathStack workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import {
     buildToolpathGcode,

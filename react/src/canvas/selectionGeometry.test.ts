@@ -1,3 +1,6 @@
+/**
+ * Tests: selection frame ignores hidden geometry; snap priority is endpoints, then guides, then grid.
+ */
 import { selectionFrame, snapDrawPoint } from './selectionGeometry';
 
 const loops = [

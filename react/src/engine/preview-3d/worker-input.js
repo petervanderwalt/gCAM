@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for worker-input in the engine domain.
+ */
 function pointForWorker(point) {
     const x = Number(point?.x);
     const y = Number(point?.y);

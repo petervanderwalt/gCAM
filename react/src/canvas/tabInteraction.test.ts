@@ -1,3 +1,6 @@
+/**
+ * Tests: findTabHover.
+ */
 import { findTabHover } from './tabInteraction';
 
 describe('findTabHover', () => {

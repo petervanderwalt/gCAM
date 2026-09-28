@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for groups in the lib domain.
+ */
 export interface GroupableLoop {
     id: string;
     groupId?: string;

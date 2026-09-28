@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for OutputWorkspace in the react domain.
+ */
 import { Box } from 'lucide-react';
 import {
     CutPreview3DView,

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for AppToolbars in the components domain.
+ */
 import { Box, Camera, Download, Play, Upload } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { ConfigActions } from './ConfigPanel';

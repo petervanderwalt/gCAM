@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the CornerCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import { chamferLoop, dogboneCorner, filletCorner } from '../lib/corners';
 import type { TransformMode } from '../lib/transform';

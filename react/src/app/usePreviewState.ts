@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the PreviewState workflow.
+ */
 import { useState } from 'react';
 
 type PreviewPaths = { x: number; y: number }[][];

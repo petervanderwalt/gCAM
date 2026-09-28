@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for UnitInput in the components domain.
+ */
 import { useEffect, useState, type InputHTMLAttributes } from 'react';
 import {
     displayFeed,

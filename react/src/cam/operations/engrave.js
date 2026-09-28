@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for engrave in the cam domain.
+ */
 import { defineOperation } from './contract.js';
 
 function directContourOperation(id) {

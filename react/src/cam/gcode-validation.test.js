@@ -1,3 +1,6 @@
+/**
+ * Tests: rejects unsafe machine values before G-code emission; keeps V-bit and tab constraints together with emission validation.
+ */
 import { validateToolpaths } from './gcode-validation.js';
 
 const valid = {

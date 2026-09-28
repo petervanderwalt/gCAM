@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for splines in the geometry domain.
+ */
 import { clonePoint, dist } from './primitives.js';
 
 export function evaluateBezier(cps, t) {

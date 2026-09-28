@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for vcarve-worker in the react domain.
+ */
 const VCARVE_CLIPPER_SCALE = 1270000000 / 25.4;
 const VCARVE_CLIPPER_TO_CPP_SCALE = 1 / 128;
 const VCARVE_MM_TO_CPP_SCALE =

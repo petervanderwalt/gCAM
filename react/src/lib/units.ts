@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for units in the lib domain.
+ */
 export type UnitSystem = 'metric' | 'imperial';
 
 export const MM_PER_INCH = 25.4;

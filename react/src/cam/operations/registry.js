@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for registry in the cam domain.
+ */
 import { OPERATION_LABELS } from './contract.js';
 import {
     engraveOperation,

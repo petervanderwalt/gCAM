@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DrawingWorkspaceState workflow.
+ */
 import { useState } from 'react';
 import type { BitmapImportChoice } from '../document/useBitmapCommands';
 import type { DrawTool } from '../draw/geometry';

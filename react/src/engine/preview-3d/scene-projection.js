@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for scene-projection in the engine domain.
+ */
 // The preview is painted onto a 2D canvas. This is the single affine
 // projection used by both stock and toolpath overlays, so camera interaction
 // can share exactly the same coordinate system.

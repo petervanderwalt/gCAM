@@ -1,3 +1,6 @@
+/**
+ * Tests: parseDxf reads an LWPOLYLINE square; buildLoops closes the square with correct area and perimeter; parseSvg reads rect and circle without DOM measurement.
+ */
 import { parseDxf } from './dxf.js';
 import { parseSvg } from './svg.js';
 import {

@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DocumentWorkspace workflow.
+ */
 import { useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ViewBounds, ViewLoop } from '../canvas/types';

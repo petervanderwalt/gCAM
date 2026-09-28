@@ -1,3 +1,6 @@
+/**
+ * Tests: rectangle draft closes the box; line draft returns both endpoints snapped; circle draft is a 72-segment loop of the right radius; polygon draft honors side count and closes; and related cases.
+ */
 import {
     arcPoints3,
     cubicBezierPoints,

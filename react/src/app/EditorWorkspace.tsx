@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for EditorWorkspace.
+ */
 import type { ComponentProps } from 'react';
 import { CanvasStage } from '../canvas/CanvasStage';
 import { EmptyCanvasPrompt } from '../canvas/EmptyCanvasPrompt';

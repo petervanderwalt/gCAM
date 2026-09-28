@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cam-worker in the engine domain.
+ */
 import * as CamOps from '../cam/cam-ops.js';
 import type {
     BuildGcodeRequest,

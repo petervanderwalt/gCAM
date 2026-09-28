@@ -1,3 +1,6 @@
+/**
+ * Tests: blank library has 12 unconfigured slots; configured slot round-trips through storage; legacy camcanvas key migrates forward; corrupt storage yields blanks, not throws.
+ */
 import {
     blankSlots,
     isConfigured,

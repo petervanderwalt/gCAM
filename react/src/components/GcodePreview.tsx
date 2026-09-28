@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for GcodePreview in the components domain.
+ */
 export function GcodePreview({
     gcode,
     fileName,

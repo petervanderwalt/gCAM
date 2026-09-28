@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for import in the lib domain.
+ */
 import { parseDxf } from '../engine/dxf.js';
 import { parseSvg } from '../engine/svg.js';
 import { buildLoops } from '../geometry/loops.js';

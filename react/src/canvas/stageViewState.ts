@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for stageViewState in the canvas domain.
+ */
 import type { DrawTool } from '../draw/geometry';
 import type { TransformMode } from '../lib/transform';
 import type { UnitSystem } from '../lib/units';

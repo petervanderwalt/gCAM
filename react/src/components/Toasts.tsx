@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for Toasts in the components domain.
+ */
 import { useCallback, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import cx from 'classnames';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the EditorLifecycle workflow.
+ */
 import { useEffect } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { TransformMode } from '../lib/transform';

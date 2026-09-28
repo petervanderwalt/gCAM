@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the CanvasViewportCommands workflow.
+ */
 import {
     useEffect,
     useRef,

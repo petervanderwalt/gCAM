@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolpathSubmitControls in the react domain.
+ */
 interface ToolpathSubmitControlsProps {
     busy: boolean;
     hasActiveGeometry: boolean;

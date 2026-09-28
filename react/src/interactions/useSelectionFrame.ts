@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the SelectionFrame workflow.
+ */
 import { useEffect, useMemo, useRef } from 'react';
 import type { ViewLoop } from '../canvas/types';
 

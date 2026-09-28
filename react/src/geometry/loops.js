@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for loops in the geometry domain.
+ */
 import {
     LOOP_TOLERANCE,
     RENDER_SAMPLE_STEP,

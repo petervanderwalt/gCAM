@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for texture in the cam domain.
+ */
 import { defineOperation } from './contract.js';
 
 export const textureFillOperation = defineOperation({

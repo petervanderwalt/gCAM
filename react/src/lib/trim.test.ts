@@ -1,3 +1,6 @@
+/**
+ * Tests: trims the nearest segment into two remaining paths; rejects clicks outside the trim tolerance.
+ */
 import { trimNearestSegment } from './trim';
 
 test('trims the nearest segment into two remaining paths', () => {

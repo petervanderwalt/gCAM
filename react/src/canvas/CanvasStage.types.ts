@@ -1,3 +1,6 @@
+/**
+ * Purpose: Defines typed contracts used by CanvasStage.types.
+ */
 import type { DrawTool } from '../draw/geometry';
 import type { TransformCommit, TransformMode } from '../lib/transform';
 import type {

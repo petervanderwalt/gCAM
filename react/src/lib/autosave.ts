@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for autosave in the react domain.
+ */
 import { openGcamDatabase, PROJECT_STORE_NAME } from './assets';
 import {
     deserializeProject,

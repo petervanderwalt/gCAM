@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for transformOverlay in the react domain.
+ */
 import { strokePoints } from './primitives';
 import type { SelectionFrame } from './selectionGeometry';
 

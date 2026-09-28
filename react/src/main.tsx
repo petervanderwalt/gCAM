@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for main in the react domain.
+ */
 import React, { Component, ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

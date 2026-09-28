@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for EmptyCanvasPrompt in the react domain.
+ */
 interface EmptyCanvasPromptProps {
     onNewCanvas: () => void;
     onImport: () => void;

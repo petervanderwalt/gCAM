@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for transformInteraction in the react domain.
+ */
 import type { TransformMode } from '../lib/transform';
 import {
     hitTransformTarget,

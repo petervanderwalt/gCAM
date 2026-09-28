@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for RasterLaserFields in the react domain.
+ */
 import type { Operation } from '../lib/engine';
 import { UnitInput } from '../components/UnitInput';
 import { feedUnit, lengthUnit, type UnitSystem } from '../lib/units';

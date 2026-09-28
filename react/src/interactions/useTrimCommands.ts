@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the TrimCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import { trimNearestSegment } from '../lib/trim';
 

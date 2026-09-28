@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for surface-texture in the engine domain.
+ */
 import { clamp } from './math.js';
 
 // Creates and caches the capped shaded height-map texture for the preview.

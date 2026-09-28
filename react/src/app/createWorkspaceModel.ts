@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for createWorkspaceModel.
+ */
 import type { ComponentProps } from 'react';
 import { CanvasStage } from '../canvas/CanvasStage';
 import { CadInspector } from '../components/CadInspector';

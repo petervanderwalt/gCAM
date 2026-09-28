@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for history in the lib domain.
+ */
 export interface History<T> {
     undo: T[];
     redo: T[];

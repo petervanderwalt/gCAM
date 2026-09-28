@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for dxf in the engine domain.
+ */
 export function parseDxf(text) {
     const rawLines = text.replace(/\r/g, '').split('\n');
     const pairs = [];

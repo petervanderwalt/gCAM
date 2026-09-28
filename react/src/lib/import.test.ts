@@ -1,3 +1,6 @@
+/**
+ * Tests: importVectorFile parses a DXF square into fitted loops; importVectorFile rejects unsupported files.
+ */
 import { importVectorFile } from './import';
 
 const SQUARE_DXF = [

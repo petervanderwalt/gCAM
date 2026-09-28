@@ -1,4 +1,7 @@
 /**
+ * Purpose: Implementation module for contours in the cam domain.
+ */
+/**
  * Contour-level GRBL moves shared by profile, tabbed, V-carve, and trochoidal
  * program emission.
  */

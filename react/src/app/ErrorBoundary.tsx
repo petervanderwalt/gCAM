@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for ErrorBoundary.
+ */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 /** Prevent a failed workspace panel from taking down the entire editor shell. */

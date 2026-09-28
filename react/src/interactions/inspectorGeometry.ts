@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for inspectorGeometry in the react domain.
+ */
 import { rotatePoints, scalePointsXY } from '../lib/transform';
 
 export interface Point {

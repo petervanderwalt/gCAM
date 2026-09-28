@@ -1,4 +1,7 @@
 /**
+ * Purpose: Implementation module for contract in the cam domain.
+ */
+/**
  * A CAM operation is deliberately data-free: it receives shared geometry and
  * emitter services from cam-ops instead of importing the application layer.
  * That keeps an operation runnable in both the main thread and CAM worker.

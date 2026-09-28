@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for clipper-shim in the engine domain.
+ */
 // The lib is legacy UMD: under CommonJS (Jest) it assigns
 // `module.exports`; in a real browser (Vite) `module` is undefined and it
 // assigns `window.ClipperLib` when `document` exists. Resolve whichever the

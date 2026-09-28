@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for project in the lib domain.
+ */
 export interface ProjectSnapshot {
     loops: {
         id?: string;

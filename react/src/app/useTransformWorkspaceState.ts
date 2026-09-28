@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the TransformWorkspaceState workflow.
+ */
 import { useRef, useState } from 'react';
 import type { TransformMode } from '../lib/transform';
 

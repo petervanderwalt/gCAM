@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for TextPlacementModal in the draw domain.
+ */
 import { FONT_OPTIONS } from './textGeometry';
 import { lengthUnit, type UnitSystem } from '../lib/units';
 import { UnitInput } from '../components/UnitInput';

@@ -1,3 +1,6 @@
+/**
+ * Tests: real pipeline emits gCAM GRBL for a profiled square; real pipeline rejects empty selection; vcarve without a worker rejects instead of hanging; combineToolpaths merges two ops into one program; and related cases.
+ */
 import {
     buildProfileGcode,
     buildToolpathGcode,

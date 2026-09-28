@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DocumentEditingCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import type { ViewLoop } from '../canvas/types';
 import { useConfirmation } from '../components/ConfirmDialog';

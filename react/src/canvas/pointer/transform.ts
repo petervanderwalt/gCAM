@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for transform in the canvas domain.
+ */
 import {
     findFilletCorner,
     hitTransformTarget,

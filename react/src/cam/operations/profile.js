@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for profile in the cam domain.
+ */
 import { defineOperation } from './contract.js';
 
 function createProfileOperation(id, direction) {

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for sceneRenderer in the react domain.
+ */
 import { getMinimumTabWidth, getTabCenterlineSpan } from '../cam/cam-ops.js';
 import { pointAtDistance, polylineLength } from '../geometry/primitives.js';
 import { drawOriginGuides, strokePoints } from './primitives';

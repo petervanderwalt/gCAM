@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cad-font in the engine domain.
+ */
 import { parse as parseOpenType } from './opentype.module.js';
 import { EXTRA_FONT_OPTIONS } from './google-font-catalog.js';
 

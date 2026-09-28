@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for helpers in the canvas domain.
+ */
 import type { Camera } from '../types';
 import type { CanvasMouseEvent, Point } from './types';
 

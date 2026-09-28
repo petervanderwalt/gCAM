@@ -1,3 +1,6 @@
+/**
+ * Tests: Voronoi texture is deterministic and clipped to the selected vector; large selections are sampled across the whole area without stretched cells; crosshatch texture returns clipped two-point engraving strokes; crosshatch angle rotates both perpendicular passes; and related cases.
+ */
 import {
     crosshatchTextureContours,
     voronoiTextureContours,

@@ -1,3 +1,6 @@
+/**
+ * Tests: corner segments become a closed loop; bezier segments flatten to smooth curves; tiny paths are dropped; threshold binarizes around the cutoff; and related cases.
+ */
 import { flattenTracedPaths, preprocessImageData } from './trace';
 
 test('corner segments become a closed loop', () => {

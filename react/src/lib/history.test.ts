@@ -1,3 +1,6 @@
+/**
+ * Tests: undo restores earlier snapshots in order; redo replays after undo and clears on new push; undo stack respects the limit; snapshots are deep copies; and related cases.
+ */
 import {
     createHistory,
     pushHistory,

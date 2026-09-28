@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the AppKeyboardShortcuts workflow.
+ */
 import { useEffect } from 'react';
 
 interface KeyboardShortcutOptions {

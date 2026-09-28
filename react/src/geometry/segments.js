@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for segments in the geometry domain.
+ */
 import { RENDER_SAMPLE_STEP } from '../engine/constants.js';
 import {
     almostEqual,

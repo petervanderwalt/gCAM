@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for CadInspector in the components domain.
+ */
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import cx from 'classnames';

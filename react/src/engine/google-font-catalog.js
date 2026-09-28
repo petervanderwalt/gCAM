@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for google-font-catalog in the engine domain.
+ */
 export const EXTRA_FONT_OPTIONS = [
     {
         id: 'abeezee',

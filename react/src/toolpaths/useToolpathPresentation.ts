@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the ToolpathPresentation workflow.
+ */
 import { useMemo } from 'react';
 import { pointAtDistance } from '../geometry/primitives.js';
 import { combineToolpaths, type PlacedTab } from '../lib/engine';

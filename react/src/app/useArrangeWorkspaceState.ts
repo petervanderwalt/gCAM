@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the ArrangeWorkspaceState workflow.
+ */
 import { useState } from 'react';
 
 /** Controls shared by offset, nesting and corner operations. */

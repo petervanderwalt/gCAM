@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cam-worker-protocol in the engine domain.
+ */
 export interface CamWorkerProgress {
     percent: number;
     label: string;

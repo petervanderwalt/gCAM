@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the ArrangeCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import {
     applyBoolean,

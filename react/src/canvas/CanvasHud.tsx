@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for CanvasHud in the react domain.
+ */
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { displayValue, lengthUnit, type UnitSystem } from '../lib/units';

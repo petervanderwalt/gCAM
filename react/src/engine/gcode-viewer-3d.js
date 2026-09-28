@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for gcode-viewer-3d in the engine domain.
+ */
 // Three.js G-code toolpath viewer (gSender Visualizer-inspired, dependency-free).
 // Worker parses G-code into color-coded line segments; this module renders
 // grid + axes + toolpath with orbit controls and a "Zero here" origin callout.

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for primitives in the canvas domain.
+ */
 import type { CanvasCamera } from './camera';
 
 type Point = { x: number; y: number };

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolbarCommands in the canvas domain.
+ */
 import {
     Copy,
     Expand,

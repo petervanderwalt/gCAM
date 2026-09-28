@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for CutPreview3DView in the components domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import { CutPreview3D } from '../engine/cut-preview-3d.js';
 

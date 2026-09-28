@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for gcode-validation in the cam domain.
+ */
 import { operationUsesTabs } from './tabs.js';
 
 /** Validate emitted-machine constraints before producing any G-code. */

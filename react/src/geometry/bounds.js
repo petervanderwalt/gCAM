@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for bounds in the geometry domain.
+ */
 import { clonePoint, closePoints, dist } from './primitives.js';
 
 export function createLoopPath2D(

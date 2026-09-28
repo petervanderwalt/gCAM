@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for trace in the lib domain.
+ */
 import {
     getPaths,
     traceCanvas,

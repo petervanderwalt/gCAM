@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for camera in the react domain.
+ */
 export interface CanvasCamera {
     scale: number;
     tx: number;

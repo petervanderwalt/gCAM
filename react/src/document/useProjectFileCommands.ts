@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the ProjectFileCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import type { BitmapLike, GuideLike, StackEntryLike } from '../lib/project';
 import { downloadProject, readProjectFile } from './projectFile';

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for types in the canvas domain.
+ */
 import type React from 'react';
 import type { DrawTool } from '../../draw/geometry';
 import type { TransformCommit, TransformMode } from '../../lib/transform';

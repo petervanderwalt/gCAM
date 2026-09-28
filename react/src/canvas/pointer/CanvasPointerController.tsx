@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for CanvasPointerController in the canvas domain.
+ */
 import {
     clearDraggedDraft,
     finishDraw,

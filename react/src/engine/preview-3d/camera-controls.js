@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for camera-controls in the engine domain.
+ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { clamp } from './math.js';

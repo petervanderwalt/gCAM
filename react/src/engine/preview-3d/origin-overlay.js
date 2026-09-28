@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for origin-overlay in the engine domain.
+ */
 import { clamp } from './math.js';
 
 // Origin, zero reference, and machine-axis overlays for the stock preview.

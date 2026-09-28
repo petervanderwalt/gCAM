@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for trim in the canvas domain.
+ */
 import { trimNearestSegment } from '../../lib/trim';
 import { worldAtEvent } from './helpers';
 import type { CanvasMouseEvent, CanvasPointerControllerProps } from './types';

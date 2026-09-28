@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for TextureFields in the react domain.
+ */
 import { UnitInput } from '../components/UnitInput';
 import { lengthUnit, type UnitSystem } from '../lib/units';
 

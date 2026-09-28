@@ -1,3 +1,6 @@
+/**
+ * Tests: operationUsesTabs; defaultTabsForContours.
+ */
 import { defaultTabsForContours, operationUsesTabs, tabPoint } from './tabs';
 
 describe('operationUsesTabs', () => {

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for transforms in the geometry domain.
+ */
 import { applyMatrixToPoint } from './matrix.js';
 import { normalizeAngleDeg } from './primitives.js';
 

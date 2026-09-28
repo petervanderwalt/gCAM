@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for AppWorkspace.
+ */
 import type { ComponentProps } from 'react';
 import { EditorWorkspace } from './EditorWorkspace';
 

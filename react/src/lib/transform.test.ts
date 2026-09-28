@@ -1,3 +1,6 @@
+/**
+ * Tests: translate shifts every point; non-uniform scale stretches about the given origin; non-uniform scale rejects non-positive factors; rotate 90 about centroid swaps extents; and related cases.
+ */
 import {
     rotatePoints,
     scalePoints,

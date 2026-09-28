@@ -1,4 +1,7 @@
 /**
+ * Purpose: Implementation module for program in the cam domain.
+ */
+/**
  * GRBL program assembly for completed toolpaths.
  *
  * Toolpath construction remains in cam-ops; this module owns only the final

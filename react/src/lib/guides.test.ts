@@ -1,3 +1,6 @@
+/**
+ * Tests: snaps to the nearest guide inside tolerance; ignores guides outside tolerance; picks the closest of several guides.
+ */
 import { snapToGuides } from './guides';
 
 test('snaps to the nearest guide inside tolerance', () => {

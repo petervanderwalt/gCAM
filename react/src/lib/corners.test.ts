@@ -1,3 +1,6 @@
+/**
+ * Tests: fillet rounds square corners inside the original bounds; fillet leaves impossible radii sharp; chamfer replaces each square corner with a straight cut; dogbone emits one tool circle per corner.
+ */
 import { chamferLoop, dogboneLoops, filletLoop } from './corners';
 import { boundsOfPoints } from '../engine/paths.js';
 

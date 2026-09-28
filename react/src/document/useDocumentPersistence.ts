@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the DocumentPersistence workflow.
+ */
 import { useEffect, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ViewLoop } from '../canvas/types';

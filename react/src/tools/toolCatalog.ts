@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for toolCatalog in the react domain.
+ */
 import type { LibraryTool } from '../lib/library';
 import type { ToolSlot, ToolType } from './library';
 

@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ToolpathPanel in the react domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import type { ViewLoop } from '../canvas/types';
 import {

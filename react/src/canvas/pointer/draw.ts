@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for draw in the canvas domain.
+ */
 import {
     arcPoints3,
     cubicBezierPoints,

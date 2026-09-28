@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for CanvasStage in the react domain.
+ */
 import { useEffect, useRef, useState } from 'react';
 import {
     getMinimumTabWidth,

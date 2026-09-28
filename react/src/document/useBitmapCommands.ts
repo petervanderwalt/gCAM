@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the BitmapCommands workflow.
+ */
 import type { Dispatch, SetStateAction } from 'react';
 import { isBitmapFile, loadBitmapFile, placeBitmap } from '../lib/bitmap';
 import { BitmapAssetStore } from '../lib/assets';

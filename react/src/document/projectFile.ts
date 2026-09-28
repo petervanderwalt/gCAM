@@ -1,3 +1,6 @@
+/**
+ * Purpose: Document state, import, file, or persistence module for projectFile.
+ */
 import {
     deserializeProject,
     serializeProject,

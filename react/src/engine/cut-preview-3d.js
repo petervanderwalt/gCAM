@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for cut-preview-3d in the engine domain.
+ */
 // Lightweight stock-removal preview. It rasterizes the actual cutter envelope
 // into a height field, then draws that field as an isometric surface mesh.
 

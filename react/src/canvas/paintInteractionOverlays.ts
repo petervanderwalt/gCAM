@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for paintInteractionOverlays in the react domain.
+ */
 import { cubicBezierPoints, type DrawTool } from '../draw/geometry';
 import { dogboneCorner, filletCorner } from '../lib/corners';
 import type { TransformMode } from '../lib/transform';

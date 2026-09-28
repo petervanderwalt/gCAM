@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for createToolbarProps.
+ */
 import type {
     ComponentProps,
     Dispatch,

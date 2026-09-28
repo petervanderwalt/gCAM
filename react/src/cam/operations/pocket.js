@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for pocket in the cam domain.
+ */
 import { defineOperation } from './contract.js';
 
 export const pocketOperation = defineOperation({

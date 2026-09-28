@@ -1,3 +1,6 @@
+/**
+ * Purpose: React hook that owns the CadInspector workflow.
+ */
 import { useEffect, useState } from 'react';
 import type {
     ComponentProps,

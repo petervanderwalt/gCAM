@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for polygons in the cam domain.
+ */
 import '../../engine/clipper-shim.js';
 import { CLIPPER_SCALE } from '../../engine/constants.js';
 import { closePoints, clonePoint } from '../../geometry/primitives.js';

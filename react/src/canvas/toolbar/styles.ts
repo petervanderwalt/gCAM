@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for styles in the canvas domain.
+ */
 export const toolbarButton =
     'inline-flex items-center justify-center w-10 h-10 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-dark-lighter dark:hover:text-white touch-manipulation disabled:opacity-30';
 

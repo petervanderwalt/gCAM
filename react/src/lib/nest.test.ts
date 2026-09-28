@@ -1,3 +1,6 @@
+/**
+ * Tests: grouped contours share one nesting unit; two parts share one row on a wide sheet; tallest-first ordering packs rows tightly; oversize part reports its index; and related cases.
+ */
 import { buildNestUnits, nestPlacements } from './nest';
 
 test('grouped contours share one nesting unit', () => {

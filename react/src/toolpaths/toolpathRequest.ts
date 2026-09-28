@@ -1,4 +1,7 @@
 /**
+ * Purpose: Implementation module for toolpathRequest in the react domain.
+ */
+/**
  * Request normalization shared by synchronous and worker CAM entry points.
  * This module deliberately knows nothing about React, workers, or G-code.
  */

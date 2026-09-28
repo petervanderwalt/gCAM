@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for svg in the react domain.
+ */
 import { TOOLPATH_SAMPLE_STEP } from './constants.js';
 import {
     createMatrix,

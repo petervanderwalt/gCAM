@@ -1,3 +1,6 @@
+/**
+ * Purpose: Implementation module for ConfirmDialog in the components domain.
+ */
 import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import cx from 'classnames';

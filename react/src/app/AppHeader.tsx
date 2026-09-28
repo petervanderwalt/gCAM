@@ -1,3 +1,6 @@
+/**
+ * Purpose: Application composition module for AppHeader.
+ */
 import type { ComponentProps } from 'react';
 import { CanvasToolbar } from '../canvas/CanvasToolbar';
 import { ConfigToolbar, PreviewToolbar } from '../components/AppToolbars';
