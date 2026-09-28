@@ -1,7 +1,5 @@
 # gCAM architecture
 
-gCAM is a browser-only CAM companion for gSender. It exports G-code files and
-does not connect to, upload to, or control a machine.
 
 ## Boundaries
 
