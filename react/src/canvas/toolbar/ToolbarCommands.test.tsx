@@ -21,7 +21,9 @@ describe('ToolbarCommands', () => {
 
         render(<ToolbarCommands props={props} open={null} close={() => {}} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Delete selection' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Delete selection' }),
+        );
 
         expect(calls).toEqual([[]]);
     });
