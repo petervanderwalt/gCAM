@@ -106,6 +106,12 @@ export function resolveLibraryImage(
     base = import.meta.env.BASE_URL || '/',
 ) {
     if (!image || /^(?:https?:|data:|\/)/.test(image)) return image;
+    // Saved tool-rack entries from earlier releases may already contain a
+    // public-library path.  Treat it as rooted at the app base rather than
+    // nesting the source directory again on every reload.
+    if (image.startsWith('library/')) {
+        return `${base}${image}`.replace(/(?<!:)\/+/g, '/');
+    }
     const sourceDirectory = sourceUrl.slice(0, sourceUrl.lastIndexOf('/') + 1);
     return `${base}${sourceDirectory}${image}`.replace(/(?<!:)\/+/g, '/');
 }

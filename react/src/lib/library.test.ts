@@ -131,3 +131,13 @@ test('resolves bundled tool images from the site base path', () => {
         ),
     ).toBe('/gCAM/library/tools/sienci/images/bit.jpg');
 });
+
+test('keeps an already-rooted saved library image at the app base', () => {
+    expect(
+        resolveLibraryImage(
+            'library/tools/sienci/images/bit.jpg',
+            'library/tools/sienci/tools.json',
+            '/gCAM/',
+        ),
+    ).toBe('/gCAM/library/tools/sienci/images/bit.jpg');
+});
