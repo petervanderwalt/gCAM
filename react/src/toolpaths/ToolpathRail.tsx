@@ -9,6 +9,8 @@ import type { ViewLoop } from '../canvas/types';
 import type { PlacedTab, ProfileArgs, ToolpathResult } from '../lib/engine';
 import { defaultTabsForContours, operationUsesTabs } from '../lib/tabs';
 import type { UnitSystem } from '../lib/units';
+import type { JobStock } from '../job/stock';
+import { JobStockSetup } from '../job/JobStockSetup';
 
 type Bitmap = {
     id: string;
@@ -27,6 +29,8 @@ interface ToolpathRailProps {
     units: UnitSystem;
     emitArcs: boolean;
     machineProfileId: string;
+    stock: JobStock;
+    setStock: Dispatch<SetStateAction<JobStock>>;
     editingId: string | null;
     editingEntry: ToolpathStackEntry | null;
     tabMode: boolean;
@@ -60,6 +64,8 @@ export function ToolpathRail({
     units,
     emitArcs,
     machineProfileId,
+    stock,
+    setStock,
     editingId,
     editingEntry,
     tabMode,
@@ -85,6 +91,7 @@ export function ToolpathRail({
                 </span>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+                <JobStockSetup stock={stock} units={units} onChange={setStock} />
                 <ToolpathPanel
                     loops={loops}
                     selected={selected}
@@ -93,6 +100,7 @@ export function ToolpathRail({
                     onResult={onResult}
                     defaultArcs={emitArcs}
                     machineProfileId={machineProfileId}
+                    stock={stock}
                     units={units}
                     onDraftPreview={(contours) =>
                         setDraftPreview(contours ?? [])
@@ -163,6 +171,8 @@ function CommittedToolpaths({
     | 'units'
     | 'emitArcs'
     | 'machineProfileId'
+    | 'stock'
+    | 'setStock'
     | 'editingEntry'
     | 'setDraftPreview'
     | 'setDraftProgress'
@@ -190,7 +200,7 @@ function CommittedToolpaths({
                     return (
                         <div
                             key={entry.id}
-                            className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs dark:border-robin-900 dark:bg-dark-lighter"
+                            className="animate-in fade-in slide-in-from-top-2 duration-300 rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs dark:border-robin-900 dark:bg-dark-lighter"
                         >
                             <div className="flex items-center gap-2">
                                 <span className="flex-1 truncate text-slate-700 dark:text-slate-200">

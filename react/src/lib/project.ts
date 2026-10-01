@@ -1,6 +1,8 @@
 /**
  * Purpose: Implementation module for project in the lib domain.
  */
+import { normalizeJobStock, type JobStock } from '../job/stock';
+
 export interface ProjectSnapshot {
     loops: {
         id?: string;
@@ -13,6 +15,7 @@ export interface ProjectSnapshot {
     bitmaps: BitmapLike[];
     guides: GuideLike[];
     fileName: string;
+    stock?: JobStock;
 }
 
 export interface StackEntryLike {
@@ -103,5 +106,6 @@ export function deserializeProject(raw: string): ProjectSnapshot {
             ? (snap as { guides: GuideLike[] }).guides
             : [],
         fileName: doc.fileName || snap.fileName || '',
+        stock: normalizeJobStock((snap as { stock?: unknown }).stock),
     };
 }

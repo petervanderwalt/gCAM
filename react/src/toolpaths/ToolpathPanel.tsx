@@ -20,6 +20,7 @@ import {
     type ToolpathResult,
 } from '../lib/engine';
 import { imageDataOf } from '../lib/bitmap';
+import { UnitInput } from '../components/UnitInput';
 import { isConfigured, loadSlots, type ToolSlot } from '../tools/library';
 import { displayValue, type UnitSystem } from '../lib/units';
 import { OPERATIONS, RASTER_OPERATIONS } from './operationCatalog';
@@ -33,6 +34,7 @@ import { ToolpathFormAlerts } from './ToolpathFormAlerts';
 import { ToolpathSubmitControls } from './ToolpathSubmitControls';
 import { ToolpathEmptyState } from './ToolpathEmptyState';
 import { CuttingRecipeFields } from './CuttingRecipeFields';
+import type { JobStock } from '../job/stock';
 
 type DraftContour = { x: number; y: number }[] & {
     _intensity?: number;
@@ -66,6 +68,7 @@ export function ToolpathPanel({
     onCancelEdit,
     units = 'metric',
     machineProfileId = 'longmill-router',
+    stock,
 }: {
     loops: ViewLoop[];
     selected: string[];
@@ -93,10 +96,12 @@ export function ToolpathPanel({
     onCancelEdit?: () => void;
     units?: UnitSystem;
     machineProfileId?: string;
+    stock: JobStock;
 }) {
     const [operation, setOperation] = useState<Operation>('profile-outside');
     const [toolDiameter, setToolDiameter] = useState(6);
-    const [cutDepth, setCutDepth] = useState(18);
+    const [cutDepth, setCutDepth] = useState(stock.thicknessMm);
+    const [autoCutDepth, setAutoCutDepth] = useState(true);
     const [trochoid, setTrochoid] = useState(false);
     const [engagement, setEngagement] = useState(10);
     const [laserFeed, setLaserFeed] = useState(3000);
@@ -119,7 +124,7 @@ export function ToolpathPanel({
     const [spindle, setSpindle] = useState(18000);
     const [safeZ, setSafeZ] = useState(6);
     const [passDepth, setPassDepth] = useState(3);
-    const [material, setMaterial] = useState<MaterialId>('sheet-goods');
+    const material: MaterialId = stock.material;
     const [arcs, setArcs] = useState(defaultArcs);
     const [toolNumber, setToolNumber] = useState(1);
     const [overlap, setOverlap] = useState(40);
@@ -164,7 +169,7 @@ export function ToolpathPanel({
                 material,
                 machine,
                 operation: recipeOperation,
-                stockDepthMm: cutDepth,
+                stockDepthMm: stock.thicknessMm,
                 cutter: {
                     toolType: activeSlot.toolType,
                     diameterMm: activeSlot.cuttingDiameterMm,
@@ -204,13 +209,18 @@ export function ToolpathPanel({
     // Load a created toolpath back into the form for editing (legacy parity).
     const editId = editEntry?.id ?? null;
     useEffect(() => {
-        if (!editEntry) return;
+        if (!editEntry) {
+            setAutoCutDepth(true);
+            setCutDepth(stock.thicknessMm);
+            return;
+        }
         const a = editEntry.args as ProfileArgs & Record<string, unknown>;
         const num = (v: unknown, fallback: number) =>
             typeof v === 'number' && Number.isFinite(v) ? v : fallback;
         setOperation(a.operation);
         setToolDiameter(num(a.toolDiameter, 6));
-        setCutDepth(num(a.cutDepth, 18));
+        setCutDepth(num(a.cutDepth, stock.thicknessMm));
+        setAutoCutDepth(false);
         setTrochoid(Boolean(a.trochoidEnabled));
         setEngagement(num(a.trochoidEngagementPercent, 10));
         setLaserFeed(num(a.laserFeed, 3000));
@@ -231,14 +241,11 @@ export function ToolpathPanel({
         setTextureType(
             a.textureType === 'crosshatch' ? 'crosshatch' : 'voronoi',
         );
-        if (typeof a.material === 'string' && a.material in MATERIAL_RECIPES) {
-            setMaterial(a.material as MaterialId);
-        }
         setFeedRate(num(a.feedRate, 1800));
         setPlungeRate(num(a.plungeRate, 600));
         setSpindle(num(a.spindle, 18000));
         setSafeZ(num(a.safeZ, 6));
-        setPassDepth(num(a.passDepth, num(a.cutDepth, 18)));
+        setPassDepth(num(a.passDepth, num(a.cutDepth, stock.thicknessMm)));
         setArcs(a.arcs !== false);
         setToolNumber(Math.max(1, Math.round(num(a.toolNumber, 1))));
         setOverlap(num(a.overlapPercent, 40));
@@ -251,6 +258,10 @@ export function ToolpathPanel({
         if (slot) setSlotNum(slot.slot);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editId]);
+
+    useEffect(() => {
+        if (autoCutDepth) setCutDepth(stock.thicknessMm);
+    }, [stock.thicknessMm, autoCutDepth]);
 
     // Only offer operations that fit the selection: bitmap ops need a
     // placed bitmap, vector ops need vector geometry.
@@ -309,6 +320,7 @@ export function ToolpathPanel({
             toolDiameter,
             cutDepth,
             cutterAngle,
+            cutterType: activeSlot?.toolType ?? 'flat',
             laserFeed,
             laserPower,
             laserSpot,
@@ -324,6 +336,7 @@ export function ToolpathPanel({
             halftoneInvert,
             textureType,
             material,
+            stockThicknessMm: stock.thicknessMm,
             machineProfileId,
             textureSpacing,
             crosshatchAngle,
@@ -614,11 +627,27 @@ export function ToolpathPanel({
             />
             {recipeOperation && (
                 <CuttingRecipeFields
-                    material={material}
-                    onMaterialChange={setMaterial}
                     recommendation={recommendation}
                     units={units}
                 />
+            )}
+            {!LASER_OPS.includes(operation) && (
+                <label className="block space-y-1">
+                    <span className="text-slate-500 dark:text-slate-400">
+                        Cut depth ({units === 'imperial' ? 'in' : 'mm'})
+                    </span>
+                    <UnitInput
+                        units={units}
+                        stepMm={0.1}
+                        minMm={0.1}
+                        valueMm={cutDepth}
+                        onChangeMm={(value) => {
+                            setCutDepth(value);
+                            setAutoCutDepth(false);
+                        }}
+                        className="w-full rounded bg-slate-100 dark:bg-dark-lighter border border-slate-300 dark:border-robin-900 px-2 py-1 text-slate-900 dark:text-white"
+                    />
+                </label>
             )}
             <CuttingFields
                 operation={operation}
@@ -661,11 +690,9 @@ export function ToolpathPanel({
                     textureType={textureType}
                     textureSpacing={textureSpacing}
                     crosshatchAngle={crosshatchAngle}
-                    cutDepth={cutDepth}
                     onTypeChange={setTextureType}
                     onSpacingChange={setTextureSpacing}
                     onCrosshatchAngleChange={setCrosshatchAngle}
-                    onCutDepthChange={setCutDepth}
                 />
             )}
             <RasterLaserFields

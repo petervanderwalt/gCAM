@@ -174,6 +174,8 @@ export default function App() {
         setBitmaps,
         guides,
         setGuides,
+        stock,
+        setStock,
         pushHistory,
         restore,
         undoDocument,
@@ -227,6 +229,7 @@ export default function App() {
     } = useToolpathStack({
         stack,
         setStack,
+        setSelected,
         pushHistory,
         setStatus,
         setDraftPreview,
@@ -354,6 +357,7 @@ export default function App() {
 
     const {
         handleExportProject,
+        handleImportProject,
         handleTrimAt,
         handleTrimStroke,
         handleCommitLoop,
@@ -473,6 +477,8 @@ export default function App() {
         units,
         emitArcs,
         machineProfileId,
+        stock,
+        setStock,
         editingId,
         editingEntry,
         tabMode,
@@ -494,6 +500,7 @@ export default function App() {
         gcode,
         fileName,
         darkMode,
+        stock,
         onPreviewControlsChange: setPreviewControls,
     };
     const configPanelProps = {
@@ -575,6 +582,29 @@ export default function App() {
                     toolbarProps={toolbarProps}
                     previewControls={previewControls}
                     configActions={configActions}
+                />
+
+                <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".dxf,.svg,.png,.jpg,.jpeg,.webp,.bmp"
+                    className="hidden"
+                    aria-label="Import drawing file"
+                    onChange={(event) => {
+                        void handleFiles(event.currentTarget.files);
+                        event.currentTarget.value = '';
+                    }}
+                />
+                <input
+                    ref={projectRef}
+                    type="file"
+                    accept=".gcam,.json,application/json"
+                    className="hidden"
+                    aria-label="Import project file"
+                    onChange={(event) => {
+                        void handleImportProject(event.currentTarget.files);
+                        event.currentTarget.value = '';
+                    }}
                 />
 
                 <AppWorkspace model={workspaceModel} />

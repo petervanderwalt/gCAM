@@ -92,6 +92,7 @@ export function CanvasStage({
     drawSides,
     polygonMode,
     grid,
+    stock,
     guides,
     guidePlacement = null,
     onPlaceGuide = () => {},
@@ -183,6 +184,7 @@ export function CanvasStage({
         drawSides,
         polygonMode,
         grid,
+        stock,
         guides,
         guidePlacement,
         transformMode,
@@ -208,6 +210,7 @@ export function CanvasStage({
         drawSides,
         polygonMode,
         grid,
+        stock,
         guides,
         guidePlacement,
         transformMode,
@@ -326,6 +329,7 @@ export function CanvasStage({
                 tabMarkers,
                 tabHover,
                 grid,
+                stock,
                 bitmaps,
                 guides,
                 guidePlacement,
@@ -379,6 +383,12 @@ export function CanvasStage({
                     viewRef.current.polygonMode,
                 ),
                 grid,
+                stockBounds: {
+                    minX: 0,
+                    minY: 0,
+                    maxX: stock.widthMm,
+                    maxY: stock.heightMm,
+                },
                 bitmaps,
                 guides,
                 guidePlacement,
@@ -513,6 +523,14 @@ export function CanvasStage({
         ? 'bg-dark/80 border-robin-900 text-slate-300'
         : 'bg-white/90 border-slate-300 text-slate-600';
 
+    const jobExceedsStock = Boolean(
+        bounds &&
+            (bounds.minX < 0 ||
+                bounds.minY < 0 ||
+                bounds.maxX > stock.widthMm ||
+                bounds.maxY > stock.heightMm),
+    );
+
     return (
         <div
             className={`h-full flex flex-col rounded border overflow-hidden ${chrome}`}
@@ -590,6 +608,7 @@ export function CanvasStage({
                         draftProgress={draftProgress}
                         progressPosition={pillPos}
                         draftDimension={draftDimension}
+                        jobExceedsStock={jobExceedsStock}
                         onZoom={zoomBy}
                         onFit={fitToBounds}
                     />

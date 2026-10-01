@@ -115,6 +115,7 @@ export function createWorkspaceModel(
                 drawSides: options.drawing.drawSides,
                 polygonMode: options.drawing.drawPolygonMode,
                 grid: options.configPanelProps.grid,
+                stock: options.previewWorkspaceProps.stock,
                 guides: options.document.guides,
                 guidePlacement: options.drawing.guidePlacement,
                 bitmaps: options.document.bitmaps,

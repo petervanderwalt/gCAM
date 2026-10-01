@@ -6,6 +6,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ViewBounds, ViewLoop } from '../canvas/types';
 import { loopBounds } from '../lib/engine';
 import { createDocumentId } from '../lib/ids';
+import { cloneHistoryData } from '../lib/history';
 import type { Guide } from '../lib/guides';
 import type { ToolpathStackEntry } from '../toolpaths/useToolpathStack';
 import {
@@ -51,11 +52,12 @@ export function useDocumentWorkspace({
             })),
             selected: [...snapshot.selected],
             hidden: [...snapshot.hidden],
-            stack: structuredClone(snapshot.stack),
+            stack: cloneHistoryData(snapshot.stack),
             bitmaps: snapshot.bitmaps.map(({ img, ...bitmap }) => ({
                 ...bitmap,
             })),
             guides: snapshot.guides.map((guide) => ({ ...guide })),
+            stock: { ...snapshot.stock },
         }),
         onRestore: (snapshot) => setBounds(loopBounds(snapshot.loops)),
     });
@@ -72,6 +74,8 @@ export function useDocumentWorkspace({
         setBitmaps,
         guides,
         setGuides,
+        stock,
+        setStock,
         push: pushHistory,
         restore,
         undo: undoDocument,
@@ -92,10 +96,12 @@ export function useDocumentWorkspace({
         stack,
         bitmaps,
         guides,
+        stock,
         fileName,
         restore,
         setBitmaps,
         setFileName,
+        setStock,
         setStatus,
     });
 
@@ -148,6 +154,8 @@ export function useDocumentWorkspace({
         setBitmaps,
         guides,
         setGuides,
+        stock,
+        setStock,
         pushHistory,
         restore,
         undoDocument,

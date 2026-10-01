@@ -9,6 +9,7 @@ import { ProjectAutosaveStore } from '../lib/autosave';
 import type { Guide } from '../lib/guides';
 import type { DocumentSnapshot } from './useDocumentState';
 import type { PlacedBitmapRecord } from './useBitmapCommands';
+import { normalizeJobStock, type JobStock } from '../job/stock';
 
 type AppSnapshot = DocumentSnapshot<
     ViewLoop,
@@ -24,10 +25,12 @@ interface UseDocumentPersistenceOptions {
     stack: ToolpathStackEntry[];
     bitmaps: PlacedBitmapRecord[];
     guides: Guide[];
+    stock: JobStock;
     fileName: string;
     restore(snapshot: AppSnapshot): void;
     setBitmaps: Dispatch<SetStateAction<PlacedBitmapRecord[]>>;
     setFileName: Dispatch<SetStateAction<string>>;
+    setStock: Dispatch<SetStateAction<JobStock>>;
     setStatus: Dispatch<SetStateAction<string>>;
 }
 
@@ -39,10 +42,12 @@ export function useDocumentPersistence({
     stack,
     bitmaps,
     guides,
+    stock,
     fileName,
     restore,
     setBitmaps,
     setFileName,
+    setStock,
     setStatus,
 }: UseDocumentPersistenceOptions) {
     const autosaveStoreRef = useRef(new ProjectAutosaveStore());
@@ -67,6 +72,7 @@ export function useDocumentPersistence({
                     stack: recovery.snapshot.stack as ToolpathStackEntry[],
                     bitmaps: recovery.snapshot.bitmaps as PlacedBitmapRecord[],
                     guides: recovery.snapshot.guides,
+                    stock: normalizeJobStock(recovery.snapshot.stock),
                 });
                 setFileName(recovery.snapshot.fileName);
                 setStatus('Recovered the last local project.');
@@ -96,6 +102,7 @@ export function useDocumentPersistence({
                     stack,
                     bitmaps: bitmaps.map(({ img, ...bitmap }) => bitmap),
                     guides,
+                    stock,
                     fileName,
                 })
                 .catch(() => {
@@ -103,7 +110,7 @@ export function useDocumentPersistence({
                 });
         }, 600);
         return () => window.clearTimeout(timer);
-    }, [bitmaps, fileName, guides, hidden, loops, selected, stack]);
+    }, [bitmaps, fileName, guides, hidden, loops, selected, stack, stock]);
 
     useEffect(() => {
         let cancelled = false;

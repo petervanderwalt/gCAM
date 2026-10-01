@@ -1,20 +1,32 @@
 /**
- * Purpose: Implementation module for GcodeViewer3DView in the components domain.
+ * Purpose: G-code preview powered by the shared gviewer parser and renderer.
  */
-import { useEffect, useRef } from 'react';
-import { GcodeViewer3D } from '../engine/gcode-viewer-3d.js';
+import { useEffect, useRef, useState } from 'react';
+import { GCodeVisualizer } from '@sienci/gviewer/react';
+import {
+    gCodeViewerThemePresets,
+    type GCodeViewerBounds,
+    type GCodeViewerHandle,
+} from '@sienci/gviewer/viewer';
 
-interface ViewerInstance {
-    build(gcode: string): void;
-    resize(): void;
-    setTheme(dark: boolean): void;
-    resetCamera(top?: boolean): void;
-    dispose(): void;
+function gridForBounds(bounds: GCodeViewerBounds) {
+    const width = Math.max(1, bounds.max.x - bounds.min.x);
+    const height = Math.max(1, bounds.max.y - bounds.min.y);
+    const padding = Math.max(25, width * 0.1, height * 0.1);
+    return {
+        sizeX: width + padding * 2,
+        sizeY: height + padding * 2,
+        axisDepth: Math.max(50, bounds.max.z - bounds.min.z + padding),
+        labels: true,
+        bounds: {
+            min: { x: bounds.min.x - padding, y: bounds.min.y - padding },
+            max: { x: bounds.max.x + padding, y: bounds.max.y + padding },
+        },
+    };
 }
 
 /**
- * gSender-inspired G-code toolpath viewer: worker parses G-code,
- * three.js draws color-coded G0/G1/G2/G3 segments with grid + zero callout.
+ * Render exported G-code with the same parser used by gviewer.
  */
 export function GcodeViewer3DView({
     gcode,
@@ -23,52 +35,29 @@ export function GcodeViewer3DView({
     gcode: string;
     darkMode: boolean;
 }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const statusRef = useRef<HTMLDivElement>(null);
-    const instanceRef = useRef<ViewerInstance | null>(null);
-    const buildTimer = useRef<number | null>(null);
-    const lastBuiltRef = useRef<string | null>(null);
+    const viewerRef = useRef<GCodeViewerHandle>(null);
+    const requestRef = useRef(0);
+    const [status, setStatus] = useState('Add a toolpath to preview G-code.');
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        const status = statusRef.current;
-        if (!canvas || !status) return;
-        const instance = new GcodeViewer3D(
-            canvas,
-            status,
-        ) as unknown as ViewerInstance;
-        instanceRef.current = instance;
-        instance.setTheme(darkMode);
-        const ro = new ResizeObserver(() => instance.resize());
-        if (canvas.parentElement) ro.observe(canvas.parentElement);
-        return () => {
-            ro.disconnect();
-            try {
-                instance.dispose();
-            } catch {
-                /* ignore */
-            }
-            instanceRef.current = null;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        instanceRef.current?.setTheme(darkMode);
-    }, [darkMode]);
-
-    useEffect(() => {
-        if (buildTimer.current) window.clearTimeout(buildTimer.current);
-        // Settle delay so slider drags / rapid edits parse once, and skip
-        // re-parses when the program text is unchanged across renders.
-        buildTimer.current = window.setTimeout(() => {
-            if (lastBuiltRef.current === gcode) return;
-            lastBuiltRef.current = gcode;
-            instanceRef.current?.build(gcode);
-        }, 600);
-        return () => {
-            if (buildTimer.current) window.clearTimeout(buildTimer.current);
-        };
+        const viewer = viewerRef.current;
+        if (!viewer) return;
+        const request = ++requestRef.current;
+        if (!gcode.trim()) {
+            viewer.unload();
+            setStatus('Add a toolpath to preview G-code.');
+            return;
+        }
+        setStatus('Preparing G-code preview…');
+        void viewer.loadFromText(gcode).then(() => {
+            if (request !== requestRef.current) return;
+            const bounds = viewer.getBounds();
+            if (bounds) viewer.setOptions({ grid: gridForBounds(bounds) });
+            viewer.focusToModel();
+            setStatus('Drag to orbit · scroll to zoom · right-drag to pan');
+        }).catch(() => {
+            if (request === requestRef.current) setStatus('Unable to render this G-code.');
+        });
     }, [gcode]);
 
     return (
@@ -80,17 +69,50 @@ export function GcodeViewer3DView({
             }`}
         >
             <div className="flex-1 min-h-0">
-                <canvas ref={canvasRef} className="w-full h-full block" />
+                <GCodeVisualizer
+                    id="gcam-gcode-viewer"
+                    ref={viewerRef}
+                    className="h-full w-full"
+                    options={{
+                        units: 'mm',
+                        boundingBox: { visible: true, labels: true },
+                        grid: {
+                            sizeX: 1000,
+                            sizeY: 1000,
+                            axisDepth: 200,
+                            labels: true,
+                            bounds: null,
+                        },
+                        camera: {
+                            projection: 'perspective',
+                            fov: 45,
+                            focusDurationMs: 250,
+                            orbit: { enableDamping: false },
+                            initialPosition: { x: 0, y: -500, z: 500 },
+                        },
+                        render: {
+                            antialias: true,
+                            theme: darkMode
+                                ? gCodeViewerThemePresets['tokyo-night']
+                                : gCodeViewerThemePresets.light,
+                        },
+                    }}
+                    callbacks={{
+                        onProgress: (event) => {
+                            if (event.state === 'determinate') setStatus(`${event.label} ${event.processed}/${event.total}`);
+                            else if (event.state === 'indeterminate') setStatus(event.label);
+                        },
+                    }}
+                />
             </div>
             <div
-                ref={statusRef}
                 className={`px-2 py-1 text-xs border-t ${
                     darkMode
                         ? 'text-slate-400 border-robin-900'
                         : 'text-slate-500 border-slate-200'
                 }`}
             >
-                Add a toolpath to preview G-code.
+                {status}
             </div>
         </div>
     );

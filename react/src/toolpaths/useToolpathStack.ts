@@ -29,6 +29,7 @@ type DraftProgressSetter = Dispatch<
 interface ToolpathStackOptions {
     stack: ToolpathStackEntry[];
     setStack: Dispatch<SetStateAction<ToolpathStackEntry[]>>;
+    setSelected: Dispatch<SetStateAction<string[]>>;
     pushHistory: () => void;
     setStatus: Dispatch<SetStateAction<string>>;
     setDraftPreview: DraftPreviewSetter;
@@ -97,6 +98,8 @@ export function useToolpathStack(options: ToolpathStackOptions) {
                     },
                 ];
             });
+            options.setSelected([]);
+            options.setEditingId(null);
             clearDraft();
             options.showToast(
                 'Toolpath added. Use Ctrl+Z to undo.',

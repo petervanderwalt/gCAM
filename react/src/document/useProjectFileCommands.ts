@@ -4,6 +4,8 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { BitmapLike, GuideLike, StackEntryLike } from '../lib/project';
 import { downloadProject, readProjectFile } from './projectFile';
+import type { JobStock } from '../job/stock';
+import { normalizeJobStock } from '../job/stock';
 
 interface IdentifiedLoop {
     id: string;
@@ -26,6 +28,7 @@ interface UseProjectFileCommandsOptions<
     stack: TStack[];
     bitmaps: TBitmap[];
     guides: TGuide[];
+    stock: JobStock;
     fileName: string;
     setLoops: Dispatch<SetStateAction<TLoop[]>>;
     setSelected: Dispatch<SetStateAction<string[]>>;
@@ -34,6 +37,7 @@ interface UseProjectFileCommandsOptions<
     setBitmaps: Dispatch<SetStateAction<TBitmap[]>>;
     setGuides: Dispatch<SetStateAction<TGuide[]>>;
     setFileName: Dispatch<SetStateAction<string>>;
+    setStock: Dispatch<SetStateAction<JobStock>>;
     setStatus: Dispatch<SetStateAction<string>>;
     pushHistory(): void;
     newLoopId(): string;
@@ -61,6 +65,7 @@ export function useProjectFileCommands<
             stack: options.stack,
             bitmaps: options.bitmaps.map(({ img, ...bitmap }) => bitmap),
             guides: options.guides,
+            stock: options.stock,
             fileName: options.fileName,
         });
         options.setStatus(`Exported ${name}.`);
@@ -86,6 +91,7 @@ export function useProjectFileCommands<
             options.setStack(snapshot.stack as TStack[]);
             options.setBitmaps(snapshot.bitmaps as unknown as TBitmap[]);
             options.setGuides(snapshot.guides as TGuide[]);
+            options.setStock(normalizeJobStock(snapshot.stock));
             options.setFileName(snapshot.fileName);
             options.onLoadedBounds(loops);
             options.setStatus(`Loaded ${file.name}.`);

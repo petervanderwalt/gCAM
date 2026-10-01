@@ -8,6 +8,7 @@ import {
     redoHistory,
     undoHistory,
 } from '../lib/history';
+import { DEFAULT_JOB_STOCK, type JobStock } from '../job/stock';
 
 export interface DocumentSnapshot<TLoop, TStack, TBitmap, TGuide> {
     loops: TLoop[];
@@ -16,6 +17,7 @@ export interface DocumentSnapshot<TLoop, TStack, TBitmap, TGuide> {
     stack: TStack[];
     bitmaps: TBitmap[];
     guides: TGuide[];
+    stock: JobStock;
 }
 
 interface DocumentStateOptions<TLoop, TStack, TBitmap, TGuide> {
@@ -41,6 +43,7 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
     const [stack, setStack] = useState<TStack[]>([]);
     const [bitmaps, setBitmaps] = useState<TBitmap[]>([]);
     const [guides, setGuides] = useState<TGuide[]>([]);
+    const [stock, setStock] = useState<JobStock>(DEFAULT_JOB_STOCK);
     const [, setVersion] = useState(0);
     const stateRef = useRef<DocumentSnapshot<TLoop, TStack, TBitmap, TGuide>>({
         loops,
@@ -49,8 +52,9 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
         stack,
         bitmaps,
         guides,
+        stock,
     });
-    stateRef.current = { loops, selected, hidden, stack, bitmaps, guides };
+    stateRef.current = { loops, selected, hidden, stack, bitmaps, guides, stock };
     const historyRef = useRef(
         createHistory(options.historyLimit ?? 60, options.clone),
     );
@@ -69,6 +73,7 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
         setStack(snapshot.stack);
         setBitmaps(snapshot.bitmaps);
         setGuides(snapshot.guides);
+        setStock(snapshot.stock);
         options.onRestore?.(snapshot);
     };
 
@@ -101,6 +106,8 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
         setBitmaps,
         guides,
         setGuides,
+        stock,
+        setStock,
         push,
         restore,
         undo,

@@ -20,6 +20,7 @@ import {
     makeToolpathConfig,
     prepareRasterInput,
 } from '../toolpaths/toolpathRequest';
+import type { ToolType } from '../tools/library';
 
 export type Operation =
     | 'profile-outside'
@@ -63,6 +64,9 @@ export interface ProfileArgs {
     crosshatchAngle?: number;
     /** Material and machine used to calculate this toolpath's saved recipe. */
     material?: string;
+    /** Job-stock thickness at generation time, used for replay/export context. */
+    stockThicknessMm?: number;
+    cutterType?: ToolType;
     machineProfileId?: string;
     /** Emit G2/G3 arcs for circles (default) or G1-only polylines. */
     arcs?: boolean;

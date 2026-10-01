@@ -87,9 +87,6 @@ export function EditorWorkspace({
             {activeTab === 'preview' && (
                 <OutputWorkspace mode="preview" {...previewWorkspaceProps} />
             )}
-            {activeTab === 'gcode' && (
-                <OutputWorkspace mode="gcode" {...previewWorkspaceProps} />
-            )}
             {activeTab === 'config' && (
                 <main className="relative flex-1 min-w-0 bg-slate-100 dark:bg-slate-800 min-h-0">
                     <ConfigPanel {...configPanelProps} />

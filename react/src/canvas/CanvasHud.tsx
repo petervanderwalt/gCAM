@@ -16,6 +16,7 @@ interface CanvasHudProps {
     draftProgress: { percent: number; label: string } | null | undefined;
     progressPosition: Point | null;
     draftDimension: { label: string; x: number; y: number } | null;
+    jobExceedsStock: boolean;
     onZoom(factor: number): void;
     onFit(): void;
 }
@@ -30,6 +31,7 @@ export function CanvasHud({
     draftProgress,
     progressPosition,
     draftDimension,
+    jobExceedsStock,
     onZoom,
     onFit,
 }: CanvasHudProps) {
@@ -54,6 +56,11 @@ export function CanvasHud({
                 guidePlacement={guidePlacement}
                 units={units}
             />
+            {jobExceedsStock && (
+                <div className="absolute top-11 left-2 rounded border border-amber-500/70 bg-amber-100/95 px-2 py-1 text-xs font-medium text-amber-950 shadow dark:bg-amber-950/90 dark:text-amber-100">
+                    Job geometry exceeds the configured stock.
+                </div>
+            )}
             {draftProgress &&
                 createPortal(
                     <div

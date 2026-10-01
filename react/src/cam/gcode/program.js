@@ -396,75 +396,67 @@ export function buildGcode({
         }
 
         let startedThisToolpath = false;
-        for (const depth of toolpath.passDepths) {
-            for (
-                let contourIndex = 0;
-                contourIndex < toolpath.previewContours.length;
-                contourIndex += 1
+        for (const [contourIndex, depth] of contourPasses(toolpath)) {
+            const contour = toolpath.previewContours[contourIndex];
+            if (!contour.length) {
+                continue;
+            }
+
+            const start = getProfileStartPoint(contour, toolpath);
+            lines.push(`G0 Z${formatNumber(safeZ)}`);
+            lines.push(
+                `G0 X${formatNumber(start.x)} Y${formatNumber(start.y)}`,
+            );
+            if (
+                !startedThisToolpath ||
+                !spindleRunning ||
+                currentSpindle !== spindle
             ) {
-                const contour = toolpath.previewContours[contourIndex];
-                if (!contour.length) {
-                    continue;
-                }
+                lines.push(`M3 S${Math.round(spindle)}`);
+                spindleRunning = true;
+                currentSpindle = spindle;
+                startedThisToolpath = true;
+            }
 
-                const start = getProfileStartPoint(contour, toolpath);
-                lines.push(`G0 Z${formatNumber(safeZ)}`);
-                lines.push(
-                    `G0 X${formatNumber(start.x)} Y${formatNumber(start.y)}`,
-                );
-                if (
-                    !startedThisToolpath ||
-                    !spindleRunning ||
-                    currentSpindle !== spindle
-                ) {
-                    lines.push(`M3 S${Math.round(spindle)}`);
-                    spindleRunning = true;
-                    currentSpindle = spindle;
-                    startedThisToolpath = true;
-                }
+            const tabsForContour = operationUsesTabs(toolpath)
+                ? toolpath.tabs
+                      .filter((tab) => tab.contourIndex === contourIndex)
+                      .sort((a, b) => a.along - b.along)
+                : [];
 
-                const tabsForContour = operationUsesTabs(toolpath)
-                    ? toolpath.tabs
-                          .filter((tab) => tab.contourIndex === contourIndex)
-                          .sort((a, b) => a.along - b.along)
-                    : [];
+            const fixedTabDepth = tabTopDepth(toolpath);
+            const passUsesTabs =
+                tabsForContour.length > 0 && depth < fixedTabDepth;
 
-                const fixedTabDepth = tabTopDepth(toolpath);
-                const passUsesTabs =
-                    tabsForContour.length > 0 && depth < fixedTabDepth;
-
-                if (!passUsesTabs) {
-                    lines.push(
-                        `G1 Z${formatNumber(depth)} F${formatNumber(plunge)}`,
-                    );
-                    emitProfileContourMoves(
-                        lines,
-                        contour,
-                        depth,
-                        feed,
-                        plunge,
-                        forcePolylineArcs,
-                        toolpath,
-                    );
-                    reportProgress(`Writing ${toolpath.operationLabel}`);
-                    continue;
-                }
-
+            if (!passUsesTabs) {
                 lines.push(
                     `G1 Z${formatNumber(depth)} F${formatNumber(plunge)}`,
                 );
-                emitContourWithTabRamps(
+                emitProfileContourMoves(
                     lines,
                     contour,
                     depth,
-                    fixedTabDepth,
-                    tabsForContour,
-                    toolpath,
                     feed,
+                    plunge,
                     forcePolylineArcs,
+                    toolpath,
                 );
                 reportProgress(`Writing ${toolpath.operationLabel}`);
+                continue;
             }
+
+            lines.push(`G1 Z${formatNumber(depth)} F${formatNumber(plunge)}`);
+            emitContourWithTabRamps(
+                lines,
+                contour,
+                depth,
+                fixedTabDepth,
+                tabsForContour,
+                toolpath,
+                feed,
+                forcePolylineArcs,
+            );
+            reportProgress(`Writing ${toolpath.operationLabel}`);
         }
         lines.push(`G0 Z${formatNumber(safeZ)}`);
     }
@@ -474,6 +466,34 @@ export function buildGcode({
     }
     lines.push('M30');
     return lines.join('\n');
+}
+
+function* contourPasses(toolpath) {
+    const contours = toolpath.previewContours;
+    const depths = toolpath.passDepths;
+    if (
+        toolpath.operation === 'profile-inside' ||
+        toolpath.operation === 'profile-outside'
+    ) {
+        for (
+            let contourIndex = 0;
+            contourIndex < contours.length;
+            contourIndex++
+        ) {
+            for (const depth of depths) yield [contourIndex, depth];
+        }
+        return;
+    }
+
+    for (const depth of depths) {
+        for (
+            let contourIndex = 0;
+            contourIndex < contours.length;
+            contourIndex++
+        ) {
+            yield [contourIndex, depth];
+        }
+    }
 }
 
 export async function buildGcodeAsync({

@@ -2,11 +2,30 @@
  * Tests: undo restores earlier snapshots in order; redo replays after undo and clears on new push; undo stack respects the limit; snapshots are deep copies; and related cases.
  */
 import {
+    cloneHistoryData,
     createHistory,
     pushHistory,
     redoHistory,
     undoHistory,
 } from './history';
+
+test('history data cloning omits geometry methods and preserves nested data', () => {
+    const source = {
+        points: [{ x: 1, y: 2 }],
+        segment: {
+            kind: 'polyline',
+            reverse() {
+                return 'runtime geometry method';
+            },
+        },
+    };
+
+    const copy = cloneHistoryData(source);
+
+    expect(copy).toEqual({ points: [{ x: 1, y: 2 }], segment: { kind: 'polyline' } });
+    expect(copy).not.toBe(source);
+    expect(copy.points).not.toBe(source.points);
+});
 
 test('undo restores earlier snapshots in order', () => {
     const h = createHistory<number[]>(10);

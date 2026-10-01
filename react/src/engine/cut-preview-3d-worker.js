@@ -8,7 +8,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 let latestBuildVersion = 0;
 
-function boundsFor(toolpaths) {
+function boundsFor(toolpaths, stock) {
     const points = [];
     for (const toolpath of toolpaths) {
         for (const contour of toolpath.previewContours || [])
@@ -29,6 +29,18 @@ function boundsFor(toolpaths) {
         maxY = Math.max(maxY, point.y);
     }
     if (!Number.isFinite(minX)) return null;
+    const width = Number(stock?.widthMm);
+    const height = Number(stock?.heightMm);
+    if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+        // The entered stock is authoritative. Geometry beyond it is flagged in
+        // the editor rather than silently stretching the material to fit.
+        return {
+            minX: 0,
+            minY: 0,
+            maxX: width,
+            maxY: height,
+        };
+    }
     // The stock is laid out from the machine origin as well as around the
     // programmed geometry. This keeps zero-coordinate work inside the stock
     // when all toolpath coordinates are positive (or all are negative).
@@ -156,14 +168,18 @@ function paintSampleInto(grid, sample, geometry) {
         rows - 1,
     );
     for (let row = minRow; row <= maxRow; row += 1) {
-        const y = bounds.minY + row * cellY;
+        const y = bounds.minY + (row + .5) * cellY;
         for (let column = minColumn; column <= maxColumn; column += 1) {
-            const x = bounds.minX + column * cellX;
+            const x = bounds.minX + (column + .5) * cellX;
             const radial = Math.hypot(x - sample.x, y - sample.y);
             if (radial > radius) continue;
+            const ball = sample.cutterType === 'ball' || sample.cutterType === 'ballnose';
+            const ballRadius = sample.cutter / 2;
             const z = sample.vbit
                 ? Math.min(0, sample.z + radial / tangent)
-                : sample.z;
+                : ball
+                  ? Math.min(0, sample.z + ballRadius - Math.sqrt(Math.max(0, ballRadius * ballRadius - radial * radial)))
+                  : sample.z;
             grid[row * columns + column] = Math.min(
                 grid[row * columns + column],
                 z,
@@ -174,8 +190,45 @@ function paintSampleInto(grid, sample, geometry) {
 
 const yieldWorker = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-async function build(version, toolpaths) {
-    const bounds = boundsFor(toolpaths);
+function pathLength(points) {
+    let length = 0;
+    for (let index = 1; index < points.length; index += 1)
+        length += dist(points[index - 1], points[index]);
+    return length;
+}
+
+function estimatedSampleLength(toolpaths) {
+    return toolpaths.reduce((total, toolpath) => {
+        if (toolpath.motionPaths?.length)
+            return total + toolpath.motionPaths.reduce(
+                (sum, path) => sum + pathLength(path.points || []),
+                0,
+            );
+        const contourLength = (toolpath.previewContours || []).reduce(
+            (sum, contour) => sum + pathLength(contour),
+            0,
+        );
+        return total + contourLength * Math.max(1, toolpath.passDepths?.length || 0);
+    }, 0);
+}
+
+function sampleLengthForToolpath(toolpath) {
+    return estimatedSampleLength([toolpath]);
+}
+
+function capSamples(samples, maximum) {
+    if (samples.length <= maximum) return samples;
+    const step = Math.ceil(samples.length / maximum);
+    const capped = [];
+    for (let index = 0; index < samples.length; index += step)
+        capped.push(samples[index]);
+    const last = samples[samples.length - 1];
+    if (capped[capped.length - 1] !== last) capped.push(last);
+    return capped;
+}
+
+async function build(version, toolpaths, stock) {
+    const bounds = boundsFor(toolpaths, stock);
     if (!bounds) {
         self.postMessage({ type: 'empty', version });
         return;
@@ -184,11 +237,14 @@ async function build(version, toolpaths) {
         1,
         ...toolpaths.map((path) => Number(path.toolDiameter) || 1),
     );
-    const padding = Math.max(8, maxDiameter * 1.5);
-    bounds.minX -= padding;
-    bounds.minY -= padding;
-    bounds.maxX += padding;
-    bounds.maxY += padding;
+    const hasJobStock = Number(stock?.widthMm) > 0 && Number(stock?.heightMm) > 0;
+    if (!hasJobStock) {
+        const padding = Math.max(8, maxDiameter * 1.5);
+        bounds.minX -= padding;
+        bounds.minY -= padding;
+        bounds.maxX += padding;
+        bounds.maxY += padding;
+    }
     const width = Math.max(1, bounds.maxX - bounds.minX),
         height = Math.max(1, bounds.maxY - bounds.minY);
     const minCutter = Math.max(
@@ -197,27 +253,60 @@ async function build(version, toolpaths) {
     );
     const cell = Math.max(
         0.1,
-        Math.min(minCutter * 0.16, Math.max(width, height) / 960),
+        // Target at least twelve height samples across the smallest cutter.
+        // The former 0.16 multiplier produced only five or six samples across
+        // a 6.35 mm cutter on a 2 m sheet, which made curves visibly stair-step
+        // at inspection zoom.
+        Math.min(minCutter * 0.08, Math.max(width, height) / 960),
     );
-    let columns = Math.min(2048, Math.max(56, Math.ceil(width / cell) + 1));
-    let rows = Math.min(2048, Math.max(56, Math.ceil(height / cell) + 1));
-    const maxCells = 2400000;
+    // One texel represents a cell centre. The renderer gives every texel its
+    // own flat top face and draws the vertical steps in a second GPU pass.
+    let columns = Math.min(4096, Math.max(56, Math.ceil(width / cell)));
+    let rows = Math.min(4096, Math.max(56, Math.ceil(height / cell)));
+    // Profiles reveal the actual height-field resolution at their vertical
+    // walls. Leave enough cells for them to look like curved cutter paths,
+    // while keeping the mesh comfortably below a typical WebGL memory limit.
+    // Instanced row strips keep geometry tiny; the height texture is the main
+    // cost. A 4096²-class cap retains fine cutter detail on full sheets while
+    // remaining within common WebGL texture limits.
+    const maxCells = 16000000;
     if (columns * rows > maxCells) {
         const reduction = Math.sqrt((columns * rows) / maxCells);
         columns = Math.max(56, Math.floor(columns / reduction));
         rows = Math.max(56, Math.floor(rows / reduction));
     }
-    const cellX = width / (columns - 1),
-        cellY = height / (rows - 1);
-    // This is a visual replay, not the machining source of truth. Sampling at
-    // roughly one fifth of the smallest cutter keeps the cut continuous while
-    // avoiding millions of redundant replay stamps for long toolpaths.
-    const step = Math.max(Math.max(cellX, cellY) * 0.85, minCutter * 0.18);
-    const samples = [];
-    for (const toolpath of toolpaths) {
+    const cellX = width / columns,
+        cellY = height / rows;
+    // This is a visual replay, not the machining source of truth. V-carves can
+    // contain hundreds of thousands of tiny G-code segments, so cap the mesh
+    // workload while retaining a sample density that resolves the cutter.
+    const maxSamples = 45000;
+    const baseStep = Math.max(
+        Math.max(cellX, cellY) * 0.85,
+        minCutter * 0.18,
+    );
+    let samples = [];
+    self.postMessage({ type: 'progress', version, progress: 0, total: 0 });
+    await yieldWorker();
+    const lengths = toolpaths.map(sampleLengthForToolpath);
+    const totalLength = Math.max(1, lengths.reduce((sum, length) => sum + length, 0));
+    const minimumPerToolpath = Math.min(6000, Math.floor(maxSamples / Math.max(1, toolpaths.length)));
+    const distributableSamples = Math.max(0, maxSamples - minimumPerToolpath * toolpaths.length);
+    for (let toolpathIndex = 0; toolpathIndex < toolpaths.length; toolpathIndex += 1) {
+        const toolpath = toolpaths[toolpathIndex];
+        // Do not let a dense V-carve steal the profile's sampling budget. A
+        // profile gets a guaranteed minimum, then the remaining budget is
+        // distributed by cutting length.
+        const sampleBudget = Math.max(
+            1,
+            minimumPerToolpath + Math.floor(distributableSamples * lengths[toolpathIndex] / totalLength),
+        );
+        const step = Math.max(baseStep, lengths[toolpathIndex] / sampleBudget);
+        const toolpathSamples = [];
         const cutter = Math.max(0.1, Number(toolpath.toolDiameter) || 1);
         const metadata = {
             cutter,
+            cutterType: toolpath.cutterType || 'flat',
             trochoidRadius: toolpath.trochoidEnabled
                 ? Math.max(0, Number(toolpath.trochoidRadius) || 0)
                 : 0,
@@ -231,12 +320,12 @@ async function build(version, toolpaths) {
         };
         if (toolpath.motionPaths?.length) {
             for (const path of toolpath.motionPaths)
-                addMotionSamples(samples, path.points || [], step, metadata);
+                addMotionSamples(toolpathSamples, path.points || [], step, metadata);
         } else {
             for (const depth of toolpath.passDepths || []) {
                 for (const contour of toolpath.previewContours || [])
                     addContourSamples(
-                        samples,
+                        toolpathSamples,
                         toolpath,
                         contour,
                         depth,
@@ -245,6 +334,7 @@ async function build(version, toolpaths) {
                     );
             }
         }
+        samples.push(...capSamples(toolpathSamples, sampleBudget));
     }
     if (version !== latestBuildVersion) return;
     self.postMessage({
@@ -272,7 +362,12 @@ async function build(version, toolpaths) {
     }
     if (version !== latestBuildVersion) return;
     let minZ = 0;
-    for (const value of grid) minZ = Math.min(minZ, value);
+    for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+            const value = grid[row * columns + column];
+            minZ = Math.min(minZ, value);
+        }
+    }
     const sampleData = new Float32Array(samples.length * 6);
     const sampleKinds = new Uint8Array(samples.length);
     for (let index = 0; index < samples.length; index += 1) {
@@ -284,7 +379,11 @@ async function build(version, toolpaths) {
         sampleData[offset + 3] = sample.cutter;
         sampleData[offset + 4] = sample.trochoidRadius;
         sampleData[offset + 5] = sample.angle;
-        sampleKinds[index] = sample.vbit ? 1 : 0;
+        sampleKinds[index] = sample.vbit
+            ? 1
+            : sample.cutterType === 'ball' || sample.cutterType === 'ballnose'
+              ? 2
+              : 0;
     }
     self.postMessage(
         {
@@ -298,7 +397,8 @@ async function build(version, toolpaths) {
             rows,
             cellX,
             cellY,
-            maxDepth: Math.max(1, -minZ),
+            maxDepth: Math.max(1, Number(stock?.thicknessMm) || -minZ),
+            material: stock?.material || 'sheet-goods',
         },
         [grid.buffer, sampleData.buffer, sampleKinds.buffer],
     );
@@ -307,7 +407,7 @@ async function build(version, toolpaths) {
 self.addEventListener('message', ({ data }) => {
     if (data?.type !== 'build') return;
     latestBuildVersion = data.version;
-    build(data.version, data.toolpaths || []).catch((error) => {
+    build(data.version, data.toolpaths || [], data.stock).catch((error) => {
         if (data.version === latestBuildVersion)
             self.postMessage({
                 type: 'error',
