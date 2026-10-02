@@ -1,11 +1,84 @@
 # CAM backlog
 
-- Helical plunge
+- [x] Helical contour-ramp entry for inside/outside profiles and pockets, limited to a 5-degree ramp angle and kept on the compensated toolpath
 - Arc lead-ins and lead-outs
-- Trochoidal pocketing
+- [x] Trochoidal pocket clearing with inward-adjusted pocket contours and configurable engagement
 - Seeded circle pocket clearing
-- 3D machining
+- 3D surface machining (3-axis)
+  - Current implementation status
+    - [x] Import binary/ASCII STL and triangulated OBJ with explicit mm/inch conversion; show a transformable 2D top-heightmap while retaining the source mesh
+    - [x] Preserve model transform and mesh in project snapshots; use canvas move/rotate/resize for subsequent CAM coordinates
+    - [x] Treat overlapping top-facing surfaces as a draped upper envelope: at every XY sample retain the highest surface so a top-down cutter path cannot dive to hidden lower layers
+    - [x] Generate flat-bottom-endmill clearing and ball-endmill parallel finishing paths, then emit XYZ GRBL moves
+    - [x] Require configured, type-compatible tools selected from the tool library; bound heightfield and WebGPU contact-query work
+    - [x] Add exact CPU contact-compensation fallback when the browser has no WebGPU adapter, with an honest backend indicator and workload cap
+    - [x] Split generated raster/clearing runs at unsupported gaps and include a final partial roughing step
+    - [x] Include the last projected mesh-boundary row when stepover does not divide the raster height, and flag grid resolutions too coarse to honor the selected stepover
+    - [x] Match 3D finish simulation's ball-tip cutter envelope to the CAM contact convention
+    - [x] Make WebGPU cutter contact match the CPU's conservative square-cell footprint at mesh boundaries, including half-cell reach for overhang/edge cells
+    - [x] Generate supported flat-clear, ball-finish, and ball-waterline paths through the CPU fallback integration fixture
+    - [x] Validate clear, parallel finish, and waterline paths against the stock-removal simulation worker and show that each removes stock
+    - [x] Allow valid planar STL surfaces with zero model thickness
+    - [x] Include cutter radius when rejecting stock-edge overhangs
+    - [x] Move mesh heightfield rasterization off the UI thread into a bounded module worker
+    - [x] Add a WebGPU one-invocation-per-cell mesh raster kernel that keeps the upper envelope, with dispatch tiling and storage-buffer limits
+    - [x] Rasterize the highest triangle height over each intersected cell (not just the cell center) and conservatively include those cells in cutter collision queries
+    - [x] Build the top-down envelope independent of STL triangle winding in CPU and WebGPU rasterizers; exercise this path with reversed-winding geometry
+    - [x] Add an explicit user-controlled azimuth/elevation setup orientation; refresh the 2D heightmap and retained CAM transform together without auto-selecting a machining axis
+    - [x] Keep edge-on source models importable; show setup guidance and block placement/toolpath generation until a valid top-down orientation is selected
+    - [x] Enforce stock dimensions, cutter-radius XY edge clearance, safe-Z-above-stock, and compensated cutter-tip stock-bottom limits inside the CAM runner before paths can reach G-code
+    - [x] Validate every emitted move against optional configured X/Y/Z travel limits and all safe-height constraints; limits are configured relative to stock X/Y zero and stock-top Z zero
+    - [x] Validate both WebGPU raster/contact workers against the CPU reference on a real adapter; the supplied 6,704-triangle STL raster matched within 0.00000048 mm and contact matched exactly
+    - [x] Generate flat-clear, ball-finish, and waterline paths for the supplied STL in-browser on WebGPU and replay each through the stock-removal simulation worker
+    - [x] Add an opt-in regression (`GCAM_SURFACE_STL_FIXTURE`) that reruns the supplied 6,704-triangle STL through parsing, both CAM strategies, stock validation, and GRBL emission
+    - [x] Keep the browser integration probe useful without a WebGPU adapter: report GPU parity as skipped and still exercise the exact CPU fallback through stock-removal simulation
+    - [x] Verify flat clearing, parallel finish, and waterline drape over a partial sloped roof without following hidden lower geometry; also catch sub-cell triangles and confirm stock removal in simulation
+    - [ ] Move raster path sampling to GPU
+    - [x] Race WebGPU raster/contact work against device loss and route a lost device to the exact CPU fallback
+    - [x] Support cancellation of CPU/GPU raster and cutter-contact work plus yielding finish/clear path construction, with a Cancel control and automatic cancellation when surface inputs change or the panel unmounts
+    - [x] Validate configured machine travel bounds for all generated surface moves, including safe retracts
+    - [x] Import OBJ triangle meshes, triangulate concave polygons, convert explicit units, and route models through the transformable heightmap workflow
+    - [x] Add compensated closed perimeter finishing around exposed raster boundaries and interior gaps, clipped to transformed mesh bounds
+    - [x] Yield and honor cancellation during perimeter extraction, and cap pathological contour edge allocation
+    - [x] Add ball-nose waterline finishing with constant-height contour bands on the compensated draped surface
+  - Architecture and data model
+    - Keep the imported source mesh, its transform, units, orientation, and bounds as job-level model data; keep generated operations/toolpaths separate
+    - Treat the supported first release as 3-axis upper-envelope machining: drape paths over the highest surface at each XY and intentionally skip hidden undersides that cannot be reached from +Z
+    - Use WebGPU compute workers for mesh/tool rasterization and cutter-contact queries; if WebGPU is unavailable, permit only the exact deterministic CPU reference path and report the active backend (never substitute an undocumented approximation)
+    - Bound GPU allocation from model dimensions and chosen resolution; tile work to fit device limits, report progress/cancel, and release GPU buffers on job/model changes
+    - Add deterministic CPU reference fixtures for algorithm correctness and compare WebGPU outputs against them within a documented tolerance
+  - Mesh import and canvas representation
+    - Import binary/ASCII STL and triangulated OBJ polygons, normalize explicit mm/inch units and setup orientation, preserve original mesh, and compute bounds plus the draped upper envelope
+    - Show a 2D top-view heightmap on the canvas (not the full mesh); allow normal canvas select, move, rotate, and resize interactions
+    - Persist the model transform and ensure canvas preview, CAM operations, stock-fit warnings, 3D view, and simulation all use the same transformed coordinates
+    - Make heightmap resolution and display styling independent from the machining calculation resolution
+  - Tool-library integration and operation validation
+    - Require a selected tool-library flat-bottom endmill for surface clearing/roughing; block generation with a clear message if no compatible tool is selected
+    - Require a selected tool-library ball endmill for surface finishing; block generation with a clear message if no compatible tool is selected
+    - Derive cutter diameter and available cutting parameters from the selected library entry; do not substitute a hard-coded/default cutter
+    - Keep operation parameters explicit: XY stepover, Z stepdown, machining allowance/stock-to-leave, boundary/containment, safe Z, and cut direction
+  - Surface roughing / clearing (flat endmill)
+    - Rasterize the target mesh and flat-endmill cutting envelope into a WebGPU-friendly height representation
+    - Generate stock-aware clearing passes with configurable stepover, stepdown, stock-to-leave, and boundary margin
+    - Keep rapid/retract/link moves outside stock and verify each generated move against stock, target mesh, and configured safe heights
+  - Surface finishing (ball endmill)
+    - Generate parallel raster finish paths using ball-nose cutter geometry and configurable stepover/orientation
+    - Sample paths against the original transformed mesh, preserve mesh detail within the selected machining tolerance, and avoid out-of-bounds regions while keeping the cutter outside hidden overhang layers
+    - Generate constant-height waterline bands from the compensated draped surface with configurable Z spacing
+  - Preview, simulation, persistence, and verification
+    - Store source mesh identity/transform, operation parameters, selected tool-library identity, and generated paths in project save/load and undo history
+    - Display generated 3D paths and replay them in stock-removal simulation; provide visibility toggles for model, toolpaths, and stock
+    - Flag model/stock/job bounds mismatches and unsupported geometry before export
+    - Add fixtures for flat planes, ramps, curved surfaces, boundaries, draped overhangs and upper-envelope collision safety, unit conversion, transformed models, and cutter-type validation
+    - Test WebGPU output determinism/tolerance, device loss, memory limits, and browser-without-WebGPU behavior; label the exact CPU fallback before G-code export
+  - Later extensions, after roughing and parallel finishing are validated
+    - Automatic rest machining based on remaining stock and compatible library tools
+  - Model release profile after 3D roughing and finishing
+    - [ ] Project the transformed mesh to an XY silhouette, offset for the selected endmill, and generate a through-profile release pass
+    - [ ] Support user-placed tabs, preserve them through simulation, and warn when the silhouette or tabs exceed stock
+  - [ ] Add dedicated operation-selector illustrations for 3D clear, finish, and waterline (currently these selectors show text fallback)
 - Recursive V-carve
 - Automatic rest machining
 - Improve dogbone and T-bone generation
 - Helical boring
+- [x] Countersink with V-Bit (enter screw head diameter)

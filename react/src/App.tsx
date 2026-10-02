@@ -146,6 +146,8 @@ export default function App() {
         setUnits,
         machineProfileId,
         setMachineProfileId,
+        machineTravelLimits,
+        setMachineTravelLimits,
     } = useAppPreferences();
     const formatLength = (valueMm: number, decimals = 2) =>
         formatLengthValue(valueMm, units, decimals);
@@ -188,6 +190,7 @@ export default function App() {
         importVector,
         handleBitmapFile,
         commitBitmapPlacement,
+        updateSurfaceSetupOrientation,
         commitTraced,
         isBitmapFile,
     } = document;
@@ -267,6 +270,8 @@ export default function App() {
     const { handleFiles, handleLoadSample } = useFileLoading({
         isBitmapFile,
         loadBitmap: handleBitmapFile,
+        isSurfaceModelFile: (file) => /\.(stl|obj)$/i.test(file.name),
+        loadSurfaceModel: document.handleSurfaceModelFile,
         importVector,
         setStatus,
         setLoadingSample,
@@ -477,6 +482,7 @@ export default function App() {
         units,
         emitArcs,
         machineProfileId,
+        machineTravelLimits,
         stock,
         setStock,
         editingId,
@@ -514,6 +520,8 @@ export default function App() {
         onUnitsChange: setUnits,
         machineProfileId,
         onMachineProfileChange: setMachineProfileId,
+        machineTravelLimits,
+        onMachineTravelLimitsChange: setMachineTravelLimits,
         onActionsChange: setConfigActions,
     };
     const workspaceModel = createWorkspaceModel({
@@ -587,7 +595,7 @@ export default function App() {
                 <input
                     ref={fileRef}
                     type="file"
-                    accept=".dxf,.svg,.png,.jpg,.jpeg,.webp,.bmp"
+                    accept=".dxf,.svg,.png,.jpg,.jpeg,.webp,.bmp,.stl,.obj"
                     className="hidden"
                     aria-label="Import drawing file"
                     onChange={(event) => {
@@ -625,6 +633,7 @@ export default function App() {
                     confirmation={confirmDialog}
                     bitmapImportChoice={bitmapImportChoice}
                     commitBitmapPlacement={commitBitmapPlacement}
+                    updateSurfaceSetupOrientation={updateSurfaceSetupOrientation}
                     setBitmapImportChoice={setBitmapImportChoice}
                     setPendingTraceBitmap={setPendingTraceBitmap}
                     traceOpen={traceOpen}

@@ -8,11 +8,12 @@ import {
 } from '../cutting-parameters/machines';
 import { recommendCuttingParameters } from '../cutting-parameters/recommend';
 import { MATERIAL_RECIPES } from '../cutting-parameters/recipes';
-import type { MaterialId, RotaryOperation } from '../cutting-parameters/types';
+import type { MachineTravelLimits, MaterialId, RotaryOperation } from '../cutting-parameters/types';
 import type { ViewLoop } from '../canvas/types';
 import {
     buildToolpathGcode,
     buildToolpathGcodeAsync,
+    buildSurfaceToolpathResult,
     type Operation,
     type PlacedTab,
     type ProfileArgs,
@@ -35,6 +36,11 @@ import { ToolpathSubmitControls } from './ToolpathSubmitControls';
 import { ToolpathEmptyState } from './ToolpathEmptyState';
 import { CuttingRecipeFields } from './CuttingRecipeFields';
 import type { JobStock } from '../job/stock';
+import { generateSurfaceCamPaths } from '../engine/surface-cam-runner';
+import { transformStoredSurfaceMesh } from '../engine/surface-model';
+import { SurfaceCamFields } from './SurfaceCamFields';
+import { getPaths, traceCanvas } from '../engine/potrace-js/index.js';
+import { flattenTracedPaths } from '../lib/trace';
 
 type DraftContour = { x: number; y: number }[] & {
     _intensity?: number;
@@ -54,6 +60,59 @@ function canvasDraftContours(
     );
 }
 
+/** Trace the transparent footprint of an STL heightmap into a movable profile contour. */
+function surfaceFootprintLoops(bitmap: {
+    id: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    rotation?: number;
+    img?: HTMLImageElement;
+}): ViewLoop[] {
+    if (!bitmap.img || bitmap.w <= 0 || bitmap.h <= 0)
+        throw new Error('Could not trace the STL footprint. Re-import the model and try again.');
+    const width = bitmap.img.naturalWidth;
+    const height = bitmap.img.naturalHeight;
+    const source = document.createElement('canvas');
+    source.width = width;
+    source.height = height;
+    const sourceContext = source.getContext('2d', { willReadFrequently: true });
+    if (!sourceContext) throw new Error('Canvas is unavailable for tracing the STL footprint.');
+    sourceContext.drawImage(bitmap.img, 0, 0);
+    const pixels = sourceContext.getImageData(0, 0, width, height);
+    for (let i = 0; i < pixels.data.length; i += 4) {
+        const covered = pixels.data[i + 3] >= 32;
+        const value = covered ? 0 : 255;
+        pixels.data[i] = value;
+        pixels.data[i + 1] = value;
+        pixels.data[i + 2] = value;
+        pixels.data[i + 3] = 255;
+    }
+    sourceContext.putImageData(pixels, 0, 0);
+    const pixelLoops = flattenTracedPaths(getPaths(traceCanvas(source, { turdsize: 4, opttolerance: 0.15 })));
+    const radians = ((bitmap.rotation ?? 0) * Math.PI) / 180;
+    const cosine = Math.cos(radians);
+    const sine = Math.sin(radians);
+    const centerX = bitmap.x + bitmap.w / 2;
+    const centerY = bitmap.y + bitmap.h / 2;
+    const loops = pixelLoops.map((points, index) => ({
+        id: `${bitmap.id}-profile-${index}`,
+        points: points.map((point) => {
+            const x = bitmap.x + (point.x / width) * bitmap.w;
+            const y = bitmap.y + bitmap.h - (point.y / height) * bitmap.h;
+            const dx = x - centerX;
+            const dy = y - centerY;
+            return {
+                x: centerX + dx * cosine - dy * sine,
+                y: centerY + dx * sine + dy * cosine,
+            };
+        }),
+    }));
+    if (!loops.length) throw new Error('No STL footprint was found to profile.');
+    return loops;
+}
+
 export function ToolpathPanel({
     loops,
     selected,
@@ -68,6 +127,7 @@ export function ToolpathPanel({
     onCancelEdit,
     units = 'metric',
     machineProfileId = 'longmill-router',
+    machineTravelLimits,
     stock,
 }: {
     loops: ViewLoop[];
@@ -79,6 +139,8 @@ export function ToolpathPanel({
         w: number;
         h: number;
         img?: HTMLImageElement;
+        surfaceMesh?: import('../engine/surface-model').StoredSurfaceMesh;
+        surfaceMachinableTopDown?: boolean;
     }[];
     submitLabel: string;
     onResult: (r: ToolpathResult, args: ProfileArgs) => void;
@@ -96,14 +158,17 @@ export function ToolpathPanel({
     onCancelEdit?: () => void;
     units?: UnitSystem;
     machineProfileId?: string;
+    machineTravelLimits: MachineTravelLimits;
     stock: JobStock;
 }) {
     const [operation, setOperation] = useState<Operation>('profile-outside');
     const [toolDiameter, setToolDiameter] = useState(6);
     const [cutDepth, setCutDepth] = useState(stock.thicknessMm);
+    const [countersinkHeadDiameter, setCountersinkHeadDiameter] = useState(8);
     const [autoCutDepth, setAutoCutDepth] = useState(true);
     const [trochoid, setTrochoid] = useState(false);
     const [engagement, setEngagement] = useState(10);
+    const [helicalEntry, setHelicalEntry] = useState(false);
     const [laserFeed, setLaserFeed] = useState(3000);
     const [laserPower, setLaserPower] = useState(1000);
     const [laserSpot, setLaserSpot] = useState(0.2);
@@ -130,6 +195,11 @@ export function ToolpathPanel({
     const [overlap, setOverlap] = useState(40);
     const [tabWidth, setTabWidth] = useState(9);
     const [tabHeight, setTabHeight] = useState(9);
+    const [surfaceResolution, setSurfaceResolution] = useState(0.25);
+    const [surfaceStepover, setSurfaceStepover] = useState(1.2);
+    const [surfaceStepdown, setSurfaceStepdown] = useState(1.5);
+    const [surfaceAllowance, setSurfaceAllowance] = useState(0.35);
+    const [surfaceBoundary, setSurfaceBoundary] = useState(0);
     const [autoTabHeight, setAutoTabHeight] = useState(true);
     const [laserSMin, setLaserSMin] = useState(0);
     const [laserSMax, setLaserSMax] = useState(1000);
@@ -140,6 +210,7 @@ export function ToolpathPanel({
     const [slotNum, setSlotNum] = useState(1);
     const [toolLibOpen, setToolLibOpen] = useState(false);
     const [toolLibSlot, setToolLibSlot] = useState<number | null>(null);
+    const surfaceAbortControllerRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         setArcs(defaultArcs);
@@ -154,9 +225,11 @@ export function ToolpathPanel({
     const machine =
         machineProfileById(machineProfileId) ?? DEFAULT_MACHINE_PROFILE;
     const recipeOperation: RotaryOperation | null =
+        operation === 'surface-clear' || operation === 'surface-finish' || operation === 'surface-waterline' ||
         operation === 'wavy-raster' ||
         operation === 'halftone' ||
-        operation === 'chamfer'
+        operation === 'chamfer' ||
+        operation === 'countersink'
             ? 'engrave'
             : operation === 'laser-cut' || operation === 'laser-raster'
               ? null
@@ -186,6 +259,7 @@ export function ToolpathPanel({
     const cutterAngle = activeSlot?.fluteAngleDeg ?? 90;
     const NEEDS_VBIT: Operation[] = [
         'vcarve',
+        'countersink',
         'texture-fill',
         'chamfer',
         'wavy-raster',
@@ -220,8 +294,10 @@ export function ToolpathPanel({
         setOperation(a.operation);
         setToolDiameter(num(a.toolDiameter, 6));
         setCutDepth(num(a.cutDepth, stock.thicknessMm));
+        setCountersinkHeadDiameter(num(a.countersinkHeadDiameterMm, 8));
         setAutoCutDepth(false);
         setTrochoid(Boolean(a.trochoidEnabled));
+        setHelicalEntry(Boolean(a.helicalEntryEnabled));
         setEngagement(num(a.trochoidEngagementPercent, 10));
         setLaserFeed(num(a.laserFeed, 3000));
         setLaserPower(num(a.laserPower, 1000));
@@ -252,6 +328,11 @@ export function ToolpathPanel({
         setTabWidth(num(a.tabWidth, 9));
         setTabHeight(num(a.tabHeight, 9));
         setAutoTabHeight(false);
+        setSurfaceResolution(num(a.surfaceResolutionMm, 0.25));
+        setSurfaceStepover(num(a.surfaceStepoverMm, 1.2));
+        setSurfaceStepdown(num(a.surfaceStepdownMm, 1.5));
+        setSurfaceAllowance(num(a.surfaceStockToLeaveMm, 0.35));
+        setSurfaceBoundary(num(a.surfaceBoundaryMm, 0));
         const slot = slots.find(
             (s) => s.slot === Math.max(1, Math.round(num(a.toolNumber, 1))),
         );
@@ -267,9 +348,36 @@ export function ToolpathPanel({
     // placed bitmap, vector ops need vector geometry.
     const hasBitmap = active.some((l) => l.bitmapId);
     const hasVector = active.some((l) => !l.bitmapId);
+    const activeBitmapIds = new Set(active.flatMap((loop) => loop.bitmapId ? [loop.bitmapId] : []));
+    const selectedSurfaceBitmap = bitmaps.find((bitmap) => activeBitmapIds.has(bitmap.id) && bitmap.surfaceMesh);
+    const surfaceOperation = operation === 'surface-clear' || operation === 'surface-finish' || operation === 'surface-waterline';
+    const isSurfaceLibraryTool = (slot: ToolSlot) => isConfigured(slot) && Boolean(slot.libraryToolId);
+    const compatibleSurfaceTools = slots.filter((slot) => isSurfaceLibraryTool(slot) && (operation === 'surface-clear' ? slot.toolType === 'flat' : slot.toolType === 'ball' || slot.toolType === 'ballnose'));
+    const surfaceToolMismatch = surfaceOperation && (!activeSlot || !isSurfaceLibraryTool(activeSlot) || (operation === 'surface-clear' ? activeSlot.toolType !== 'flat' : activeSlot.toolType !== 'ball' && activeSlot.toolType !== 'ballnose'));
+    const cancelSurfaceGeneration = () => {
+        surfaceAbortControllerRef.current?.abort();
+        setStatus('Cancelling 3D CAM generation…');
+    };
+    useEffect(() => {
+        const controller = surfaceAbortControllerRef.current;
+        return () => {
+            if (controller && surfaceAbortControllerRef.current === controller) {
+                controller.abort();
+                surfaceAbortControllerRef.current = null;
+            }
+        };
+    }, [operation, selectedSurfaceBitmap?.id, slotNum, surfaceResolution, surfaceStepover, surfaceStepdown, surfaceAllowance, surfaceBoundary, safeZ, stock.widthMm, stock.heightMm, stock.thicknessMm, machineTravelLimits]);
+    useEffect(() => () => {
+        surfaceAbortControllerRef.current?.abort();
+        surfaceAbortControllerRef.current = null;
+    }, []);
     const visibleOps = OPERATIONS.filter((op) => {
         const raster = RASTER_OPERATIONS.includes(op.value);
-        if (hasBitmap && !hasVector) return raster;
+        const surface = op.value === 'surface-clear' || op.value === 'surface-finish' || op.value === 'surface-waterline';
+        if (hasBitmap && !hasVector) {
+            if (selectedSurfaceBitmap) return surface || op.value === 'profile-outside';
+            return raster;
+        }
         if (hasVector && !hasBitmap) return !raster;
         return true;
     });
@@ -315,10 +423,15 @@ export function ToolpathPanel({
             ? (((editEntry.args as ProfileArgs).tabs as PlacedTab[]) ?? [])
             : [];
         return {
-            loops: active,
+            loops: operation === 'profile-outside' && selectedSurfaceBitmap
+                ? surfaceFootprintLoops(selectedSurfaceBitmap)
+                : active,
             operation,
             toolDiameter,
-            cutDepth,
+            cutDepth: operation === 'countersink'
+                ? countersinkHeadDiameter / 2 / Math.tan((cutterAngle * Math.PI) / 360)
+                : cutDepth,
+            countersinkHeadDiameterMm: countersinkHeadDiameter,
             cutterAngle,
             cutterType: activeSlot?.toolType ?? 'flat',
             laserFeed,
@@ -344,16 +457,30 @@ export function ToolpathPanel({
             trochoidEnabled:
                 trochoid &&
                 (operation === 'profile-outside' ||
-                    operation === 'profile-inside'),
+                    operation === 'profile-inside' || operation === 'pocket'),
             trochoidEngagementPercent: engagement,
+            helicalEntryEnabled: helicalEntry && (
+                operation === 'profile-outside' ||
+                operation === 'profile-inside' ||
+                operation === 'pocket'
+            ),
             feedRate: recommendation?.feedMmMin ?? feedRate,
             plungeRate: recommendation?.plungeMmMin ?? plungeRate,
             spindle: recommendation?.rpm ?? spindle,
             safeZ,
             passDepth:
-                operation === 'texture-fill'
+                operation === 'countersink'
+                    ? countersinkHeadDiameter / 2 / Math.tan((cutterAngle * Math.PI) / 360)
+                : operation === 'texture-fill'
                     ? cutDepth
-                    : (recommendation?.passDepthMm ?? passDepth),
+                : (recommendation?.passDepthMm ?? passDepth),
+            libraryToolId: activeSlot?.libraryToolId ?? undefined,
+            surfaceBitmapId: selectedSurfaceBitmap?.id,
+            surfaceResolutionMm: surfaceResolution,
+            surfaceStepoverMm: surfaceStepover,
+            surfaceStepdownMm: surfaceStepdown,
+            surfaceStockToLeaveMm: surfaceAllowance,
+            surfaceBoundaryMm: surfaceBoundary,
             arcs: defaultArcs,
             overlapPercent: overlap,
             tabWidth,
@@ -375,7 +502,7 @@ export function ToolpathPanel({
             }
             if (vbitMismatch) {
                 setStatus(
-                    `${operation === 'chamfer' ? 'Chamfer' : operation === 'vcarve' ? 'V-Carve' : operation === 'texture-fill' ? 'Texture Fill' : operation === 'wavy-raster' ? 'Wavy' : 'Halftone'} requires a V-bit — pick one from your tool rack.`,
+                    `${operation === 'countersink' ? 'V-Bit Countersink' : operation === 'chamfer' ? 'Chamfer' : operation === 'vcarve' ? 'V-Carve' : operation === 'texture-fill' ? 'Texture Fill' : operation === 'wavy-raster' ? 'Wavy' : 'Halftone'} requires a V-bit — pick one from your tool rack.`,
                 );
                 return;
             }
@@ -388,6 +515,111 @@ export function ToolpathPanel({
         } catch (e) {
             setStatus(e instanceof Error ? e.message : 'Raster needs a bitmap');
             setBusy(false);
+            return;
+        }
+        if (operation === 'countersink' && args.cutDepth > stock.thicknessMm) {
+            setStatus(`That V-bit countersink needs ${args.cutDepth.toFixed(2)} mm depth, deeper than the ${stock.thicknessMm.toFixed(2)} mm stock. Use a smaller head diameter or a wider-angle V-bit.`);
+            setBusy(false);
+            return;
+        }
+        if (surfaceOperation) {
+            if (surfaceToolMismatch || !activeSlot || !selectedSurfaceBitmap) {
+                setStatus(surfaceToolMismatch
+                    ? operation === 'surface-clear'
+                        ? '3D clearing needs a configured flat-bottom endmill selected from the tool library.'
+                        : operation === 'surface-waterline'
+                            ? '3D waterline finishing needs a configured ball endmill selected from the tool library.'
+                            : '3D finishing needs a configured ball endmill selected from the tool library.'
+                    : 'Select an imported 3D model heightmap before creating a surface toolpath.');
+                setBusy(false);
+                return;
+            }
+            if (selectedSurfaceBitmap.surfaceMachinableTopDown === false) {
+                setStatus('Choose and apply a machining setup direction with a valid upward-facing surface before generating 3D CAM.');
+                setBusy(false);
+                return;
+            }
+            const mesh = transformStoredSurfaceMesh(selectedSurfaceBitmap);
+            if (!mesh) {
+                setStatus('The selected 3D model data is missing or invalid. Re-import the model.');
+                setBusy(false);
+                return;
+            }
+            const cutterRadius = activeSlot.cuttingDiameterMm! / 2;
+            if (mesh.bounds.minX - cutterRadius - surfaceBoundary < 0 || mesh.bounds.minY - cutterRadius - surfaceBoundary < 0 || mesh.bounds.maxX + cutterRadius + surfaceBoundary > stock.widthMm || mesh.bounds.maxY + cutterRadius + surfaceBoundary > stock.heightMm) {
+                setStatus(`The 3D model, cutter, and boundary overrun (${surfaceBoundary} mm) do not fit inside the job stock with safe edge clearance. Reduce the boundary, move or resize the model, or use larger stock.`);
+                setBusy(false);
+                return;
+            }
+            if (mesh.bounds.minZ < -stock.thicknessMm) {
+                setStatus('The 3D model extends below the job stock thickness. Increase stock thickness or resize the model.');
+                setBusy(false);
+                return;
+            }
+            const cutter = activeSlot.toolType;
+            if (operation === 'surface-clear' && cutter !== 'flat') {
+                setStatus('3D clearing requires a flat-bottom endmill from the tool library.');
+                setBusy(false);
+                return;
+            }
+            if (operation !== 'surface-clear' && cutter !== 'ball' && cutter !== 'ballnose') {
+                setStatus(operation === 'surface-waterline'
+                    ? '3D waterline finishing requires a ball endmill from the tool library.'
+                    : '3D finishing requires a ball endmill from the tool library.');
+                setBusy(false);
+                return;
+            }
+            setStatus('Rasterizing 3D model and building surface paths…');
+            const controller = new AbortController();
+            surfaceAbortControllerRef.current?.abort();
+            surfaceAbortControllerRef.current = controller;
+            void generateSurfaceCamPaths(mesh, {
+                strategy: operation,
+                cutter: cutter as 'flat' | 'ball' | 'ballnose',
+                toolDiameterMm: activeSlot.cuttingDiameterMm!,
+                stepoverMm: surfaceStepover,
+                stepdownMm: surfaceStepdown,
+                stockToLeaveMm: operation === 'surface-clear' ? surfaceAllowance : 0,
+                boundaryMm: operation === 'surface-waterline' ? 0 : surfaceBoundary,
+                safeZMm: safeZ,
+                stockTopZMm: 0,
+                travelLimits: machineTravelLimits,
+                stock: {
+                    widthMm: stock.widthMm,
+                    heightMm: stock.heightMm,
+                    thicknessMm: stock.thicknessMm,
+                },
+                resolutionMm: surfaceResolution,
+            }, (progress) => onDraftProgress?.(progress), controller.signal).then((generated) => {
+                if (controller.signal.aborted) return;
+                const result = buildSurfaceToolpathResult({
+                    operation,
+                    paths: generated.paths,
+                    toolDiameter: activeSlot.cuttingDiameterMm!,
+                    cutterType: cutter,
+                    libraryToolId: activeSlot.libraryToolId ?? undefined,
+                    toolNumber: activeSlot.slot,
+                    feedRate: recommendation?.feedMmMin ?? feedRate,
+                    plungeRate: recommendation?.plungeMmMin ?? plungeRate,
+                    spindle: recommendation?.rpm ?? spindle,
+                    safeZ,
+                    stepdown: surfaceStepdown,
+                    stockToLeave: operation === 'surface-clear' ? surfaceAllowance : 0,
+                    surfaceBitmapId: selectedSurfaceBitmap.id,
+                    fileName: 'gcam',
+                });
+                if (editEntry && onUpdate) onUpdate(editEntry.id, result, args);
+                else onResult(result, args);
+                setStatus(`${result.label} — ${generated.paths.length} paths, ${result.gcode.split('\n').length} G-code lines (${generated.rasterBackend.toUpperCase()} mesh raster, ${generated.computeBackend.toUpperCase()} cutter compensation).`);
+            }).catch((error: unknown) => {
+                if (controller.signal.aborted) return;
+                setStatus(error instanceof Error ? error.message : 'WebGPU surface CAM failed.');
+            }).finally(() => {
+                if (surfaceAbortControllerRef.current === controller)
+                    surfaceAbortControllerRef.current = null;
+                onDraftProgress?.(null);
+                setBusy(false);
+            });
             return;
         }
         buildToolpathGcode(args).then(
@@ -422,6 +654,12 @@ export function ToolpathPanel({
         (operation === 'texture-fill' && textureType === 'crosshatch');
     useEffect(() => {
         if (!onDraftPreview && !onDraftProgress) return;
+        if (surfaceOperation) {
+            onDraftPreview?.(null);
+            onDraftProgress?.(null);
+            setDraftError(null);
+            return;
+        }
         if (selected.length === 0 || !active.length) {
             onDraftPreview?.(null);
             onDraftProgress?.(null);
@@ -496,7 +734,7 @@ export function ToolpathPanel({
                     if (token !== draftToken.current) return;
                     onDraftPreview?.(
                         canvasDraftContours(
-                            result.previewContours,
+                            [...result.previewContours, ...(result.trochoidPreviewContours ?? [])],
                             solidDraftPreview,
                         ),
                     );
@@ -513,7 +751,7 @@ export function ToolpathPanel({
                             if (token === draftToken.current) {
                                 onDraftPreview?.(
                                     canvasDraftContours(
-                                        result.previewContours,
+                                        [...result.previewContours, ...(result.trochoidPreviewContours ?? [])],
                                         solidDraftPreview,
                                     ),
                                 );
@@ -543,6 +781,11 @@ export function ToolpathPanel({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         operation,
+        surfaceOperation,
+        surfaceResolution,
+        surfaceStepover,
+        surfaceStepdown,
+        surfaceAllowance,
         vbitMismatch,
         toolDiameter,
         cutDepth,
@@ -601,7 +844,7 @@ export function ToolpathPanel({
                 draftError={draftError}
             />
             <ToolSelectionFields
-                slots={slots}
+                slots={surfaceOperation ? compatibleSurfaceTools : slots}
                 slotNum={slotNum}
                 units={units}
                 libraryOpen={toolLibOpen}
@@ -631,7 +874,7 @@ export function ToolpathPanel({
                     units={units}
                 />
             )}
-            {!LASER_OPS.includes(operation) && (
+            {!LASER_OPS.includes(operation) && !surfaceOperation && operation !== 'countersink' && (
                 <label className="block space-y-1">
                     <span className="text-slate-500 dark:text-slate-400">
                         Cut depth ({units === 'imperial' ? 'in' : 'mm'})
@@ -649,7 +892,25 @@ export function ToolpathPanel({
                     />
                 </label>
             )}
-            <CuttingFields
+            {operation === 'countersink' && (
+                <label className="block space-y-1">
+                    <span className="text-slate-500 dark:text-slate-400">
+                        Screw head diameter ({units === 'imperial' ? 'in' : 'mm'})
+                    </span>
+                    <UnitInput
+                        units={units}
+                        stepMm={0.1}
+                        minMm={0.5}
+                        valueMm={countersinkHeadDiameter}
+                        onChangeMm={setCountersinkHeadDiameter}
+                        className="w-full rounded bg-slate-100 dark:bg-dark-lighter border border-slate-300 dark:border-robin-900 px-2 py-1 text-slate-900 dark:text-white"
+                    />
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Single plunge depth: {(countersinkHeadDiameter / 2 / Math.tan((cutterAngle * Math.PI) / 360)).toFixed(2)} mm, calculated from the selected V-bit angle.
+                    </span>
+                </label>
+            )}
+            {!surfaceOperation && <CuttingFields
                 operation={operation}
                 units={units}
                 overlap={overlap}
@@ -658,6 +919,8 @@ export function ToolpathPanel({
                 onTrochoidChange={setTrochoid}
                 engagement={engagement}
                 onEngagementChange={setEngagement}
+                helicalEntry={helicalEntry}
+                onHelicalEntryChange={setHelicalEntry}
                 tabWidth={tabWidth}
                 onTabWidthChange={setTabWidth}
                 tabHeight={tabHeight}
@@ -667,7 +930,25 @@ export function ToolpathPanel({
                         Math.abs(value - Math.max(0.1, cutDepth / 2)) < 0.0001,
                     );
                 }}
-            />
+            />}
+            {surfaceOperation && (
+                <SurfaceCamFields
+                    operation={operation}
+                    units={units}
+                    resolution={surfaceResolution}
+                    stepover={surfaceStepover}
+                    stepdown={surfaceStepdown}
+                    allowance={surfaceAllowance}
+                    boundary={surfaceBoundary}
+                    onResolution={setSurfaceResolution}
+                    onStepover={setSurfaceStepover}
+                    onStepdown={setSurfaceStepdown}
+                    onAllowance={setSurfaceAllowance}
+                    onBoundary={setSurfaceBoundary}
+                    hasModel={Boolean(selectedSurfaceBitmap)}
+                    toolReady={!surfaceToolMismatch}
+                />
+            )}
             <VBitRasterFields
                 operation={operation}
                 units={units}
@@ -721,6 +1002,7 @@ export function ToolpathPanel({
                 selectedCount={selected.length}
                 status={status}
                 onGenerate={handleGenerate}
+                onCancelBuild={surfaceAbortControllerRef.current ? cancelSurfaceGeneration : undefined}
                 onCancelEdit={onCancelEdit}
             />
         </div>

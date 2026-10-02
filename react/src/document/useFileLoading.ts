@@ -6,6 +6,8 @@ import type { Dispatch, SetStateAction } from 'react';
 interface UseFileLoadingOptions {
     isBitmapFile(file: File): boolean;
     loadBitmap(file: File): Promise<void>;
+    isSurfaceModelFile(file: File): boolean;
+    loadSurfaceModel(file: File): Promise<void>;
     importVector(file: File): Promise<void>;
     setStatus: Dispatch<SetStateAction<string>>;
     setLoadingSample: Dispatch<SetStateAction<boolean>>;
@@ -16,6 +18,10 @@ export function useFileLoading(options: UseFileLoadingOptions) {
     const handleFiles = async (files: FileList | File[] | null) => {
         const file = files?.[0];
         if (!file) return;
+        if (options.isSurfaceModelFile(file)) {
+            await options.loadSurfaceModel(file);
+            return;
+        }
         if (options.isBitmapFile(file)) {
             await options.loadBitmap(file);
             return;

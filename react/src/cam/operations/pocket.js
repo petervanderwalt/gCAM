@@ -13,9 +13,13 @@ export const pocketOperation = defineOperation({
         const previewContours = [];
         const stepOver =
             config.toolDiameter * (1 - config.overlapPercent / 100);
+        // Trochoidal passes orbit around a path that is pulled inward by the
+        // orbit radius. The orbit then reaches back to the nominal pocket
+        // boundary without sweeping the cutter outside the pocket.
+        const orbitRadius = services.trochoidRadius(config);
         const first = services.offsetCompositePolygons(
             compositeSelection,
-            -config.toolRadius,
+            -(config.toolRadius + orbitRadius),
         );
         previewContours.push(...first);
         let current = first;

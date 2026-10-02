@@ -1,3 +1,5 @@
+import { ballTipCutterSurfaceZ } from './preview-3d/cutter-envelope.js';
+
 /**
  * Purpose: Implementation module for cut-preview-3d-worker in the react domain.
  */
@@ -175,7 +177,9 @@ function paintSampleInto(grid, sample, geometry) {
             if (radial > radius) continue;
             const ball = sample.cutterType === 'ball' || sample.cutterType === 'ballnose';
             const ballRadius = sample.cutter / 2;
-            const z = sample.vbit
+            const z = sample.surfaceTip
+                ? ballTipCutterSurfaceZ(sample.z, radial, ballRadius)
+                : sample.vbit
                 ? Math.min(0, sample.z + radial / tangent)
                 : ball
                   ? Math.min(0, sample.z + ballRadius - Math.sqrt(Math.max(0, ballRadius * ballRadius - radial * radial)))
@@ -307,6 +311,7 @@ async function build(version, toolpaths, stock) {
         const metadata = {
             cutter,
             cutterType: toolpath.cutterType || 'flat',
+            surfaceTip: Boolean(toolpath.surfaceTip),
             trochoidRadius: toolpath.trochoidEnabled
                 ? Math.max(0, Number(toolpath.trochoidRadius) || 0)
                 : 0,
@@ -315,7 +320,8 @@ async function build(version, toolpaths, stock) {
             vbit:
                 toolpath.operation === 'vcarve' ||
                 toolpath.operation === 'v-carve' ||
-                toolpath.operation === 'chamfer',
+                toolpath.operation === 'chamfer' ||
+                toolpath.operation === 'countersink',
             angle: clamp(Number(toolpath.cutterAngle) || 90, 10, 170),
         };
         if (toolpath.motionPaths?.length) {

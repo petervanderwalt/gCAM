@@ -2,6 +2,7 @@
  * Purpose: Implementation module for project in the lib domain.
  */
 import { normalizeJobStock, type JobStock } from '../job/stock';
+import type { StoredSurfaceMesh } from '../engine/surface-model';
 
 export interface ProjectSnapshot {
     loops: {
@@ -35,6 +36,7 @@ export interface BitmapLike {
     dataUrl: string;
     /** Browser-local cache key. Exports retain dataUrl for portability. */
     assetId?: string;
+    surfaceMesh?: StoredSurfaceMesh;
 }
 
 export interface GuideLike {

@@ -9,6 +9,7 @@ import {
     voronoiTextureContours,
 } from './cam-ops.js';
 import { applyBoolean, offsetLoops } from '../lib/engine';
+import { buildGcode } from './gcode/program.js';
 
 const SQUARE_DXF = [
     '0',
@@ -100,6 +101,47 @@ test('pocket fills the square with multiple step-over passes', () => {
     });
     // 6mm tool at 40% overlap → 3.6mm step-over: 14mm ring, then 6.8mm ring
     expect(toolpath.previewContours.length).toBeGreaterThanOrEqual(2);
+});
+
+test('trochoidal pocket pulls centerlines inward by its orbit radius', () => {
+    const toolpath = createToolpathFromLoops(squareLoops(), {
+        ...BASE_CONFIG,
+        operation: 'pocket',
+        trochoidEnabled: true,
+        trochoidRadius: 0.6,
+    });
+    const bounds = boundsOfPoints(toolpath.previewContours[0]);
+    expect(bounds.minX).toBeCloseTo(3.6, 1);
+    expect(bounds.maxX).toBeCloseTo(16.4, 1);
+    expect(toolpath.trochoidEnabled).toBe(true);
+    expect(toolpath.trochoidPreviewContours.length).toBeGreaterThan(0);
+    expect(toolpath.previewContours.every((contour) => contour.length > 3)).toBe(true);
+    const gcode = buildGcode({ toolpaths: [toolpath], fileName: 'pocket', forcePolylineArcs: true });
+    expect(gcode.split('\n').filter((line) => line.startsWith('G0 X'))).toHaveLength(toolpath.previewContours.length);
+});
+
+test('V-bit countersink turns selected circles into depth-calculated center plunges', () => {
+    const circle = [];
+    for (let index = 0; index <= 64; index += 1) {
+        const angle = index / 64 * Math.PI * 2;
+        circle.push({ x: 20 + Math.cos(angle) * 2, y: 15 + Math.sin(angle) * 2 });
+    }
+    const toolpath = createToolpathFromLoops([{ points: circle }], {
+        ...BASE_CONFIG,
+        operation: 'countersink',
+        cutterAngle: 90,
+        cutDepth: 4,
+        countersinkHeadDiameterMm: 8,
+    });
+    const [surface, target] = toolpath.motionPaths[0].points;
+    expect(surface.x).toBeCloseTo(20);
+    expect(surface.y).toBeCloseTo(15);
+    expect(surface.z).toBe(0);
+    expect(target.x).toBeCloseTo(20);
+    expect(target.y).toBeCloseTo(15);
+    expect(target.z).toBe(-4);
+    const gcode = buildGcode({ toolpaths: [toolpath], fileName: 'test', forcePolylineArcs: true });
+    expect(gcode).toContain('G1 Z-4');
 });
 test('Voronoi texture makes deterministic V-bit cell outlines inside the selected vector', () => {
     const selection = squareLoops().map((loop) => loop.points);

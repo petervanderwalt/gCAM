@@ -8,6 +8,11 @@ import { loadGrid, saveGrid } from '../components/ConfigPanel';
 import type { SideTab } from '../components/Sidebar';
 import { useDarkMode } from '../hooks/useDarkMode';
 import type { UnitSystem } from '../lib/units';
+import {
+    EMPTY_MACHINE_TRAVEL_LIMITS,
+    normalizeMachineTravelLimits,
+    type MachineTravelLimits,
+} from '../cutting-parameters/types';
 
 /** Persistent application-wide display and output preferences. */
 export function useAppPreferences() {
@@ -35,6 +40,16 @@ export function useAppPreferences() {
             localStorage.getItem('gcam.machineProfileId') ?? 'longmill-router'
         );
     });
+    const [machineTravelLimits, setMachineTravelLimits] = useState<MachineTravelLimits>(() => {
+        if (typeof window === 'undefined') return EMPTY_MACHINE_TRAVEL_LIMITS;
+        try {
+            return normalizeMachineTravelLimits(
+                JSON.parse(localStorage.getItem('gcam.machineTravelLimits') ?? 'null'),
+            );
+        } catch {
+            return EMPTY_MACHINE_TRAVEL_LIMITS;
+        }
+    });
 
     useEffect(() => saveGrid(grid), [grid]);
     useEffect(
@@ -45,6 +60,10 @@ export function useAppPreferences() {
     useEffect(
         () => localStorage.setItem('gcam.machineProfileId', machineProfileId),
         [machineProfileId],
+    );
+    useEffect(
+        () => localStorage.setItem('gcam.machineTravelLimits', JSON.stringify(machineTravelLimits)),
+        [machineTravelLimits],
     );
 
     return {
@@ -64,5 +83,7 @@ export function useAppPreferences() {
         setUnits,
         machineProfileId,
         setMachineProfileId,
+        machineTravelLimits,
+        setMachineTravelLimits,
     };
 }

@@ -10,6 +10,7 @@ import type { PlacedTab, ProfileArgs, ToolpathResult } from '../lib/engine';
 import { defaultTabsForContours, operationUsesTabs } from '../lib/tabs';
 import type { UnitSystem } from '../lib/units';
 import type { JobStock } from '../job/stock';
+import type { MachineTravelLimits } from '../cutting-parameters/types';
 import { JobStockSetup } from '../job/JobStockSetup';
 
 type Bitmap = {
@@ -29,6 +30,7 @@ interface ToolpathRailProps {
     units: UnitSystem;
     emitArcs: boolean;
     machineProfileId: string;
+    machineTravelLimits: MachineTravelLimits;
     stock: JobStock;
     setStock: Dispatch<SetStateAction<JobStock>>;
     editingId: string | null;
@@ -64,6 +66,7 @@ export function ToolpathRail({
     units,
     emitArcs,
     machineProfileId,
+    machineTravelLimits,
     stock,
     setStock,
     editingId,
@@ -100,6 +103,7 @@ export function ToolpathRail({
                     onResult={onResult}
                     defaultArcs={emitArcs}
                     machineProfileId={machineProfileId}
+                    machineTravelLimits={machineTravelLimits}
                     stock={stock}
                     units={units}
                     onDraftPreview={(contours) =>
@@ -171,6 +175,7 @@ function CommittedToolpaths({
     | 'units'
     | 'emitArcs'
     | 'machineProfileId'
+    | 'machineTravelLimits'
     | 'stock'
     | 'setStock'
     | 'editingEntry'

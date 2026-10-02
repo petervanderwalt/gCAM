@@ -25,6 +25,7 @@ import { getToolpathEmission } from '../operations/registry.js';
 import {
     emitContourWithTabRamps,
     emitProfileContourMoves,
+    emitHelicalContourEntry,
     emitVCarveMoves,
     getProfileStartPoint,
 } from './contours.js';
@@ -134,6 +135,24 @@ export function buildGcode({
                         `G1 X${formatNumber(p.x)} Y${formatNumber(p.y)}`,
                     );
                 }
+            }
+            reportProgress(`Writing ${toolpath.operationLabel}`);
+            continue;
+        }
+        if (emission === 'countersink') {
+            for (const path of toolpath.motionPaths || []) {
+                const [surface, target] = path.points || [];
+                if (!surface || !target) continue;
+                lines.push(`G0 Z${formatNumber(safeZ)}`);
+                lines.push(`G0 X${formatNumber(surface.x)} Y${formatNumber(surface.y)}`);
+                if (!spindleRunning || currentSpindle !== spindle) {
+                    if (spindleRunning) lines.push('M5');
+                    lines.push(`M3 S${Math.round(spindle)}`);
+                    spindleRunning = true;
+                    currentSpindle = spindle;
+                }
+                lines.push(`G1 Z${formatNumber(target.z)} F${formatNumber(plunge)}`);
+                lines.push(`G0 Z${formatNumber(safeZ)}`);
             }
             reportProgress(`Writing ${toolpath.operationLabel}`);
             continue;
@@ -396,6 +415,7 @@ export function buildGcode({
         }
 
         let startedThisToolpath = false;
+        const contourDepths = new Map();
         for (const [contourIndex, depth] of contourPasses(toolpath)) {
             const contour = toolpath.previewContours[contourIndex];
             if (!contour.length) {
@@ -428,10 +448,27 @@ export function buildGcode({
             const passUsesTabs =
                 tabsForContour.length > 0 && depth < fixedTabDepth;
 
+            const canHelix =
+                toolpath.helicalEntryEnabled &&
+                !passUsesTabs &&
+                (toolpath.operation === 'profile-inside' ||
+                    toolpath.operation === 'profile-outside' ||
+                    toolpath.operation === 'pocket');
+            const entryDepth = contourDepths.get(contourIndex) ?? 0;
+            const helicalEntry = canHelix && emitHelicalContourEntry(
+                lines,
+                contour,
+                entryDepth,
+                depth,
+                feed,
+            );
+
             if (!passUsesTabs) {
-                lines.push(
-                    `G1 Z${formatNumber(depth)} F${formatNumber(plunge)}`,
-                );
+                if (!helicalEntry) {
+                    lines.push(
+                        `G1 Z${formatNumber(depth)} F${formatNumber(plunge)}`,
+                    );
+                }
                 emitProfileContourMoves(
                     lines,
                     contour,
@@ -441,6 +478,7 @@ export function buildGcode({
                     forcePolylineArcs,
                     toolpath,
                 );
+                contourDepths.set(contourIndex, depth);
                 reportProgress(`Writing ${toolpath.operationLabel}`);
                 continue;
             }
@@ -456,6 +494,7 @@ export function buildGcode({
                 feed,
                 forcePolylineArcs,
             );
+            contourDepths.set(contourIndex, depth);
             reportProgress(`Writing ${toolpath.operationLabel}`);
         }
         lines.push(`G0 Z${formatNumber(safeZ)}`);

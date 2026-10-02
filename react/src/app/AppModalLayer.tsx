@@ -37,6 +37,10 @@ interface AppModalLayerProps {
     confirmation: ReactNode;
     bitmapImportChoice: BitmapImportChoice<ViewLoop> | null;
     commitBitmapPlacement(choice: BitmapImportChoice<ViewLoop>): void;
+    updateSurfaceSetupOrientation(
+        choice: BitmapImportChoice<ViewLoop>,
+        machineUp: [number, number, number],
+    ): Promise<void>;
     setBitmapImportChoice: Dispatch<
         SetStateAction<BitmapImportChoice<ViewLoop> | null>
     >;
@@ -68,6 +72,7 @@ export function AppModalLayer({
     confirmation,
     bitmapImportChoice,
     commitBitmapPlacement,
+    updateSurfaceSetupOrientation,
     setBitmapImportChoice,
     setPendingTraceBitmap,
     traceOpen,
@@ -110,7 +115,14 @@ export function AppModalLayer({
             bitmap={
                 bitmapImportChoice
                     ? {
-                          choice: bitmapImportChoice,
+                          choice: {
+                              ...bitmapImportChoice,
+                              isSurfaceModel: Boolean(bitmapImportChoice.entry.surfaceMesh),
+                              surfaceMachinableTopDown: bitmapImportChoice.entry.surfaceMachinableTopDown,
+                              surfacePreviewUrl: bitmapImportChoice.entry.dataUrl,
+                              machineUp: bitmapImportChoice.entry.surfaceMesh?.machineUp,
+                          },
+                          onSetupOrientation: (machineUp) => updateSurfaceSetupOrientation(bitmapImportChoice, machineUp),
                           onUseBitmap: () => {
                               commitBitmapPlacement(bitmapImportChoice);
                               setBitmapImportChoice(null);

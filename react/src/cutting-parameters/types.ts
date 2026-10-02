@@ -43,6 +43,37 @@ export interface MachineProfile {
     availableRpm?: number[];
 }
 
+/** Optional GRBL work-coordinate travel bounds, relative to stock origin/top. */
+export interface MachineTravelLimits {
+    maxXTravelMm: number | null;
+    maxYTravelMm: number | null;
+    minZTravelMm: number | null;
+    maxZTravelMm: number | null;
+}
+
+export const EMPTY_MACHINE_TRAVEL_LIMITS: MachineTravelLimits = {
+    maxXTravelMm: null,
+    maxYTravelMm: null,
+    minZTravelMm: null,
+    maxZTravelMm: null,
+};
+
+export function normalizeMachineTravelLimits(value: unknown): MachineTravelLimits {
+    const raw = value && typeof value === 'object' ? value as Partial<MachineTravelLimits> : {};
+    const limit = (candidate: unknown, direction: 'positive' | 'negative') => {
+        if (typeof candidate !== 'number' || !Number.isFinite(candidate)) return null;
+        if (direction === 'positive' && candidate > 0) return candidate;
+        if (direction === 'negative' && candidate < 0) return candidate;
+        return null;
+    };
+    return {
+        maxXTravelMm: limit(raw.maxXTravelMm, 'positive'),
+        maxYTravelMm: limit(raw.maxYTravelMm, 'positive'),
+        minZTravelMm: limit(raw.minZTravelMm, 'negative'),
+        maxZTravelMm: limit(raw.maxZTravelMm, 'positive'),
+    };
+}
+
 export interface MaterialRecipe {
     id: MaterialId;
     label: string;

@@ -14,6 +14,8 @@ interface CuttingFieldsProps {
     onTrochoidChange(value: boolean): void;
     engagement: number;
     onEngagementChange(value: number): void;
+    helicalEntry: boolean;
+    onHelicalEntryChange(value: boolean): void;
     tabWidth: number;
     onTabWidthChange(value: number): void;
     tabHeight: number;
@@ -30,6 +32,8 @@ export function CuttingFields({
     onTrochoidChange,
     engagement,
     onEngagementChange,
+    helicalEntry,
+    onHelicalEntryChange,
     tabWidth,
     onTabWidthChange,
     tabHeight,
@@ -58,7 +62,7 @@ export function CuttingFields({
                     />
                 </label>
             )}
-            {isProfile && (
+            {(isProfile || operation === 'pocket') && (
                 <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                     <input
                         type="checkbox"
@@ -86,6 +90,17 @@ export function CuttingFields({
                             %
                         </span>
                     )}
+                </label>
+            )}
+            {(isProfile || operation === 'pocket') && (
+                <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <input
+                        type="checkbox"
+                        checked={helicalEntry}
+                        onChange={(event) => onHelicalEntryChange(event.target.checked)}
+                        className="accent-robin-500"
+                    />
+                    Helical contour entry
                 </label>
             )}
             {supportsTabs && (

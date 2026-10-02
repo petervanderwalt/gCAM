@@ -16,6 +16,7 @@ test('every public CAM operation is represented by a registry contract', () => {
         'engrave',
         'chamfer',
         'vcarve',
+        'countersink',
         'texture-fill',
         'laser-cut',
         'laser-raster',
