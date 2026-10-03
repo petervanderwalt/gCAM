@@ -1,7 +1,7 @@
 /**
  * Purpose: Implementation module for ToolpathRail in the react domain.
  */
-import { Layers, Pencil, Trash2 } from 'lucide-react';
+import { Download, Layers, Pencil, Trash2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { ToolpathPanel } from './ToolpathPanel';
 import type { ToolpathStackEntry } from './useToolpathStack';
@@ -27,6 +27,8 @@ interface ToolpathRailProps {
     selected: string[];
     bitmaps: Bitmap[];
     stack: ToolpathStackEntry[];
+    gcode: string;
+    fileName: string;
     units: UnitSystem;
     emitArcs: boolean;
     machineProfileId: string;
@@ -63,6 +65,8 @@ export function ToolpathRail({
     selected,
     bitmaps,
     stack,
+    gcode,
+    fileName,
     units,
     emitArcs,
     machineProfileId,
@@ -85,74 +89,98 @@ export function ToolpathRail({
     confirm,
     showToast,
 }: ToolpathRailProps) {
+    const editing = Boolean(editingId && editingEntry);
+    const configuring = selected.length > 0;
+    const showEditor = editing || configuring;
     return (
         <aside className="w-[340px] shrink-0 border-l border-slate-200 bg-white dark:border-robin-900 dark:bg-dark flex flex-col min-h-0">
-            <div className="p-3 border-b border-slate-200 dark:border-robin-900 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <div className="shrink-0 p-3 border-b border-slate-200 dark:border-robin-900 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Layers size={18} className="text-robin-400" />
                 <span className="font-medium text-slate-900 dark:text-white">
-                    Assign Toolpaths
+                    {editing ? `Edit ${editingEntry?.label ?? 'Toolpath'}` : configuring ? 'Toolpath Setup' : 'Job Setup & Toolpaths'}
                 </span>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
-                <JobStockSetup stock={stock} units={units} onChange={setStock} />
-                <ToolpathPanel
-                    loops={loops}
-                    selected={selected}
-                    bitmaps={bitmaps}
-                    submitLabel="Add Toolpath"
-                    onResult={onResult}
-                    defaultArcs={emitArcs}
-                    machineProfileId={machineProfileId}
-                    machineTravelLimits={machineTravelLimits}
-                    stock={stock}
-                    units={units}
-                    onDraftPreview={(contours) =>
-                        setDraftPreview(contours ?? [])
-                    }
-                    onDraftProgress={setDraftProgress}
-                    editEntry={
-                        editingEntry
-                            ? {
-                                  id: editingEntry.id,
-                                  args: editingEntry.args,
-                                  loops: editingEntry.args.loops.map(
-                                      (loop, index) => ({
-                                          id:
-                                              loop.id ??
-                                              `edit-${editingEntry.id}-${index}`,
+                {showEditor ? (
+                    <ToolpathPanel
+                        loops={loops}
+                        selected={selected}
+                        bitmaps={bitmaps}
+                        submitLabel="Add Toolpath"
+                        onResult={onResult}
+                        defaultArcs={emitArcs}
+                        machineProfileId={machineProfileId}
+                        machineTravelLimits={machineTravelLimits}
+                        stock={stock}
+                        units={units}
+                        onDraftPreview={(contours) => setDraftPreview(contours ?? [])}
+                        onDraftProgress={setDraftProgress}
+                        editEntry={
+                            editingEntry
+                                ? {
+                                      id: editingEntry.id,
+                                      args: editingEntry.args,
+                                      loops: editingEntry.args.loops.map((loop, index) => ({
+                                          id: loop.id ?? `edit-${editingEntry.id}-${index}`,
                                           points: loop.points,
-                                          bitmapId: (
-                                              loop as { bitmapId?: string }
-                                          ).bitmapId,
-                                      }),
-                                  ),
-                              }
-                            : null
-                    }
-                    onUpdate={onUpdate}
-                    onCancelEdit={() => {
-                        setEditingId(null);
-                        setDraftPreview([]);
-                        setDraftProgress(null);
-                        setStatus('Edit cancelled.');
-                    }}
-                />
-                <CommittedToolpaths
-                    stack={stack}
-                    editingId={editingId}
-                    tabMode={tabMode}
-                    setTabMode={setTabMode}
-                    setEditingId={setEditingId}
-                    setStack={setStack}
-                    setSideTab={setSideTab}
-                    setStatus={setStatus}
-                    rebuildEntryTabs={rebuildEntryTabs}
-                    confirm={confirm}
-                    showToast={showToast}
-                />
+                                          bitmapId: (loop as { bitmapId?: string }).bitmapId,
+                                      })),
+                                  }
+                                : null
+                        }
+                        onUpdate={onUpdate}
+                        onCancelEdit={() => {
+                            setEditingId(null);
+                            setDraftPreview([]);
+                            setDraftProgress(null);
+                            setStatus('Edit cancelled.');
+                        }}
+                    />
+                ) : (
+                    <>
+                        <JobStockSetup stock={stock} units={units} onChange={setStock} />
+                        <CommittedToolpaths
+                            stack={stack}
+                            editingId={editingId}
+                            tabMode={tabMode}
+                            setTabMode={setTabMode}
+                            setEditingId={setEditingId}
+                            setStack={setStack}
+                            setSideTab={setSideTab}
+                            setStatus={setStatus}
+                            rebuildEntryTabs={rebuildEntryTabs}
+                            confirm={confirm}
+                            showToast={showToast}
+                        />
+                    </>
+                )}
             </div>
+            {!showEditor && (
+                <div className="shrink-0 border-t border-slate-200 p-3 dark:border-robin-900">
+                    <button
+                        type="button"
+                        disabled={!gcode.trim()}
+                        onClick={() => downloadGcode(gcode, fileName)}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Download size={16} />
+                        Export G-code
+                    </button>
+                </div>
+            )}
         </aside>
     );
+}
+
+function downloadGcode(gcode: string, fileName: string) {
+    if (!gcode.trim()) return;
+    const blob = new Blob([gcode], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(fileName || 'gcam').replace(/\.[^.]+$/, '')}.nc`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function CommittedToolpaths({
@@ -174,6 +202,8 @@ function CommittedToolpaths({
     | 'bitmaps'
     | 'units'
     | 'emitArcs'
+    | 'gcode'
+    | 'fileName'
     | 'machineProfileId'
     | 'machineTravelLimits'
     | 'stock'
@@ -185,11 +215,11 @@ function CommittedToolpaths({
     | 'onUpdate'
 >) {
     return (
-        <div className="px-3 pb-3">
-            <div className="flex items-center justify-between mb-1">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Created Toolpaths ({stack.length})
-                </div>
+        <section className="mx-3 mt-3 mb-3 space-y-2 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50">
+            <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Job toolpaths <span className="font-medium normal-case">({stack.length})</span>
+                </h3>
                 <button
                     onClick={() => setTabMode((mode) => !mode)}
                     className={`rounded border px-2 py-0.5 text-xs ${tabMode ? 'bg-robin-500 border-robin-500 text-white' : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-robin-900 dark:text-slate-300 dark:hover:bg-dark-lighter'}`}
@@ -290,7 +320,7 @@ function CommittedToolpaths({
                     </div>
                 )}
             </div>
-        </div>
+        </section>
     );
 }
 

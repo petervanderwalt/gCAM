@@ -1,5 +1,15 @@
 # CAM backlog
 
+## Sidebar workflow cleanup
+
+- [x] Show only toolpath setup while geometry is selected; hide stock and committed paths.
+- [x] After Add Toolpath, clear the selection so the sidebar returns to stock setup and the committed list.
+- [x] Show only the selected toolpath editor while editing; hide stock and the committed list.
+- [x] Keep stock setup, toolpath list, and Add a Tab together when nothing is selected.
+- [x] Add Export G-code to the list state, disabled when there is no program to export.
+- [x] Compact operation selection into an icon-and-label grid; separate tool selection from operation settings.
+- [x] Verify selection/list states in the running browser and add regression tests for list, setup, edit, and post-add selection behavior.
+
 - [x] Helical contour-ramp entry for inside/outside profiles and pockets, limited to a 5-degree ramp angle and kept on the compensated toolpath
 - Arc lead-ins and lead-outs
 - [x] Trochoidal pocket clearing with inward-adjusted pocket contours and configurable engagement

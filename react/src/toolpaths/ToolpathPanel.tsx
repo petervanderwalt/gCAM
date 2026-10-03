@@ -189,6 +189,7 @@ export function ToolpathPanel({
     const [spindle, setSpindle] = useState(18000);
     const [safeZ, setSafeZ] = useState(6);
     const [passDepth, setPassDepth] = useState(3);
+    const [manualCuttingParams, setManualCuttingParams] = useState(false);
     const material: MaterialId = stock.material;
     const [arcs, setArcs] = useState(defaultArcs);
     const [toolNumber, setToolNumber] = useState(1);
@@ -286,6 +287,7 @@ export function ToolpathPanel({
         if (!editEntry) {
             setAutoCutDepth(true);
             setCutDepth(stock.thicknessMm);
+            setManualCuttingParams(false);
             return;
         }
         const a = editEntry.args as ProfileArgs & Record<string, unknown>;
@@ -320,6 +322,7 @@ export function ToolpathPanel({
         setFeedRate(num(a.feedRate, 1800));
         setPlungeRate(num(a.plungeRate, 600));
         setSpindle(num(a.spindle, 18000));
+        setManualCuttingParams(true);
         setSafeZ(num(a.safeZ, 6));
         setPassDepth(num(a.passDepth, num(a.cutDepth, stock.thicknessMm)));
         setArcs(a.arcs !== false);
@@ -351,6 +354,18 @@ export function ToolpathPanel({
     const activeBitmapIds = new Set(active.flatMap((loop) => loop.bitmapId ? [loop.bitmapId] : []));
     const selectedSurfaceBitmap = bitmaps.find((bitmap) => activeBitmapIds.has(bitmap.id) && bitmap.surfaceMesh);
     const surfaceOperation = operation === 'surface-clear' || operation === 'surface-finish' || operation === 'surface-waterline';
+    const effectiveFeedRate = manualCuttingParams
+        ? feedRate
+        : recommendation?.feedMmMin ?? feedRate;
+    const effectivePlungeRate = manualCuttingParams
+        ? plungeRate
+        : recommendation?.plungeMmMin ?? plungeRate;
+    const effectiveSpindle = manualCuttingParams
+        ? spindle
+        : recommendation?.rpm ?? spindle;
+    const effectivePassDepth = manualCuttingParams
+        ? (surfaceOperation ? surfaceStepdown : passDepth)
+        : recommendation?.passDepthMm ?? passDepth;
     const isSurfaceLibraryTool = (slot: ToolSlot) => isConfigured(slot) && Boolean(slot.libraryToolId);
     const compatibleSurfaceTools = slots.filter((slot) => isSurfaceLibraryTool(slot) && (operation === 'surface-clear' ? slot.toolType === 'flat' : slot.toolType === 'ball' || slot.toolType === 'ballnose'));
     const surfaceToolMismatch = surfaceOperation && (!activeSlot || !isSurfaceLibraryTool(activeSlot) || (operation === 'surface-clear' ? activeSlot.toolType !== 'flat' : activeSlot.toolType !== 'ball' && activeSlot.toolType !== 'ballnose'));
@@ -464,16 +479,16 @@ export function ToolpathPanel({
                 operation === 'profile-inside' ||
                 operation === 'pocket'
             ),
-            feedRate: recommendation?.feedMmMin ?? feedRate,
-            plungeRate: recommendation?.plungeMmMin ?? plungeRate,
-            spindle: recommendation?.rpm ?? spindle,
+            feedRate: effectiveFeedRate,
+            plungeRate: effectivePlungeRate,
+            spindle: effectiveSpindle,
             safeZ,
             passDepth:
                 operation === 'countersink'
                     ? countersinkHeadDiameter / 2 / Math.tan((cutterAngle * Math.PI) / 360)
                 : operation === 'texture-fill'
                     ? cutDepth
-                : (recommendation?.passDepthMm ?? passDepth),
+                : effectivePassDepth,
             libraryToolId: activeSlot?.libraryToolId ?? undefined,
             surfaceBitmapId: selectedSurfaceBitmap?.id,
             surfaceResolutionMm: surfaceResolution,
@@ -599,9 +614,9 @@ export function ToolpathPanel({
                     cutterType: cutter,
                     libraryToolId: activeSlot.libraryToolId ?? undefined,
                     toolNumber: activeSlot.slot,
-                    feedRate: recommendation?.feedMmMin ?? feedRate,
-                    plungeRate: recommendation?.plungeMmMin ?? plungeRate,
-                    spindle: recommendation?.rpm ?? spindle,
+                    feedRate: effectiveFeedRate,
+                    plungeRate: effectivePlungeRate,
+                    spindle: effectiveSpindle,
                     safeZ,
                     stepdown: surfaceStepdown,
                     stockToLeave: operation === 'surface-clear' ? surfaceAllowance : 0,
@@ -813,6 +828,7 @@ export function ToolpathPanel({
         feedRate,
         plungeRate,
         spindle,
+        manualCuttingParams,
         safeZ,
         passDepth,
         arcs,
@@ -833,45 +849,64 @@ export function ToolpathPanel({
 
     return (
         <div className="p-3 space-y-3 text-sm">
-            <ToolpathOperationPicker
-                operation={operation}
-                operations={visibleOps}
-                onChange={setOperation}
-            />
+            <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Operation</h3>
+                <ToolpathOperationPicker
+                    operation={operation}
+                    operations={visibleOps}
+                    onChange={setOperation}
+                />
+            </section>
             <ToolpathFormAlerts
                 operation={operation}
                 vbitMismatch={vbitMismatch}
                 draftError={draftError}
             />
-            <ToolSelectionFields
-                slots={surfaceOperation ? compatibleSurfaceTools : slots}
-                slotNum={slotNum}
-                units={units}
-                libraryOpen={toolLibOpen}
-                librarySlot={toolLibSlot}
-                onOpenLibrary={() => setToolLibOpen(true)}
-                onSelectSlot={(slotNumber) => {
-                    setSlotNum(slotNumber);
-                    const slot = slots.find((item) => item.slot === slotNumber);
-                    if (slot && isConfigured(slot)) {
-                        applySlot(slot);
-                    } else {
-                        setToolLibSlot(slotNumber);
-                        setToolLibOpen(true);
-                    }
-                }}
-                onCloseLibrary={() => {
-                    setToolLibOpen(false);
-                    setToolLibSlot(null);
-                    if (typeof window !== 'undefined')
-                        setSlots(loadSlots(window.localStorage));
-                }}
-                onConfiguredSlot={applySlot}
-            />
+            <section className="space-y-2 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tool selection</h3>
+                <ToolSelectionFields
+                    slots={surfaceOperation ? compatibleSurfaceTools : slots}
+                    slotNum={slotNum}
+                    units={units}
+                    libraryOpen={toolLibOpen}
+                    librarySlot={toolLibSlot}
+                    onOpenLibrary={() => setToolLibOpen(true)}
+                    onSelectSlot={(slotNumber) => {
+                        setSlotNum(slotNumber);
+                        const slot = slots.find((item) => item.slot === slotNumber);
+                        if (slot && isConfigured(slot)) {
+                            applySlot(slot);
+                        } else {
+                            setToolLibSlot(slotNumber);
+                            setToolLibOpen(true);
+                        }
+                    }}
+                    onCloseLibrary={() => {
+                        setToolLibOpen(false);
+                        setToolLibSlot(null);
+                        if (typeof window !== 'undefined')
+                            setSlots(loadSlots(window.localStorage));
+                    }}
+                    onConfiguredSlot={applySlot}
+                />
+            </section>
+            <section className="space-y-3 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Toolpath settings</h3>
             {recipeOperation && (
                 <CuttingRecipeFields
                     recommendation={recommendation}
                     units={units}
+                    manual={manualCuttingParams}
+                    onManualChange={setManualCuttingParams}
+                    feedRate={feedRate}
+                    onFeedRateChange={setFeedRate}
+                    plungeRate={plungeRate}
+                    onPlungeRateChange={setPlungeRate}
+                    spindle={spindle}
+                    onSpindleChange={setSpindle}
+                    maxDepth={surfaceOperation ? surfaceStepdown : passDepth}
+                    maxDepthLabel={surfaceOperation ? 'Surface stepdown' : 'Max DOC'}
+                    onMaxDepthChange={surfaceOperation ? setSurfaceStepdown : setPassDepth}
                 />
             )}
             {!LASER_OPS.includes(operation) && !surfaceOperation && operation !== 'countersink' && (
@@ -1005,6 +1040,7 @@ export function ToolpathPanel({
                 onCancelBuild={surfaceAbortControllerRef.current ? cancelSurfaceGeneration : undefined}
                 onCancelEdit={onCancelEdit}
             />
+            </section>
         </div>
     );
 }

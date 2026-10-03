@@ -17,14 +17,15 @@ export function ToolpathOperationPicker({
     onChange,
 }: ToolpathOperationPickerProps) {
     return (
-        <div className="space-y-1 rounded-lg border border-slate-300 bg-slate-50/70 p-1 dark:border-robin-900 dark:bg-slate-900/70">
+        <div className="grid grid-cols-4 gap-1 rounded-lg border border-slate-300 bg-slate-50/70 p-1 dark:border-robin-900 dark:bg-slate-900/70">
             {operations.map((item) => (
                 <button
                     key={item.value}
                     onClick={() => onChange(item.value)}
-                    className={`flex w-full items-center gap-2 rounded-md border px-1.5 py-1 text-left text-xs font-medium transition-colors touch-manipulation ${
+                    aria-pressed={operation === item.value}
+                    className={`flex min-h-[56px] w-full flex-col items-center justify-center gap-0.5 rounded-md border px-0.5 py-0.5 text-center text-[10px] font-medium leading-tight transition-colors touch-manipulation ${
                         operation === item.value
-                            ? 'border-robin-500 bg-robin-500/20 text-white ring-1 ring-robin-500/60'
+                            ? 'border-robin-600 bg-robin-100 text-robin-950 ring-1 ring-robin-500/60 dark:border-robin-500 dark:bg-robin-900/70 dark:text-white'
                             : 'border-transparent text-slate-600 hover:border-robin-900/60 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-lighter'
                     }`}
                 >
@@ -41,7 +42,7 @@ export function ToolpathOperationPicker({
                             </span>
                         )}
                     </span>
-                    <span>{item.label}</span>
+                    <span className="flex min-h-5 items-center justify-center">{item.label}</span>
                 </button>
             ))}
         </div>

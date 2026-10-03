@@ -1,4 +1,3 @@
-import { Box } from 'lucide-react';
 import { UnitInput } from '../components/UnitInput';
 import { MATERIAL_RECIPES } from '../cutting-parameters/recipes';
 import type { JobStock } from './stock';
@@ -16,11 +15,10 @@ export function JobStockSetup({
 }) {
     const update = (next: Partial<JobStock>) => onChange({ ...stock, ...next });
     return (
-        <section className="border-b border-slate-200 p-3 space-y-2 dark:border-robin-900">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
-                <Box size={16} className="text-robin-400" />
+        <section className="mx-3 mt-3 space-y-2 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Job stock
-            </div>
+            </h3>
             <div className="grid grid-cols-3 gap-2">
                 {([
                     ['Width', 'widthMm'],

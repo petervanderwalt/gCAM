@@ -479,6 +479,8 @@ export default function App() {
         selected,
         bitmaps,
         stack,
+        gcode,
+        fileName,
         units,
         emitArcs,
         machineProfileId,

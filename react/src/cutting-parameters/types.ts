@@ -39,11 +39,15 @@ export interface MachineProfile {
     maxZFeedMmMin: number;
     spindleMinRpm: number;
     spindleMaxRpm: number;
+    /** grblHAL $130-$132 travel distances in mm (firmware stores machine bounds as negative coordinates). */
+    maxXTravelMm: number;
+    maxYTravelMm: number;
+    maxZTravelMm: number;
     /** A router dial can expose discrete speeds instead of arbitrary RPM. */
     availableRpm?: number[];
 }
 
-/** Optional GRBL work-coordinate travel bounds, relative to stock origin/top. */
+/** Travel envelope used by CAM validation: XY extents from job zero and negative Z from stock top. */
 export interface MachineTravelLimits {
     maxXTravelMm: number | null;
     maxYTravelMm: number | null;

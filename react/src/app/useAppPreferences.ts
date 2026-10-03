@@ -13,6 +13,7 @@ import {
     normalizeMachineTravelLimits,
     type MachineTravelLimits,
 } from '../cutting-parameters/types';
+import { machineProfileById } from '../cutting-parameters/machines';
 
 /** Persistent application-wide display and output preferences. */
 export function useAppPreferences() {
@@ -43,9 +44,17 @@ export function useAppPreferences() {
     const [machineTravelLimits, setMachineTravelLimits] = useState<MachineTravelLimits>(() => {
         if (typeof window === 'undefined') return EMPTY_MACHINE_TRAVEL_LIMITS;
         try {
-            return normalizeMachineTravelLimits(
-                JSON.parse(localStorage.getItem('gcam.machineTravelLimits') ?? 'null'),
-            );
+            const profileId = localStorage.getItem('gcam.machineProfileId') ?? 'longmill-router';
+            const profile = machineProfileById(profileId);
+            if (profile) return {
+                maxXTravelMm: profile.maxXTravelMm,
+                maxYTravelMm: profile.maxYTravelMm,
+                minZTravelMm: -profile.maxZTravelMm,
+                maxZTravelMm: null,
+            };
+            const saved = localStorage.getItem('gcam.machineTravelLimits');
+            if (saved) return normalizeMachineTravelLimits(JSON.parse(saved));
+            return EMPTY_MACHINE_TRAVEL_LIMITS;
         } catch {
             return EMPTY_MACHINE_TRAVEL_LIMITS;
         }
