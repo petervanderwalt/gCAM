@@ -24,7 +24,7 @@ import { imageDataOf } from '../lib/bitmap';
 import { UnitInput } from '../components/UnitInput';
 import { isConfigured, loadSlots, type ToolSlot } from '../tools/library';
 import { displayValue, type UnitSystem } from '../lib/units';
-import { OPERATIONS, RASTER_OPERATIONS } from './operationCatalog';
+import { operationsForSelection } from './operationCatalog';
 import { ToolpathOperationPicker } from './ToolpathOperationPicker';
 import { TextureFields } from './TextureFields';
 import { CuttingFields } from './CuttingFields';
@@ -275,10 +275,24 @@ export function ToolpathPanel({
     );
     // In edit mode the entry's own source loops drive it instead.
     const byId = new Map(loops.map((l) => [l.id, l]));
+    const selectedLoops = selected.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    const selectionHasVector = selectedLoops.some((loop) => !loop.bitmapId);
+    const selectionHasBitmap = selectedLoops.some((loop) => Boolean(loop.bitmapId));
+    const surfaceSourceLoops = editEntry ? editEntry.loops : selectedLoops;
+    const selectedSurfaceModel = surfaceSourceLoops
+        .map((loop) => bitmaps.find((bitmap) => bitmap.id === loop.bitmapId && bitmap.surfaceMesh))
+        .find((bitmap) => Boolean(bitmap));
+    const selectedSurfaceBitmap = editEntry
+        ? selectedSurfaceModel
+        : selectedLoops.length === 1 ? selectedSurfaceModel : undefined;
+    // Mixed marquee selections operate on the vector geometry only. A 3D
+    // model is machined individually, never combined with selected vectors.
     const active = editEntry
         ? editEntry.loops
         : selected.length > 0
-          ? selected.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []))
+          ? selectionHasVector && selectionHasBitmap
+              ? selectedLoops.filter((loop) => !loop.bitmapId)
+              : selectedLoops
           : loops;
 
     // Load a created toolpath back into the form for editing (legacy parity).
@@ -351,8 +365,6 @@ export function ToolpathPanel({
     // placed bitmap, vector ops need vector geometry.
     const hasBitmap = active.some((l) => l.bitmapId);
     const hasVector = active.some((l) => !l.bitmapId);
-    const activeBitmapIds = new Set(active.flatMap((loop) => loop.bitmapId ? [loop.bitmapId] : []));
-    const selectedSurfaceBitmap = bitmaps.find((bitmap) => activeBitmapIds.has(bitmap.id) && bitmap.surfaceMesh);
     const surfaceOperation = operation === 'surface-clear' || operation === 'surface-finish' || operation === 'surface-waterline';
     const effectiveFeedRate = manualCuttingParams
         ? feedRate
@@ -386,22 +398,18 @@ export function ToolpathPanel({
         surfaceAbortControllerRef.current?.abort();
         surfaceAbortControllerRef.current = null;
     }, []);
-    const visibleOps = OPERATIONS.filter((op) => {
-        const raster = RASTER_OPERATIONS.includes(op.value);
-        const surface = op.value === 'surface-clear' || op.value === 'surface-finish' || op.value === 'surface-waterline';
-        if (hasBitmap && !hasVector) {
-            if (selectedSurfaceBitmap) return surface || op.value === 'profile-outside';
-            return raster;
-        }
-        if (hasVector && !hasBitmap) return !raster;
-        return true;
+    const visibleOps = operationsForSelection({
+        hasBitmap,
+        hasVector,
+        hasSurfaceModel: Boolean(selectedSurfaceModel),
+        surfaceModelSelectedAlone: Boolean(selectedSurfaceBitmap),
     });
     useEffect(() => {
         if (!visibleOps.some((op) => op.value === operation)) {
             setOperation(visibleOps[0]?.value ?? 'profile-outside');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasBitmap, hasVector]);
+    }, [hasBitmap, hasVector, selectedSurfaceBitmap?.id]);
 
     const resolveRasterBitmap = (): RasterBitmap => {
         const loop = active.find((l) => l.bitmapId);
@@ -866,11 +874,19 @@ export function ToolpathPanel({
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tool selection</h3>
                 <ToolSelectionFields
                     slots={surfaceOperation ? compatibleSurfaceTools : slots}
+                    hasAnyConfiguredTool={slots.some(isConfigured)}
                     slotNum={slotNum}
                     units={units}
                     libraryOpen={toolLibOpen}
                     librarySlot={toolLibSlot}
                     onOpenLibrary={() => setToolLibOpen(true)}
+                    onSetupTools={() => {
+                        const firstEmptySlot = slots.find((tool) => !isConfigured(tool));
+                        const setupSlot = firstEmptySlot?.slot ?? null;
+                        if (setupSlot != null) setSlotNum(setupSlot);
+                        setToolLibSlot(setupSlot);
+                        setToolLibOpen(true);
+                    }}
                     onSelectSlot={(slotNumber) => {
                         setSlotNum(slotNumber);
                         const slot = slots.find((item) => item.slot === slotNumber);
@@ -905,7 +921,7 @@ export function ToolpathPanel({
                     spindle={spindle}
                     onSpindleChange={setSpindle}
                     maxDepth={surfaceOperation ? surfaceStepdown : passDepth}
-                    maxDepthLabel={surfaceOperation ? 'Surface stepdown' : 'Max DOC'}
+                    maxDepthLabel={surfaceOperation ? 'Surface stepdown' : 'Max depth per pass'}
                     onMaxDepthChange={surfaceOperation ? setSurfaceStepdown : setPassDepth}
                 />
             )}

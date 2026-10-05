@@ -17,12 +17,15 @@ import {
 import { useDocumentPersistence } from './useDocumentPersistence';
 import { useDocumentState } from './useDocumentState';
 import { useVectorImport } from './useVectorImport';
+import type { JobStock } from '../job/stock';
 
 type PreviewPaths = { x: number; y: number }[][];
 
 interface DocumentWorkspaceOptions {
+    initialStock?: JobStock;
     setStatus: Dispatch<SetStateAction<string>>;
     setDraftPreview: Dispatch<SetStateAction<PreviewPaths>>;
+    onFitView(): void;
     setBitmapImportChoice: Dispatch<
         SetStateAction<BitmapImportChoice<ViewLoop> | null>
     >;
@@ -30,8 +33,10 @@ interface DocumentWorkspaceOptions {
 
 /** Persistent document model plus bitmap/vector import commands. */
 export function useDocumentWorkspace({
+    initialStock,
     setStatus,
     setDraftPreview,
+    onFitView,
     setBitmapImportChoice,
 }: DocumentWorkspaceOptions) {
     const [bounds, setBounds] = useState<ViewBounds | null>(null);
@@ -44,6 +49,7 @@ export function useDocumentWorkspace({
         PlacedBitmapRecord,
         Guide
     >({
+        initialStock,
         clone: (snapshot) => ({
             ...snapshot,
             loops: snapshot.loops.map((loop) => ({
@@ -119,12 +125,18 @@ export function useDocumentWorkspace({
         setFileName,
         setStatus,
         setDraftPreview,
+        onFitView,
         pushHistory,
         newLoopId,
         withIds,
         refreshBounds,
     });
-    const { importVector } = useVectorImport<ViewLoop, ToolpathStackEntry>({
+    const {
+        importVector,
+        unitImportChoice,
+        resolveUnitImport,
+        cancelUnitImport,
+    } = useVectorImport<ViewLoop, ToolpathStackEntry>({
         setLoops,
         setSelected,
         setStack,
@@ -133,6 +145,7 @@ export function useDocumentWorkspace({
         setBounds,
         pushHistory,
         newLoopId,
+        onFitView,
     });
 
     return {
@@ -166,6 +179,9 @@ export function useDocumentWorkspace({
         withIds,
         refreshBounds,
         importVector,
+        unitImportChoice,
+        resolveUnitImport,
+        cancelUnitImport,
         ...bitmapCommands,
     };
 }

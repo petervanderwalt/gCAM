@@ -49,3 +49,22 @@ export const RASTER_OPERATIONS: Operation[] = [
     'wavy-raster',
     'halftone',
 ];
+
+export function operationsForSelection(selection: {
+    hasBitmap: boolean;
+    hasVector: boolean;
+    hasSurfaceModel: boolean;
+    surfaceModelSelectedAlone: boolean;
+}) {
+    return OPERATIONS.filter((operation) => {
+        const raster = RASTER_OPERATIONS.includes(operation.value);
+        const surface = operation.value === 'surface-clear' ||
+            operation.value === 'surface-finish' ||
+            operation.value === 'surface-waterline';
+        if (selection.hasSurfaceModel && !selection.hasVector)
+            return selection.surfaceModelSelectedAlone && (surface || operation.value === 'profile-outside');
+        if (selection.hasBitmap && !selection.hasVector) return raster;
+        if (selection.hasVector) return !raster && !surface;
+        return true;
+    });
+}

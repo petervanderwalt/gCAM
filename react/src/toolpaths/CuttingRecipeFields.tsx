@@ -96,6 +96,11 @@ export function CuttingRecipeFields({
                     </div>
                 )}
             </div>
+            {!manual && recommendation && (
+                <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                    Suggested for the selected cutter, material, and machine. Confirm these match the tool actually installed.
+                </p>
+            )}
             {recommendation ? (
                 <div className="text-xs text-slate-600 dark:text-slate-300">
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">

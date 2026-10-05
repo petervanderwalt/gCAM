@@ -1,4 +1,4 @@
-import { cutterContactHeight, type HeightField, type SurfacePathOptions } from './surface-cam';
+import { cutterContactHeight, rasterPathRows, type HeightField, type SurfacePathOptions } from './surface-cam';
 import { isSurfaceGpuFallbackError, surfaceCamAbortError, throwIfSurfaceCamAborted } from './surface-cam-cancel';
 
 export interface SurfaceComputeProgress {
@@ -9,32 +9,41 @@ export interface SurfaceComputeProgress {
 export interface SurfaceContactResult {
     heights: Float32Array;
     backend: 'webgpu' | 'cpu';
+    sampleRows?: number[];
 }
+
+type SurfaceContactOptions = Pick<SurfacePathOptions, 'cutter' | 'toolDiameterMm' | 'stockToLeaveMm'> &
+    Partial<Pick<SurfacePathOptions, 'stepoverMm'>>;
 
 
 /** Exact CPU reference implementation used when this browser has no GPU adapter. */
 export async function computeSurfaceContactHeightsCpu(
     field: HeightField,
-    options: Pick<SurfacePathOptions, 'cutter' | 'toolDiameterMm' | 'stockToLeaveMm'>,
+    options: SurfaceContactOptions,
     onProgress?: (progress: SurfaceComputeProgress) => void,
     signal?: AbortSignal,
+    rasterPathRowsOnly = false,
 ): Promise<Float32Array> {
     throwIfSurfaceCamAborted(signal);
+    const rowStep = rasterPathRowsOnly ? Math.max(1, Math.floor((options.stepoverMm ?? field.cellSize) / field.cellSize + 1e-9)) : 1;
+    const rows = rasterPathRows(field.rows, rowStep);
     const radiusCells = Math.ceil(options.toolDiameterMm / 2 / field.cellSize);
-    const workEstimate = field.columns * field.rows * (radiusCells * 2 + 1) ** 2;
+    const workEstimate = field.columns * rows.length * (radiusCells * 2 + 1) ** 2;
     if (workEstimate > 60_000_000)
         throw new Error('WebGPU is unavailable and this model exceeds the safe CPU fallback limit. Increase machining resolution or use a smaller cutter.');
-    const output = new Float32Array(field.columns * field.rows);
+    const output = new Float32Array(field.columns * (rasterPathRowsOnly ? rows.length : field.rows));
     output.fill(Number.NaN);
     const allowance = options.stockToLeaveMm ?? 0;
-    for (let row = 0; row < field.rows; row += 1) {
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
         throwIfSurfaceCamAborted(signal);
+        const row = rows[rowIndex];
         for (let column = 0; column < field.columns; column += 1) {
-            const index = row * field.columns + column;
-            if (!field.covered[index]) continue;
+            const gridIndex = row * field.columns + column;
+            if (!field.covered[gridIndex]) continue;
+            const outputIndex = rasterPathRowsOnly ? rowIndex * field.columns + column : gridIndex;
             const x = field.bounds.minX + column * field.cellSize;
             const y = field.bounds.minY + row * field.cellSize;
-            output[index] = cutterContactHeight(
+            output[outputIndex] = cutterContactHeight(
                 field,
                 x,
                 y,
@@ -43,10 +52,12 @@ export async function computeSurfaceContactHeightsCpu(
                 allowance,
             );
         }
-        if (row % 4 === 3 || row === field.rows - 1) {
+        if (rowIndex % 4 === 3 || rowIndex === rows.length - 1) {
             onProgress?.({
-                percent: Math.round(((row + 1) / field.rows) * 100),
-                label: 'WebGPU unavailable; exact CPU contact calculation (slower)',
+                percent: Math.round(((rowIndex + 1) / rows.length) * 100),
+                label: rasterPathRowsOnly
+                    ? 'WebGPU unavailable; exact CPU raster-path sampling (slower)'
+                    : 'WebGPU unavailable; exact CPU contact calculation (slower)',
             });
             await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
         }
@@ -58,16 +69,20 @@ export async function computeSurfaceContactHeightsCpu(
 /** Prefer WebGPU; use the same exact CPU reference when no adapter is available. */
 export function computeSurfaceContactHeights(
     field: HeightField,
-    options: Pick<SurfacePathOptions, 'cutter' | 'toolDiameterMm' | 'stockToLeaveMm'>,
+    options: SurfaceContactOptions,
     onProgress?: (progress: SurfaceComputeProgress) => void,
     signal?: AbortSignal,
+    rasterPathRowsOnly = false,
 ): Promise<SurfaceContactResult> {
     return new Promise((resolve, reject) => {
         try { throwIfSurfaceCamAborted(signal); } catch (error) { reject(error); return; }
         const runCpuFallback = (reason: string) => {
             onProgress?.({ percent: 5, label: `WebGPU unavailable (${reason}); switching to exact CPU reference` });
-            void computeSurfaceContactHeightsCpu(field, options, onProgress, signal).then(
-                (heights) => resolve({ heights, backend: 'cpu' }),
+            const sampleRows = rasterPathRowsOnly
+                ? rasterPathRows(field.rows, Math.max(1, Math.floor((options.stepoverMm ?? field.cellSize) / field.cellSize + 1e-9)))
+                : undefined;
+            void computeSurfaceContactHeightsCpu(field, options, onProgress, signal, rasterPathRowsOnly).then(
+                (heights) => resolve({ heights, backend: 'cpu', sampleRows }),
                 reject,
             );
         };
@@ -75,6 +90,9 @@ export function computeSurfaceContactHeights(
             runCpuFallback('no WebGPU support');
             return;
         }
+        const sampleRows = rasterPathRowsOnly
+            ? rasterPathRows(field.rows, Math.max(1, Math.floor((options.stepoverMm ?? field.cellSize) / field.cellSize + 1e-9)))
+            : Array.from({ length: field.rows }, (_, row) => row);
         const worker = new Worker(new URL('./surface-cam-webgpu.worker.ts', import.meta.url), { type: 'module' });
         const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const timeout = window.setTimeout(() => {
@@ -98,11 +116,11 @@ export function computeSurfaceContactHeights(
                 runCpuFallback(event.data.error);
             else if (event.data.error) reject(new Error(event.data.error));
             else if (event.data.result) {
-                onProgress?.({ percent: 100, label: 'WebGPU cutter compensation complete' });
+                onProgress?.({ percent: 100, label: rasterPathRowsOnly ? 'WebGPU raster-path sampling complete' : 'WebGPU cutter compensation complete' });
                 const compensated = event.data.result;
                 for (let index = 0; index < compensated.length; index += 1)
                     if (compensated[index] < -1e30) compensated[index] = Number.NaN;
-                resolve({ heights: compensated, backend: 'webgpu' });
+                resolve({ heights: compensated, backend: 'webgpu', sampleRows: rasterPathRowsOnly ? sampleRows : undefined });
             } else reject(new Error('WebGPU returned no surface data.'));
         };
         worker.onerror = (event) => {
@@ -113,6 +131,7 @@ export function computeSurfaceContactHeights(
         onProgress?.({ percent: 5, label: 'Starting WebGPU surface calculation' });
         const heights = new Float32Array(field.heights);
         const covered = new Uint8Array(field.covered);
+        const sampleRowData = new Uint32Array(sampleRows);
         worker.postMessage({
             id,
             field: {
@@ -126,6 +145,8 @@ export function computeSurfaceContactHeights(
             cutter: options.cutter,
             diameterMm: options.toolDiameterMm,
             allowanceMm: options.stockToLeaveMm ?? 0,
-        }, [heights.buffer, covered.buffer]);
+            sampleRows: sampleRowData,
+            compactRows: rasterPathRowsOnly,
+        }, [heights.buffer, covered.buffer, sampleRowData.buffer]);
     });
 }

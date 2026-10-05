@@ -26,6 +26,7 @@ struct Params {
 @group(0) @binding(1) var<storage, read> covered: array<u32>;
 @group(0) @binding(2) var<storage, read_write> output: array<f32>;
 @group(0) @binding(3) var<uniform> params: Params;
+@group(0) @binding(4) var<storage, read> sampleRows: array<u32>;
 
 fn at(x: i32, y: i32) -> f32 {
   if (x < 0 || y < 0 || x >= i32(params.columns) || y >= i32(params.rows)) { return -3.402823e+38; }
@@ -37,11 +38,12 @@ fn at(x: i32, y: i32) -> f32 {
 @compute @workgroup_size(128)
 fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   let index = id.x + id.y * params.dispatchWidth;
-  let count = params.columns * params.rows;
+  let count = params.columns * arrayLength(&sampleRows);
   if (index >= count) { return; }
-  if (covered[index] == 0u) { output[index] = -3.402823e+38; return; }
   let column = i32(index % params.columns);
-  let row = i32(index / params.columns);
+  let row = i32(sampleRows[index / params.columns]);
+  let gridIndex = u32(row) * params.columns + u32(column);
+  if (covered[gridIndex] == 0u) { output[index] = -3.402823e+38; return; }
   var contact = -3.402823e+38;
   let halfCell = params.cellSize * 0.5;
   for (var dy = -params.radiusCells; dy <= params.radiusCells; dy = dy + 1) {
@@ -70,7 +72,7 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 `;
 
 self.onmessage = async (event: MessageEvent) => {
-    const { id, field, cutter, diameterMm, allowanceMm } = event.data;
+const { id, field, cutter, diameterMm, allowanceMm, sampleRows } = event.data;
     let device: GPUDevice | null = null;
     const buffers: GPUBuffer[] = [];
     try {
@@ -81,9 +83,11 @@ self.onmessage = async (event: MessageEvent) => {
         const gpuDevice = await adapter.requestDevice();
         device = gpuDevice;
         const deviceLost = gpuDevice.lost;
-        const count = field.columns * field.rows;
+        const count = field.columns * sampleRows.length;
         const byteLength = count * Float32Array.BYTES_PER_ELEMENT;
-        if (byteLength > gpuDevice.limits.maxBufferSize || byteLength > gpuDevice.limits.maxStorageBufferBindingSize)
+        const gridByteLength = field.columns * field.rows * Float32Array.BYTES_PER_ELEMENT;
+        if (gridByteLength > gpuDevice.limits.maxBufferSize || gridByteLength > gpuDevice.limits.maxStorageBufferBindingSize ||
+            byteLength > gpuDevice.limits.maxBufferSize || byteLength > gpuDevice.limits.maxStorageBufferBindingSize)
             throw new Error('The mesh resolution exceeds this GPU’s buffer limit. Increase the machining grid size.');
         const heights = new Float32Array(field.heights);
         for (let i = 0; i < heights.length; i += 1) if (!field.covered[i]) heights[i] = -3.402823e+38;
@@ -110,6 +114,7 @@ self.onmessage = async (event: MessageEvent) => {
         };
         const heightBuffer = inputBuffer(heights);
         const coveredBuffer = inputBuffer(covered);
+        const sampleRowBuffer = inputBuffer(new Uint32Array(sampleRows));
         const outputBuffer = gpuDevice.createBuffer({ size: byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
         buffers.push(outputBuffer);
         const paramsBuffer = gpuDevice.createBuffer({
@@ -127,7 +132,7 @@ self.onmessage = async (event: MessageEvent) => {
         );
         const bindGroup = gpuDevice.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
-            entries: [heightBuffer, coveredBuffer, outputBuffer, paramsBuffer].map((buffer, binding) => ({ binding, resource: { buffer } })),
+            entries: [heightBuffer, coveredBuffer, outputBuffer, paramsBuffer, sampleRowBuffer].map((buffer, binding) => ({ binding, resource: { buffer } })),
         });
         const encoder = gpuDevice.createCommandEncoder();
         const pass = encoder.beginComputePass();

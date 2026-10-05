@@ -16,12 +16,21 @@ import {
 } from '../document/useBitmapCommands';
 import { type UnitSystem } from '../lib/units';
 import { type PlacedTrace } from '../lib/trace';
+import { VectorUnitsModal } from '../document/VectorUnitsModal';
+import { SurfaceUnitsModal } from '../document/SurfaceUnitsModal';
+import type { VectorUnitImportChoice } from '../document/useVectorImport';
+import type { SurfaceUnitImportChoice } from '../document/useBitmapCommands';
 import { ModalLayer } from './ModalLayer';
+import { MachineSetupModal } from './MachineSetupModal';
+import type { MachineTravelLimits } from '../cutting-parameters/types';
 
 type Point = { x: number; y: number };
 
 interface AppModalLayerProps {
     units: UnitSystem;
+    machineSetupOpen: boolean;
+    machineProfileId: string;
+    onChooseMachine(profileId: string, limits: MachineTravelLimits): void;
     textAnchor: Point | null;
     drawText: string;
     drawFont: string;
@@ -52,11 +61,20 @@ interface AppModalLayerProps {
     traceSource: PlacedBitmapRecord | null;
     fileName: string;
     commitTraced(traced: PlacedTrace[], replaceBitmapId?: string): void;
+    vectorUnitImportChoice: VectorUnitImportChoice | null;
+    resolveVectorUnits(scaleToMm: number): void;
+    cancelVectorUnits(): void;
+    surfaceUnitImportChoice: SurfaceUnitImportChoice | null;
+    resolveSurfaceModelUnits(units: 'mm' | 'inch'): void;
+    cancelSurfaceModelUnits(): void;
 }
 
 /** Binds document commands to the shared transient-dialog layer. */
 export function AppModalLayer({
     units,
+    machineSetupOpen,
+    machineProfileId,
+    onChooseMachine,
     textAnchor,
     drawText,
     drawFont,
@@ -80,9 +98,16 @@ export function AppModalLayer({
     traceSource,
     fileName,
     commitTraced,
+    vectorUnitImportChoice,
+    resolveVectorUnits,
+    cancelVectorUnits,
+    surfaceUnitImportChoice,
+    resolveSurfaceModelUnits,
+    cancelSurfaceModelUnits,
 }: AppModalLayerProps) {
     const traceImage = traceSource?.img ?? null;
     return (
+        <>
         <ModalLayer
             text={{
                 open: textAnchor !== null,
@@ -160,5 +185,33 @@ export function AppModalLayer({
                         : null,
             }}
         />
+        {machineSetupOpen && (
+            <MachineSetupModal
+                units={units}
+                machineProfileId={machineProfileId}
+                onChoose={onChooseMachine}
+            />
+        )}
+        {vectorUnitImportChoice && (
+            <VectorUnitsModal
+                key={vectorUnitImportChoice.file.name}
+                fileName={vectorUnitImportChoice.file.name}
+                fileType={vectorUnitImportChoice.file.name.toLowerCase().endsWith('.svg') ? 'SVG' : 'DXF'}
+                width={(vectorUnitImportChoice.result.bounds?.maxX ?? 0) - (vectorUnitImportChoice.result.bounds?.minX ?? 0)}
+                height={(vectorUnitImportChoice.result.bounds?.maxY ?? 0) - (vectorUnitImportChoice.result.bounds?.minY ?? 0)}
+                onApply={resolveVectorUnits}
+                onCancel={cancelVectorUnits}
+            />
+        )}
+        {surfaceUnitImportChoice && (
+            <SurfaceUnitsModal
+                key={surfaceUnitImportChoice.file.name}
+                fileName={surfaceUnitImportChoice.file.name}
+                sizeMm={surfaceUnitImportChoice.sizeMm}
+                onApply={resolveSurfaceModelUnits}
+                onCancel={cancelSurfaceModelUnits}
+            />
+        )}
+        </>
     );
 }

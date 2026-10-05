@@ -2,6 +2,7 @@
  * Purpose: React hook that owns the NewCanvasCommand workflow.
  */
 import type { Dispatch, SetStateAction } from 'react';
+import { IMPORT_START_STATUS } from '../lib/import';
 
 interface UseNewCanvasCommandOptions<TLoop, TStack, TBitmap, TGuide> {
     loops: TLoop[];
@@ -67,7 +68,7 @@ export function useNewCanvasCommand<TLoop, TStack, TBitmap, TGuide>(
         options.setDrawTool(null);
         options.clearTransform();
         options.setFileName('');
-        options.setStatus('Import a DXF or SVG to begin.');
+        options.setStatus(IMPORT_START_STATUS);
     };
 
     return { handleNewCanvas };

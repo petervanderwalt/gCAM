@@ -28,6 +28,7 @@ export type CanvasStageProps = {
     selected: string[];
     hidden: string[];
     onSelect: (ids: string[]) => void;
+    onAdjustStock?: () => void;
     tabMode: boolean;
     tabMarkers: TabMarker[];
     onPlaceTab: (entryId: string, contourIndex: number, along: number) => void;

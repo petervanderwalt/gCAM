@@ -21,6 +21,7 @@ export interface DocumentSnapshot<TLoop, TStack, TBitmap, TGuide> {
 }
 
 interface DocumentStateOptions<TLoop, TStack, TBitmap, TGuide> {
+    initialStock?: JobStock;
     clone(
         snapshot: DocumentSnapshot<TLoop, TStack, TBitmap, TGuide>,
     ): DocumentSnapshot<TLoop, TStack, TBitmap, TGuide>;
@@ -43,7 +44,7 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
     const [stack, setStack] = useState<TStack[]>([]);
     const [bitmaps, setBitmaps] = useState<TBitmap[]>([]);
     const [guides, setGuides] = useState<TGuide[]>([]);
-    const [stock, setStock] = useState<JobStock>(DEFAULT_JOB_STOCK);
+    const [stock, setStock] = useState<JobStock>(() => options.initialStock ?? DEFAULT_JOB_STOCK);
     const [, setVersion] = useState(0);
     const stateRef = useRef<DocumentSnapshot<TLoop, TStack, TBitmap, TGuide>>({
         loops,

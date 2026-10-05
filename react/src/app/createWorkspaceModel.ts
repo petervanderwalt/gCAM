@@ -57,6 +57,7 @@ export interface WorkspaceModelOptions {
         | 'onCommitText'
         | 'onTransformCommit'
         | 'onFilletCorner'
+        | 'onAdjustStock'
     > &
         Pick<CanvasProps, 'preserveViewToken' | 'viewportCommand'>;
     objectTreeActions: Pick<

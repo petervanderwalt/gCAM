@@ -83,6 +83,7 @@ export function CanvasStage({
     selected,
     hidden,
     onSelect,
+    onAdjustStock,
     tabMode,
     tabMarkers,
     onPlaceTab,
@@ -609,6 +610,7 @@ export function CanvasStage({
                         progressPosition={pillPos}
                         draftDimension={draftDimension}
                         jobExceedsStock={jobExceedsStock}
+                        onAdjustStock={onAdjustStock}
                         onZoom={zoomBy}
                         onFit={fitToBounds}
                     />

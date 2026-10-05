@@ -22,10 +22,11 @@ test('applies an explicit setup direction from the STL import modal', async () =
         />,
     );
 
+    fireEvent.click(screen.getByText('Fine-tune direction'));
     fireEvent.change(screen.getByLabelText('Setup azimuth'), { target: { value: '90' } });
     fireEvent.change(screen.getByLabelText('Setup elevation'), { target: { value: '0' } });
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Apply setup direction' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Apply fine-tuned direction' }));
     });
 
     expect(applied?.[0]).toBeCloseTo(1);
@@ -51,7 +52,28 @@ test('blocks placement while the current model setup has no top-down surface', (
         />,
     );
 
-    expect(screen.getByText(/current setup is edge-on/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /choose setup direction first/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Apply setup direction' })).toBeEnabled();
+    expect(screen.getByText(/standing on its edge/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /choose which side faces up/i })).toBeDisabled();
+    fireEvent.click(screen.getByText('Fine-tune direction'));
+    expect(screen.getByRole('button', { name: 'Apply fine-tuned direction' })).toBeEnabled();
+});
+
+test('offers one-click orthogonal machining faces', async () => {
+    let appliedDirection: [number, number, number] | null = null;
+    const onSetupOrientation = async (direction: [number, number, number]) => {
+        appliedDirection = direction;
+    };
+    render(
+        <BitmapImportModal
+            choice={{ fileName: 'part.stl', isSurfaceModel: true, machineUp: [0, 0, 1] }}
+            onUseBitmap={() => {}}
+            onTrace={() => {}}
+            onSetupOrientation={onSetupOrientation}
+            onCancel={() => {}}
+        />,
+    );
+    await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Front face up' }));
+    });
+    expect(appliedDirection).toEqual([0, 1, 0]);
 });

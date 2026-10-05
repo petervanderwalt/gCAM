@@ -12,6 +12,7 @@ import type { UnitSystem } from '../lib/units';
 import type { JobStock } from '../job/stock';
 import type { MachineTravelLimits } from '../cutting-parameters/types';
 import { JobStockSetup } from '../job/JobStockSetup';
+import { machineProfileById } from '../cutting-parameters/machines';
 
 type Bitmap = {
     id: string;
@@ -97,10 +98,25 @@ export function ToolpathRail({
             <div className="shrink-0 p-3 border-b border-slate-200 dark:border-robin-900 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Layers size={18} className="text-robin-400" />
                 <span className="font-medium text-slate-900 dark:text-white">
-                    {editing ? `Edit ${editingEntry?.label ?? 'Toolpath'}` : configuring ? 'Toolpath Setup' : 'Job Setup & Toolpaths'}
+                    {editing
+                        ? `Edit ${editingEntry?.label ?? 'Toolpath'}`
+                        : configuring
+                          ? 'Toolpath Setup'
+                          : 'Job Setup & Toolpaths'}
                 </span>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+                <JobStockSetup
+                    stock={stock}
+                    units={units}
+                    onChange={setStock}
+                    maxXTravelMm={machineTravelLimits.maxXTravelMm}
+                    maxYTravelMm={machineTravelLimits.maxYTravelMm}
+                    machineName={
+                        machineProfileById(machineProfileId)?.displayName ??
+                        'Custom machine'
+                    }
+                />
                 {showEditor ? (
                     <ToolpathPanel
                         loops={loops}
@@ -113,18 +129,26 @@ export function ToolpathRail({
                         machineTravelLimits={machineTravelLimits}
                         stock={stock}
                         units={units}
-                        onDraftPreview={(contours) => setDraftPreview(contours ?? [])}
+                        onDraftPreview={(contours) =>
+                            setDraftPreview(contours ?? [])
+                        }
                         onDraftProgress={setDraftProgress}
                         editEntry={
                             editingEntry
                                 ? {
                                       id: editingEntry.id,
                                       args: editingEntry.args,
-                                      loops: editingEntry.args.loops.map((loop, index) => ({
-                                          id: loop.id ?? `edit-${editingEntry.id}-${index}`,
-                                          points: loop.points,
-                                          bitmapId: (loop as { bitmapId?: string }).bitmapId,
-                                      })),
+                                      loops: editingEntry.args.loops.map(
+                                          (loop, index) => ({
+                                              id:
+                                                  loop.id ??
+                                                  `edit-${editingEntry.id}-${index}`,
+                                              points: loop.points,
+                                              bitmapId: (
+                                                  loop as { bitmapId?: string }
+                                              ).bitmapId,
+                                          }),
+                                      ),
                                   }
                                 : null
                         }
@@ -138,7 +162,6 @@ export function ToolpathRail({
                     />
                 ) : (
                     <>
-                        <JobStockSetup stock={stock} units={units} onChange={setStock} />
                         <CommittedToolpaths
                             stack={stack}
                             editingId={editingId}
@@ -218,7 +241,10 @@ function CommittedToolpaths({
         <section className="mx-3 mt-3 mb-3 space-y-2 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50">
             <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Job toolpaths <span className="font-medium normal-case">({stack.length})</span>
+                    Job toolpaths{' '}
+                    <span className="font-medium normal-case">
+                        ({stack.length})
+                    </span>
                 </h3>
                 <button
                     onClick={() => setTabMode((mode) => !mode)}
@@ -315,8 +341,14 @@ function CommittedToolpaths({
                     );
                 })}
                 {!stack.length && (
-                    <div className="text-xs text-slate-500">
-                        No toolpaths yet — select vectors and generate one.
+                    <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                        <div className="font-medium text-slate-800 dark:text-slate-100">
+                            Ready to make your first toolpath?
+                        </div>
+                        <p>
+                            Click a shape on the canvas, or drag a box around
+                            several shapes. Then choose a cut type here.
+                        </p>
                     </div>
                 )}
             </div>

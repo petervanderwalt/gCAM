@@ -13,7 +13,9 @@ await jest.unstable_mockModule('../job/JobStockSetup', () => ({
 
 const { ToolpathRail } = await import('./ToolpathRail');
 
-function makeProps(overrides: Partial<ComponentProps<typeof ToolpathRail>> = {}) {
+function makeProps(
+    overrides: Partial<ComponentProps<typeof ToolpathRail>> = {},
+) {
     return {
         loops: [],
         selected: [],
@@ -30,7 +32,12 @@ function makeProps(overrides: Partial<ComponentProps<typeof ToolpathRail>> = {})
             minZTravelMm: null,
             maxZTravelMm: null,
         },
-        stock: { widthMm: 100, heightMm: 100, thicknessMm: 18, material: 'softwood' },
+        stock: {
+            widthMm: 100,
+            heightMm: 100,
+            thicknessMm: 18,
+            material: 'softwood',
+        },
         setStock: jest.fn(),
         editingId: null,
         editingEntry: null,
@@ -56,34 +63,61 @@ test('shows stock, the committed list, tabs and G-code export when nothing is se
 
     expect(screen.getByText('Job Setup & Toolpaths')).toBeInTheDocument();
     expect(screen.getByText('Stock setup')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Job toolpaths (0)' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add a Tab' })).toBeInTheDocument();
+    expect(
+        screen.getByRole('heading', { name: 'Job toolpaths (0)' }),
+    ).toBeInTheDocument();
+    expect(
+        screen.getByRole('button', { name: 'Add a Tab' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export G-code' })).toBeEnabled();
+    expect(
+        screen.getByText('Ready to make your first toolpath?'),
+    ).toBeInTheDocument();
+    expect(
+        screen.getByText(
+            /Click a shape on the canvas, or drag a box around several shapes/,
+        ),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Toolpath editor')).not.toBeInTheDocument();
 });
 
-test('shows only toolpath setup for selected geometry', () => {
+test('keeps job stock accessible alongside toolpath setup for selected geometry', () => {
     render(<ToolpathRail {...makeProps({ selected: ['vector-1'] })} />);
 
     expect(screen.getByText('Toolpath Setup')).toBeInTheDocument();
     expect(screen.getByText('Toolpath editor')).toBeInTheDocument();
-    expect(screen.queryByText('Stock setup')).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /Job toolpaths/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Export G-code' })).not.toBeInTheDocument();
+    expect(screen.getByText('Stock setup')).toBeInTheDocument();
+    expect(
+        screen.queryByRole('heading', { name: /Job toolpaths/ }),
+    ).not.toBeInTheDocument();
+    expect(
+        screen.queryByRole('button', { name: 'Export G-code' }),
+    ).not.toBeInTheDocument();
 });
 
 test('shows only the edited toolpath and hides the created list while editing', () => {
     const entry: ToolpathStackEntry = {
         id: 'path-1',
         label: 'Outside Profile',
-        args: { loops: [], operation: 'profile-outside', toolDiameter: 6, cutDepth: 3 },
+        args: {
+            loops: [],
+            operation: 'profile-outside',
+            toolDiameter: 6,
+            cutDepth: 3,
+        },
         preview: [],
         toolpath: {},
     };
-    render(<ToolpathRail {...makeProps({ editingId: entry.id, editingEntry: entry })} />);
+    render(
+        <ToolpathRail
+            {...makeProps({ editingId: entry.id, editingEntry: entry })}
+        />,
+    );
 
     expect(screen.getByText('Edit Outside Profile')).toBeInTheDocument();
     expect(screen.getByText('Toolpath editor')).toBeInTheDocument();
-    expect(screen.queryByText('Stock setup')).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: /Job toolpaths/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Stock setup')).toBeInTheDocument();
+    expect(
+        screen.queryByRole('heading', { name: /Job toolpaths/ }),
+    ).not.toBeInTheDocument();
 });

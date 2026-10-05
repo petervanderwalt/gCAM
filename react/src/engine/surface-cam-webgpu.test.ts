@@ -1,5 +1,5 @@
 import { computeSurfaceContactHeightsCpu } from './surface-cam-webgpu';
-import { rasterizeTopSurface, type HeightField } from './surface-cam';
+import { rasterPathRows, rasterizeTopSurface, type HeightField } from './surface-cam';
 import { getSurfaceDispatchShape } from './surface-cam-gpu-utils';
 import { isSurfaceGpuFallbackError, raceSurfaceGpuWork } from './surface-cam-cancel';
 
@@ -37,6 +37,34 @@ test('CPU fallback matches the reference cutter envelope and keeps a flat ball-t
     });
     expect(contact[2 * field.columns + 2]).toBeCloseTo(0);
     expect(Number.isNaN(contact[0])).toBe(false);
+});
+
+test('CPU raster-path contact sampling computes only requested pass rows and includes the last edge row', async () => {
+    const mesh = {
+        vertices: new Float32Array([
+            0, 0, 0, 2, 0, -2, 2, 2, -2,
+            0, 0, 0, 2, 2, -2, 0, 2, 0,
+        ]),
+        bounds: { minX: 0, minY: 0, minZ: -2, maxX: 2, maxY: 2, maxZ: 0 },
+        sourceName: 'ramp.stl',
+    };
+    const field = rasterizeTopSurface(mesh, 0.25);
+    const options = { cutter: 'flat' as const, toolDiameterMm: 0.5, stepoverMm: 0.5 };
+    const full = await computeSurfaceContactHeightsCpu(field, options);
+    const sampled = await computeSurfaceContactHeightsCpu(field, options, undefined, undefined, true);
+    const rowStep = Math.floor(options.stepoverMm / field.cellSize);
+    const rows = rasterPathRows(field.rows, rowStep);
+    expect(rows.length).toBeLessThan(field.rows);
+    expect(rows[rows.length - 1]).toBe(field.rows - 1);
+    expect(sampled.length).toBe(rows.length * field.columns);
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+        const row = rows[rowIndex];
+        for (let column = 0; column < field.columns; column += 1) {
+            const fullIndex = row * field.columns + column;
+            const sampledIndex = rowIndex * field.columns + column;
+            expect(sampled[sampledIndex]).toBeCloseTo(full[fullIndex]);
+        }
+    }
 });
 
 test('conservatively includes a high covered cell whose square grazes the cutter at a mesh edge', async () => {

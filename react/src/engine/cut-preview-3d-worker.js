@@ -1,4 +1,5 @@
 import { ballTipCutterSurfaceZ } from './preview-3d/cutter-envelope.js';
+import { capPreviewSamples } from './preview-3d/sample-decimation.js';
 
 /**
  * Purpose: Implementation module for cut-preview-3d-worker in the react domain.
@@ -113,18 +114,40 @@ function addContourSamples(target, toolpath, contour, depth, step, metadata) {
     }
 }
 
-function addMotionSamples(target, points, step, metadata) {
+function addMotionSamples(target, points, step, metadata, preserveCorners = false) {
     for (let index = 1; index < points.length; index += 1) {
         const a = points[index - 1],
             b = points[index],
             length = dist(a, b);
         const count = Math.max(1, Math.ceil(length / step));
+        let preserveEnd = false;
+        if (preserveCorners && index < points.length - 1) {
+            const next = points[index + 1];
+            const incoming = { x: b.x - a.x, y: b.y - a.y };
+            const outgoing = { x: next.x - b.x, y: next.y - b.y };
+            const incomingLength = Math.hypot(incoming.x, incoming.y);
+            const outgoingLength = Math.hypot(outgoing.x, outgoing.y);
+            const dot = incomingLength && outgoingLength
+                ? (incoming.x * outgoing.x + incoming.y * outgoing.y) / (incomingLength * outgoingLength)
+                : 1;
+            const previousZ = Number(a.z) || 0;
+            const currentZ = Number(b.z) || 0;
+            const nextZ = Number(next.z) || 0;
+            const depthExtremum = (currentZ < previousZ && currentZ < nextZ) ||
+                (currentZ > previousZ && currentZ > nextZ);
+            preserveEnd = dot < 0.985 || depthExtremum;
+        }
         for (let sample = 0; sample <= count; sample += 1) {
             const ratio = sample / count;
             target.push({
                 x: a.x + (b.x - a.x) * ratio,
                 y: a.y + (b.y - a.y) * ratio,
                 z: (a.z || 0) + ((b.z || 0) - (a.z || 0)) * ratio,
+                preserve: preserveCorners && (
+                    (index === 1 && sample === 0) ||
+                    (index === points.length - 1 && sample === count) ||
+                    (preserveEnd && sample === count)
+                ),
                 ...metadata,
             });
         }
@@ -218,17 +241,6 @@ function estimatedSampleLength(toolpaths) {
 
 function sampleLengthForToolpath(toolpath) {
     return estimatedSampleLength([toolpath]);
-}
-
-function capSamples(samples, maximum) {
-    if (samples.length <= maximum) return samples;
-    const step = Math.ceil(samples.length / maximum);
-    const capped = [];
-    for (let index = 0; index < samples.length; index += step)
-        capped.push(samples[index]);
-    const last = samples[samples.length - 1];
-    if (capped[capped.length - 1] !== last) capped.push(last);
-    return capped;
 }
 
 async function build(version, toolpaths, stock) {
@@ -326,7 +338,7 @@ async function build(version, toolpaths, stock) {
         };
         if (toolpath.motionPaths?.length) {
             for (const path of toolpath.motionPaths)
-                addMotionSamples(toolpathSamples, path.points || [], step, metadata);
+                addMotionSamples(toolpathSamples, path.points || [], step, metadata, metadata.vbit);
         } else {
             for (const depth of toolpath.passDepths || []) {
                 for (const contour of toolpath.previewContours || [])
@@ -340,7 +352,7 @@ async function build(version, toolpaths, stock) {
                     );
             }
         }
-        samples.push(...capSamples(toolpathSamples, sampleBudget));
+        samples.push(...capPreviewSamples(toolpathSamples, sampleBudget));
     }
     if (version !== latestBuildVersion) return;
     self.postMessage({

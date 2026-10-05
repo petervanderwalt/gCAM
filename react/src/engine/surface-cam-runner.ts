@@ -4,6 +4,7 @@ import {
     buildWaterlinePathsAsync,
     applySurfaceBoundaryOverrun,
     rasterizeTopSurface,
+    rasterPathRows,
     type HeightField,
     type SurfaceMesh,
     type SurfacePathOptions,
@@ -200,7 +201,10 @@ export async function generateSurfaceCamPaths(
         throw new Error('The requested machining resolution exceeds the 16-million-cell limit. Increase grid size.');
     const radiusCells = Math.ceil((request.toolDiameterMm / 2 + request.resolutionMm / 2 * Math.SQRT2) / request.resolutionMm);
     const neighborhoodSamples = Math.PI * radiusCells * radiusCells;
-    if (columns * rows * neighborhoodSamples > 250_000_000)
+    const contactRows = request.strategy === 'surface-waterline'
+        ? rows
+        : rasterPathRows(rows, Math.max(1, Math.floor(request.stepoverMm / request.resolutionMm + 1e-9))).length;
+    if (columns * contactRows * neighborhoodSamples > 250_000_000)
         throw new Error('This cutter and grid would create an oversized WebGPU contact query. Increase grid size or use a smaller cutter.');
     if (request.strategy === 'surface-clear' && request.cutter !== 'flat')
         throw new Error('Surface clearing requires a tool-library flat-bottom endmill.');
@@ -222,13 +226,19 @@ export async function generateSurfaceCamPaths(
     const raster = await rasterizeSurface(mesh, request.resolutionMm, onProgress, signal);
     throwIfSurfaceCamAborted(signal);
     const field = raster.field;
-    const contact = await computeSurfaceContactHeights(field, request, onProgress, signal);
+    const contact = await computeSurfaceContactHeights(
+        field,
+        request,
+        onProgress,
+        signal,
+        request.strategy !== 'surface-waterline',
+    );
     throwIfSurfaceCamAborted(signal);
     const generatedPaths = request.strategy === 'surface-clear'
-        ? await buildClearingPathsAsync(field, contact.heights, request, signal, onProgress)
+        ? await buildClearingPathsAsync(field, contact.heights, request, signal, onProgress, contact.sampleRows)
         : request.strategy === 'surface-waterline'
             ? await buildWaterlinePathsAsync(field, contact.heights, request, signal, onProgress)
-            : await buildRasterPathsAsync(field, contact.heights, request, signal, onProgress);
+            : await buildRasterPathsAsync(field, contact.heights, request, signal, onProgress, contact.sampleRows);
     const paths = request.strategy === 'surface-waterline'
         ? generatedPaths
         : applySurfaceBoundaryOverrun(generatedPaths, request.boundaryMm);

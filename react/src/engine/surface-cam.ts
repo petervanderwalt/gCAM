@@ -413,7 +413,7 @@ export function cutterContactHeight(field: HeightField, x: number, y: number, cu
 }
 
 /** Scan regular stepover rows and always include the far projected boundary. */
-function rasterPathRows(rowCount: number, rowStep: number): number[] {
+export function rasterPathRows(rowCount: number, rowStep: number): number[] {
     const rows: number[] = [];
     for (let row = 0; row < rowCount; row += rowStep) rows.push(row);
     const lastRow = rowCount - 1;
@@ -925,6 +925,7 @@ export async function buildRasterPathsAsync(
     options: SurfacePathOptions,
     signal?: AbortSignal,
     onProgress?: (progress: { percent: number; label: string }) => void,
+    sampledRows?: readonly number[],
 ): Promise<SurfacePathPoint[][]> {
     if (!(options.toolDiameterMm > 0) || !(options.stepoverMm > 0) || !(options.stepdownMm > 0))
         throw new Error('Tool diameter, stepover, and stepdown must be positive.');
@@ -948,14 +949,15 @@ export async function buildRasterPathsAsync(
             }
             const column = reverse ? field.columns - 1 - n : n;
             const index = row * field.columns + column;
-            if (!field.covered[index] || !finite(contactHeights[index])) {
+            const contactIndex = sampledRows ? rowIndex * field.columns + column : index;
+            if (!field.covered[index] || !finite(contactHeights[contactIndex])) {
                 if (line.length > 1) paths.push(line);
                 line = [];
                 continue;
             }
             const x = field.bounds.minX + column * field.cellSize;
             const y = field.bounds.minY + row * field.cellSize;
-            const z = contactHeights[index];
+            const z = contactHeights[contactIndex];
             if (line.length && Math.hypot(x - line[line.length - 1].x, y - line[line.length - 1].y) > step * 1.5) {
                 if (line.length > 1) paths.push(line);
                 line = [];
@@ -983,10 +985,24 @@ export async function buildClearingPathsAsync(
     options: SurfacePathOptions,
     signal?: AbortSignal,
     onProgress?: (progress: { percent: number; label: string }) => void,
+    sampledRows?: readonly number[],
 ): Promise<SurfacePathPoint[][]> {
     if (options.cutter !== 'flat') throw new Error('Surface clearing requires a flat endmill.');
     if (!(options.stepdownMm > 0) || !(options.stepoverMm > 0)) throw new Error('Stepdown and stepover must be positive.');
-    const minimum = contactHeights.reduce((value, current, index) => field.covered[index] && finite(current) ? Math.min(value, current) : value, Infinity);
+    let minimum = Infinity;
+    if (sampledRows) {
+        for (let rowIndex = 0; rowIndex < sampledRows.length; rowIndex += 1) {
+            const row = sampledRows[rowIndex];
+            for (let column = 0; column < field.columns; column += 1) {
+                const gridIndex = row * field.columns + column;
+                const contactIndex = rowIndex * field.columns + column;
+                if (field.covered[gridIndex] && finite(contactHeights[contactIndex]))
+                    minimum = Math.min(minimum, contactHeights[contactIndex]);
+            }
+        }
+    } else {
+        minimum = contactHeights.reduce((value, current, index) => field.covered[index] && finite(current) ? Math.min(value, current) : value, Infinity);
+    }
     if (!finite(minimum)) throw new Error('No surface height data is available for clearing.');
     const paths: SurfacePathPoint[][] = [];
     const rowStep = Math.max(1, Math.floor(options.stepoverMm / field.cellSize + 1e-9));
@@ -1013,14 +1029,15 @@ export async function buildClearingPathsAsync(
                 }
                 const column = reverse ? field.columns - 1 - n : n;
                 const index = row * field.columns + column;
-                if (!field.covered[index] || !finite(contactHeights[index])) {
+                const contactIndex = sampledRows ? rowIndex * field.columns + column : index;
+                if (!field.covered[index] || !finite(contactHeights[contactIndex])) {
                     if (line.length > 1) paths.push(line.splice(0));
                     else line.length = 0;
                     continue;
                 }
                 const x = field.bounds.minX + column * field.cellSize;
                 const y = field.bounds.minY + row * field.cellSize;
-                const z = Math.max(passZ, contactHeights[index]);
+                const z = Math.max(passZ, contactHeights[contactIndex]);
                 const prior = line[line.length - 1];
                 if (prior && Math.hypot(x - prior.x, y - prior.y) > sampleStep * 1.5) {
                     if (line.length > 1) paths.push(line.splice(0));

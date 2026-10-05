@@ -13,7 +13,7 @@ import {
     normalizeMachineTravelLimits,
     type MachineTravelLimits,
 } from '../cutting-parameters/types';
-import { machineProfileById } from '../cutting-parameters/machines';
+import { DEFAULT_MACHINE_PROFILE, machineProfileById } from '../cutting-parameters/machines';
 
 /** Persistent application-wide display and output preferences. */
 export function useAppPreferences() {
@@ -36,15 +36,21 @@ export function useAppPreferences() {
             : 'metric';
     });
     const [machineProfileId, setMachineProfileId] = useState(() => {
-        if (typeof window === 'undefined') return 'longmill-router';
+        if (typeof window === 'undefined') return DEFAULT_MACHINE_PROFILE.id;
         return (
-            localStorage.getItem('gcam.machineProfileId') ?? 'longmill-router'
+            localStorage.getItem('gcam.machineProfileId') ?? DEFAULT_MACHINE_PROFILE.id
         );
+    });
+    const [machineSetupOpen, setMachineSetupOpen] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        const completed = localStorage.getItem('gcam.machineSetupComplete') === 'true';
+        const hasExistingMachine = localStorage.getItem('gcam.machineProfileId') !== null;
+        return !completed && !hasExistingMachine;
     });
     const [machineTravelLimits, setMachineTravelLimits] = useState<MachineTravelLimits>(() => {
         if (typeof window === 'undefined') return EMPTY_MACHINE_TRAVEL_LIMITS;
         try {
-            const profileId = localStorage.getItem('gcam.machineProfileId') ?? 'longmill-router';
+            const profileId = localStorage.getItem('gcam.machineProfileId') ?? DEFAULT_MACHINE_PROFILE.id;
             const profile = machineProfileById(profileId);
             if (profile) return {
                 maxXTravelMm: profile.maxXTravelMm,
@@ -66,10 +72,16 @@ export function useAppPreferences() {
         [emitArcs],
     );
     useEffect(() => localStorage.setItem('gcam.units', units), [units]);
-    useEffect(
-        () => localStorage.setItem('gcam.machineProfileId', machineProfileId),
-        [machineProfileId],
-    );
+    useEffect(() => {
+        if (!machineSetupOpen) {
+            localStorage.setItem('gcam.machineProfileId', machineProfileId);
+        }
+    }, [machineProfileId, machineSetupOpen]);
+    useEffect(() => {
+        if (!machineSetupOpen) {
+            localStorage.setItem('gcam.machineSetupComplete', 'true');
+        }
+    }, [machineSetupOpen]);
     useEffect(
         () => localStorage.setItem('gcam.machineTravelLimits', JSON.stringify(machineTravelLimits)),
         [machineTravelLimits],
@@ -92,6 +104,8 @@ export function useAppPreferences() {
         setUnits,
         machineProfileId,
         setMachineProfileId,
+        machineSetupOpen,
+        setMachineSetupOpen,
         machineTravelLimits,
         setMachineTravelLimits,
     };

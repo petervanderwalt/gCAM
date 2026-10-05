@@ -1,15 +1,21 @@
 /**
  * Purpose: React hook that owns the BitmapCommands workflow.
  */
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { isBitmapFile, loadBitmapFile, placeBitmap } from '../lib/bitmap';
 import { BitmapAssetStore } from '../lib/assets';
 import { createDocumentId } from '../lib/ids';
 import { initialSurfacePlacement, readSurfaceMeshFile, renderHeightmapDataUrl, type StoredSurfaceMesh } from '../engine/surface-model';
+import { parseObj, parseStl } from '../engine/surface-cam';
 
 interface Point {
     x: number;
     y: number;
+}
+
+export interface SurfaceUnitImportChoice {
+    file: File;
+    sizeMm: { x: number; y: number; z: number };
 }
 
 interface BitmapLoop {
@@ -58,6 +64,7 @@ interface UseBitmapCommandsOptions<
     newLoopId(): string;
     withIds(items: { points: Point[] }[]): TLoop[];
     refreshBounds(loops: TLoop[]): void;
+    onFitView(): void;
 }
 
 /** Bitmap placement and trace replacement commands, independent of App chrome. */
@@ -66,6 +73,8 @@ export function useBitmapCommands<
     TStack,
     TBitmap extends PlacedBitmapRecord,
 >(options: UseBitmapCommandsOptions<TLoop, TStack, TBitmap>) {
+    const [surfaceUnitImportChoice, setSurfaceUnitImportChoice] = useState<SurfaceUnitImportChoice | null>(null);
+
     const handleBitmapFile = async (file: File) => {
         try {
             const { dataUrl, pixelW, pixelH } = await loadBitmapFile(file);
@@ -116,17 +125,9 @@ export function useBitmapCommands<
         }
     };
 
-    const handleSurfaceModelFile = async (file: File) => {
+    const importSurfaceModel = async (file: File, units: 'mm' | 'inch') => {
         try {
-            const unitAnswer = window.prompt(
-                `${file.name} has no unit metadata. Enter the model units (mm or inch):`,
-                'mm',
-            );
-            if (unitAnswer === null) return;
-            const units = unitAnswer.trim().toLowerCase();
-            if (!['mm', 'millimeter', 'millimeters', 'inch', 'inches', 'in'].includes(units))
-                throw new Error('Model units must be entered as mm or inch.');
-            const surfaceMesh = await readSurfaceMeshFile(file, units.startsWith('in') ? 'inch' : 'mm');
+            const surfaceMesh = await readSurfaceMeshFile(file, units);
             const { dataUrl, machinableTopDown, machineUp, orientedBounds } = renderHeightmapDataUrl(surfaceMesh);
             surfaceMesh.machineUp = machineUp;
             const cx = options.bounds
@@ -175,6 +176,37 @@ export function useBitmapCommands<
             options.setStatus(error instanceof Error ? error.message : '3D model import failed.');
         }
     };
+
+    const handleSurfaceModelFile = async (file: File) => {
+        try {
+            // Parse once before asking for units so the user can compare both
+            // physical-size interpretations. readSurfaceMeshFile reparses on
+            // confirmation, but preserves the clear unit choice as the source
+            // of truth for scaling and stored project data.
+            const mesh = /\.obj$/i.test(file.name)
+                ? parseObj(await file.text(), file.name)
+                : parseStl(await file.arrayBuffer(), file.name);
+            setSurfaceUnitImportChoice({
+                file,
+                sizeMm: {
+                    x: mesh.bounds.maxX - mesh.bounds.minX,
+                    y: mesh.bounds.maxY - mesh.bounds.minY,
+                    z: mesh.bounds.maxZ - mesh.bounds.minZ,
+                },
+            });
+        } catch (error) {
+            options.setStatus(error instanceof Error ? error.message : '3D model import failed.');
+        }
+    };
+
+    const resolveSurfaceModelUnits = (units: 'mm' | 'inch') => {
+        if (!surfaceUnitImportChoice) return;
+        const { file } = surfaceUnitImportChoice;
+        setSurfaceUnitImportChoice(null);
+        void importSurfaceModel(file, units);
+    };
+
+    const cancelSurfaceModelUnits = () => setSurfaceUnitImportChoice(null);
 
     const updateSurfaceSetupOrientation = async (
         choice: BitmapImportChoice<TLoop>,
@@ -235,6 +267,7 @@ export function useBitmapCommands<
             return next;
         });
         options.setFileName(choice.fileName);
+        options.onFitView();
         options.setStatus(
             choice.entry.surfaceMesh
                 ? `3D model ${choice.fileName} placed as a 2D heightmap. Resize/rotate it on the canvas, then add a surface CAM operation.`
@@ -274,6 +307,9 @@ export function useBitmapCommands<
     return {
         handleBitmapFile,
         handleSurfaceModelFile,
+        surfaceUnitImportChoice,
+        resolveSurfaceModelUnits,
+        cancelSurfaceModelUnits,
         updateSurfaceSetupOrientation,
         commitBitmapPlacement,
         commitTraced,

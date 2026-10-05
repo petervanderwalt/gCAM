@@ -17,6 +17,9 @@ import {
 } from './toolpaths/useToolpathStack';
 import { useToolpathPresentation } from './toolpaths/useToolpathPresentation';
 import { formatLength as formatLengthValue } from './lib/units';
+import { IMPORT_START_STATUS } from './lib/import';
+import { DEFAULT_JOB_STOCK } from './job/stock';
+import { machineProfileById } from './cutting-parameters/machines';
 import { snapToGuides } from './lib/guides';
 import { useSelectionFrame } from './interactions/useSelectionFrame';
 import { ErrorBoundary } from './app/ErrorBoundary';
@@ -146,16 +149,24 @@ export default function App() {
         setUnits,
         machineProfileId,
         setMachineProfileId,
+        machineSetupOpen,
+        setMachineSetupOpen,
         machineTravelLimits,
         setMachineTravelLimits,
     } = useAppPreferences();
     const formatLength = (valueMm: number, decimals = 2) =>
         formatLengthValue(valueMm, units, decimals);
-    const [status, setStatus] = useState('Import a DXF or SVG to begin.');
+    const [status, setStatus] = useState(IMPORT_START_STATUS);
     const document = useDocumentWorkspace({
+        initialStock: {
+            ...DEFAULT_JOB_STOCK,
+            widthMm: machineTravelLimits.maxXTravelMm ?? DEFAULT_JOB_STOCK.widthMm,
+            heightMm: machineTravelLimits.maxYTravelMm ?? DEFAULT_JOB_STOCK.heightMm,
+        },
         setStatus,
         setDraftPreview,
         setBitmapImportChoice,
+        onFitView: () => setViewportCommand({ type: 'fit', token: Date.now() }),
     });
     const {
         bounds,
@@ -191,6 +202,12 @@ export default function App() {
         handleBitmapFile,
         commitBitmapPlacement,
         updateSurfaceSetupOrientation,
+        unitImportChoice,
+        resolveUnitImport,
+        cancelUnitImport,
+        surfaceUnitImportChoice,
+        resolveSurfaceModelUnits,
+        cancelSurfaceModelUnits,
         commitTraced,
         isBitmapFile,
     } = document;
@@ -511,6 +528,44 @@ export default function App() {
         stock,
         onPreviewControlsChange: setPreviewControls,
     };
+    const handleMachineProfileChange = (id: string) => {
+        const next = machineProfileById(id);
+        const matchesCurrentBed =
+            machineTravelLimits.maxXTravelMm !== null &&
+            machineTravelLimits.maxYTravelMm !== null &&
+            Math.abs(stock.widthMm - machineTravelLimits.maxXTravelMm) < 0.001 &&
+            Math.abs(stock.heightMm - machineTravelLimits.maxYTravelMm) < 0.001;
+        if (next && matchesCurrentBed) {
+            pushHistory();
+            setStock((current) => ({
+                ...current,
+                widthMm: next.maxXTravelMm,
+                heightMm: next.maxYTravelMm,
+            }));
+        }
+        setMachineProfileId(id);
+    };
+    const handleFirstMachineChoose = (
+        id: string,
+        limits: typeof machineTravelLimits,
+    ) => {
+        const matchesCurrentBed =
+            machineTravelLimits.maxXTravelMm !== null &&
+            machineTravelLimits.maxYTravelMm !== null &&
+            Math.abs(stock.widthMm - machineTravelLimits.maxXTravelMm) < 0.001 &&
+            Math.abs(stock.heightMm - machineTravelLimits.maxYTravelMm) < 0.001;
+        if (matchesCurrentBed) {
+            pushHistory();
+            setStock((current) => ({
+                ...current,
+                widthMm: limits.maxXTravelMm ?? current.widthMm,
+                heightMm: limits.maxYTravelMm ?? current.heightMm,
+            }));
+        }
+        setMachineProfileId(id);
+        setMachineTravelLimits(limits);
+        setMachineSetupOpen(false);
+    };
     const configPanelProps = {
         darkMode,
         onDarkModeChange: setDarkMode,
@@ -521,7 +576,7 @@ export default function App() {
         units,
         onUnitsChange: setUnits,
         machineProfileId,
-        onMachineProfileChange: setMachineProfileId,
+        onMachineProfileChange: handleMachineProfileChange,
         machineTravelLimits,
         onMachineTravelLimitsChange: setMachineTravelLimits,
         onActionsChange: setConfigActions,
@@ -549,6 +604,10 @@ export default function App() {
             onCommitText: (at) => setTextAnchor(snapToGuides(at, guides)),
             onTransformCommit: handleTransformCommit,
             onFilletCorner: handleCorner,
+            onAdjustStock: () => {
+                setSelected([]);
+                setSideTab('toolpaths');
+            },
             preserveViewToken,
             viewportCommand,
         },
@@ -620,6 +679,9 @@ export default function App() {
                 <AppWorkspace model={workspaceModel} />
                 <AppModalLayer
                     units={units}
+                    machineSetupOpen={machineSetupOpen}
+                    machineProfileId={machineProfileId}
+                    onChooseMachine={handleFirstMachineChoose}
                     textAnchor={textAnchor}
                     drawText={drawText}
                     drawFont={drawFont}
@@ -643,6 +705,12 @@ export default function App() {
                     traceSource={traceSource}
                     fileName={fileName}
                     commitTraced={commitTraced}
+                    vectorUnitImportChoice={unitImportChoice}
+                    resolveVectorUnits={resolveUnitImport}
+                    cancelVectorUnits={cancelUnitImport}
+                    surfaceUnitImportChoice={surfaceUnitImportChoice}
+                    resolveSurfaceModelUnits={resolveSurfaceModelUnits}
+                    cancelSurfaceModelUnits={cancelSurfaceModelUnits}
                 />
             </div>
         </ErrorBoundary>
