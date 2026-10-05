@@ -58,11 +58,15 @@ export function operationsForSelection(selection: {
 }) {
     return OPERATIONS.filter((operation) => {
         const raster = RASTER_OPERATIONS.includes(operation.value);
-        const surface = operation.value === 'surface-clear' ||
+        const surface =
+            operation.value === 'surface-clear' ||
             operation.value === 'surface-finish' ||
             operation.value === 'surface-waterline';
         if (selection.hasSurfaceModel && !selection.hasVector)
-            return selection.surfaceModelSelectedAlone && (surface || operation.value === 'profile-outside');
+            return (
+                selection.surfaceModelSelectedAlone &&
+                (surface || operation.value === 'profile-outside')
+            );
         if (selection.hasBitmap && !selection.hasVector) return raster;
         if (selection.hasVector) return !raster && !surface;
         return true;

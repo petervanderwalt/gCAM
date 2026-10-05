@@ -2,7 +2,10 @@
  * Purpose: Implementation module for CutPreview3DView in the components domain.
  */
 import { useEffect, useRef, useState } from 'react';
-import { MeshStockSimulator, type PreviewMemoryStats } from '../engine/mesh-stock-simulator';
+import {
+    MeshStockSimulator,
+    type PreviewMemoryStats,
+} from '../engine/mesh-stock-simulator';
 import type { JobStock } from '../job/stock';
 
 interface PreviewInstance {
@@ -63,7 +66,12 @@ export function CutPreview3DView({
     const [showStock, setShowStock] = useState(true);
     const [showGcode, setShowGcode] = useState(true);
     const [toolpathExceedsStock, setToolpathExceedsStock] = useState(false);
-    const [memory, setMemory] = useState<PreviewMemoryStats>({ cpuBytes: 0, gpuBytes: 0, jsHeapBytes: null, gridCells: 0 });
+    const [memory, setMemory] = useState<PreviewMemoryStats>({
+        cpuBytes: 0,
+        gpuBytes: 0,
+        jsHeapBytes: null,
+        gridCells: 0,
+    });
     const buildTimer = useRef<number | null>(null);
 
     useEffect(() => {
@@ -80,7 +88,8 @@ export function CutPreview3DView({
         }) => {
             setRunning(Boolean(playback?.running));
         };
-        instance.onStockFitChange = ({ exceeds }) => setToolpathExceedsStock(exceeds);
+        instance.onStockFitChange = ({ exceeds }) =>
+            setToolpathExceedsStock(exceeds);
         instanceRef.current = instance;
         instance.setTheme(darkMode);
         const ro = new ResizeObserver(() => instance.resize());
@@ -195,14 +204,19 @@ export function CutPreview3DView({
             >
                 Preview ~{formatMemory(memory.cpuBytes + memory.gpuBytes)}
                 <span className="ml-1 text-slate-500 dark:text-slate-400">
-                    (CPU {formatMemory(memory.cpuBytes)} + GPU ~{formatMemory(memory.gpuBytes)})
-                    {memory.jsHeapBytes !== null && ` · heap ${formatMemory(memory.jsHeapBytes)}`}
+                    (CPU {formatMemory(memory.cpuBytes)} + GPU ~
+                    {formatMemory(memory.gpuBytes)})
+                    {memory.jsHeapBytes !== null &&
+                        ` · heap ${formatMemory(memory.jsHeapBytes)}`}
                 </span>
             </div>
             {toolpathExceedsStock && (
                 <div className="absolute top-12 right-2 max-w-72 rounded border border-amber-400 bg-amber-50/95 px-2 py-1 text-xs text-amber-900 shadow dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-200">
-                    Toolpath exceeds the {stock.widthMm} × {stock.heightMm} mm job stock. Only the overlapping stock area is simulated.
-                    {showGcode ? ' G-code remains at its programmed position.' : ''}
+                    Toolpath exceeds the {stock.widthMm} × {stock.heightMm} mm
+                    job stock. Only the overlapping stock area is simulated.
+                    {showGcode
+                        ? ' G-code remains at its programmed position.'
+                        : ''}
                 </div>
             )}
             <div

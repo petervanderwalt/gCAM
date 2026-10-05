@@ -23,16 +23,24 @@ test('applies an explicit setup direction from the STL import modal', async () =
     );
 
     fireEvent.click(screen.getByText('Fine-tune direction'));
-    fireEvent.change(screen.getByLabelText('Setup azimuth'), { target: { value: '90' } });
-    fireEvent.change(screen.getByLabelText('Setup elevation'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('Setup azimuth'), {
+        target: { value: '90' },
+    });
+    fireEvent.change(screen.getByLabelText('Setup elevation'), {
+        target: { value: '0' },
+    });
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Apply fine-tuned direction' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Apply fine-tuned direction' }),
+        );
     });
 
     expect(applied?.[0]).toBeCloseTo(1);
     expect(applied?.[1]).toBeCloseTo(0);
     expect(applied?.[2]).toBeCloseTo(0);
-    expect(screen.getByRole('button', { name: /Place 3D model/ })).toBeInTheDocument();
+    expect(
+        screen.getByRole('button', { name: /Place 3D model/ }),
+    ).toBeInTheDocument();
 });
 
 test('blocks placement while the current model setup has no top-down surface', () => {
@@ -53,9 +61,13 @@ test('blocks placement while the current model setup has no top-down surface', (
     );
 
     expect(screen.getByText(/standing on its edge/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /choose which side faces up/i })).toBeDisabled();
+    expect(
+        screen.getByRole('button', { name: /choose which side faces up/i }),
+    ).toBeDisabled();
     fireEvent.click(screen.getByText('Fine-tune direction'));
-    expect(screen.getByRole('button', { name: 'Apply fine-tuned direction' })).toBeEnabled();
+    expect(
+        screen.getByRole('button', { name: 'Apply fine-tuned direction' }),
+    ).toBeEnabled();
 });
 
 test('offers one-click orthogonal machining faces', async () => {
@@ -65,7 +77,11 @@ test('offers one-click orthogonal machining faces', async () => {
     };
     render(
         <BitmapImportModal
-            choice={{ fileName: 'part.stl', isSurfaceModel: true, machineUp: [0, 0, 1] }}
+            choice={{
+                fileName: 'part.stl',
+                isSurfaceModel: true,
+                machineUp: [0, 0, 1],
+            }}
             onUseBitmap={() => {}}
             onTrace={() => {}}
             onSetupOrientation={onSetupOrientation}

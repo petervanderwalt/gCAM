@@ -115,16 +115,27 @@ test('trochoidal pocket pulls centerlines inward by its orbit radius', () => {
     expect(bounds.maxX).toBeCloseTo(16.4, 1);
     expect(toolpath.trochoidEnabled).toBe(true);
     expect(toolpath.trochoidPreviewContours.length).toBeGreaterThan(0);
-    expect(toolpath.previewContours.every((contour) => contour.length > 3)).toBe(true);
-    const gcode = buildGcode({ toolpaths: [toolpath], fileName: 'pocket', forcePolylineArcs: true });
-    expect(gcode.split('\n').filter((line) => line.startsWith('G0 X'))).toHaveLength(toolpath.previewContours.length);
+    expect(
+        toolpath.previewContours.every((contour) => contour.length > 3),
+    ).toBe(true);
+    const gcode = buildGcode({
+        toolpaths: [toolpath],
+        fileName: 'pocket',
+        forcePolylineArcs: true,
+    });
+    expect(
+        gcode.split('\n').filter((line) => line.startsWith('G0 X')),
+    ).toHaveLength(toolpath.previewContours.length);
 });
 
 test('V-bit countersink turns selected circles into depth-calculated center plunges', () => {
     const circle = [];
     for (let index = 0; index <= 64; index += 1) {
-        const angle = index / 64 * Math.PI * 2;
-        circle.push({ x: 20 + Math.cos(angle) * 2, y: 15 + Math.sin(angle) * 2 });
+        const angle = (index / 64) * Math.PI * 2;
+        circle.push({
+            x: 20 + Math.cos(angle) * 2,
+            y: 15 + Math.sin(angle) * 2,
+        });
     }
     const toolpath = createToolpathFromLoops([{ points: circle }], {
         ...BASE_CONFIG,
@@ -140,7 +151,11 @@ test('V-bit countersink turns selected circles into depth-calculated center plun
     expect(target.x).toBeCloseTo(20);
     expect(target.y).toBeCloseTo(15);
     expect(target.z).toBe(-4);
-    const gcode = buildGcode({ toolpaths: [toolpath], fileName: 'test', forcePolylineArcs: true });
+    const gcode = buildGcode({
+        toolpaths: [toolpath],
+        fileName: 'test',
+        forcePolylineArcs: true,
+    });
     expect(gcode).toContain('G1 Z-4');
 });
 test('Voronoi texture makes deterministic V-bit cell outlines inside the selected vector', () => {

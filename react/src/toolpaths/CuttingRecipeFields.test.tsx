@@ -44,7 +44,9 @@ test('edits suggested values in place and applies the override as a group', () =
     expect(screen.getByLabelText('Max DOC (mm)')).toBeInTheDocument();
     expect(screen.getByLabelText('Feed (mm/min)')).toHaveValue(2400);
 
-    fireEvent.change(screen.getByLabelText('Feed (mm/min)'), { target: { value: '1900' } });
+    fireEvent.change(screen.getByLabelText('Feed (mm/min)'), {
+        target: { value: '1900' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     expect(onFeedRateChange).toHaveBeenCalledWith(1900);
@@ -52,7 +54,9 @@ test('edits suggested values in place and applies the override as a group', () =
     expect(onSpindleChange).toHaveBeenCalledWith(12000);
     expect(onMaxDepthChange).toHaveBeenCalledWith(2);
     expect(onManualChange).toHaveBeenCalledWith(true);
-    expect(screen.queryByRole('button', { name: 'Apply' })).not.toBeInTheDocument();
+    expect(
+        screen.queryByRole('button', { name: 'Apply' }),
+    ).not.toBeInTheDocument();
 });
 
 test('shows imperial units and converts edited feed and depth back to millimetres', () => {
@@ -79,8 +83,12 @@ test('shows imperial units and converts edited feed and depth back to millimetre
     fireEvent.click(screen.getByRole('button', { name: 'Change' }));
     expect(screen.getByLabelText('Feed (in/min)')).toHaveValue(94.5);
     expect(screen.getByLabelText('Max DOC (in)')).toHaveValue(0.079);
-    fireEvent.change(screen.getByLabelText('Feed (in/min)'), { target: { value: '100' } });
-    fireEvent.change(screen.getByLabelText('Max DOC (in)'), { target: { value: '0.1' } });
+    fireEvent.change(screen.getByLabelText('Feed (in/min)'), {
+        target: { value: '100' },
+    });
+    fireEvent.change(screen.getByLabelText('Max DOC (in)'), {
+        target: { value: '0.1' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     expect(onFeedRateChange).toHaveBeenCalledWith(2540);

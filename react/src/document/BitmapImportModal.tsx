@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { machineUpToSetupAngles, setupAnglesToMachineUp } from '../engine/surface-model';
+import {
+    machineUpToSetupAngles,
+    setupAnglesToMachineUp,
+} from '../engine/surface-model';
 
 /**
  * Purpose: Document state, import, file, or persistence module for BitmapImportModal.
@@ -32,11 +35,16 @@ export function BitmapImportModal({
     const [azimuth, setAzimuth] = useState(initialAngles.azimuthDeg);
     const [elevation, setElevation] = useState(initialAngles.elevationDeg);
     const [updating, setUpdating] = useState(false);
-    const applyOrientation = async (nextAzimuth = azimuth, nextElevation = elevation) => {
+    const applyOrientation = async (
+        nextAzimuth = azimuth,
+        nextElevation = elevation,
+    ) => {
         if (!onSetupOrientation) return;
         setUpdating(true);
         try {
-            await onSetupOrientation(setupAnglesToMachineUp(nextAzimuth, nextElevation));
+            await onSetupOrientation(
+                setupAnglesToMachineUp(nextAzimuth, nextElevation),
+            );
         } finally {
             setUpdating(false);
         }
@@ -49,9 +57,10 @@ export function BitmapImportModal({
         { label: 'Left', face: '−X', azimuth: -90, elevation: 0 },
         { label: 'Right', face: '+X', azimuth: 90, elevation: 0 },
     ];
-    const activePreset = facePresets.find((preset) =>
-        Math.abs(preset.azimuth - initialAngles.azimuthDeg) <= 1 &&
-        Math.abs(preset.elevation - initialAngles.elevationDeg) <= 1,
+    const activePreset = facePresets.find(
+        (preset) =>
+            Math.abs(preset.azimuth - initialAngles.azimuthDeg) <= 1 &&
+            Math.abs(preset.elevation - initialAngles.elevationDeg) <= 1,
     )?.face;
     return (
         <div
@@ -65,7 +74,9 @@ export function BitmapImportModal({
                     id="bitmap-import-title"
                     className="text-lg font-semibold text-slate-900 dark:text-white"
                 >
-                    {choice.isSurfaceModel ? 'Place this 3D model?' : 'How should this bitmap be used?'}
+                    {choice.isSurfaceModel
+                        ? 'Place this 3D model?'
+                        : 'How should this bitmap be used?'}
                 </h2>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     {choice.isSurfaceModel
@@ -74,13 +85,26 @@ export function BitmapImportModal({
                 </p>
                 {choice.isSurfaceModel && choice.surfacePreviewUrl && (
                     <div className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-robin-800 dark:bg-dark-lighter">
-                        <img src={choice.surfacePreviewUrl} alt="Top-view heightmap preview" className="mx-auto max-h-44 max-w-full object-contain" />
+                        <img
+                            src={choice.surfacePreviewUrl}
+                            alt="Top-view heightmap preview"
+                            className="mx-auto max-h-44 max-w-full object-contain"
+                        />
                     </div>
                 )}
                 {choice.isSurfaceModel && onSetupOrientation && (
-                    <section className="mt-4 rounded-md border border-slate-200 p-3 dark:border-robin-800" aria-label="Model orientation">
-                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Which side will face up?</h3>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">Choose the side that will face the cutter. This sets the top-down preview and the direction of the 3D toolpaths.</p>
+                    <section
+                        className="mt-4 rounded-md border border-slate-200 p-3 dark:border-robin-800"
+                        aria-label="Model orientation"
+                    >
+                        <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
+                            Which side will face up?
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                            Choose the side that will face the cutter. This sets
+                            the top-down preview and the direction of the 3D
+                            toolpaths.
+                        </p>
                         <div className="mt-3 grid grid-cols-3 gap-2">
                             {facePresets.map((preset) => (
                                 <button
@@ -93,7 +117,10 @@ export function BitmapImportModal({
                                     onClick={() => {
                                         setAzimuth(preset.azimuth);
                                         setElevation(preset.elevation);
-                                        void applyOrientation(preset.azimuth, preset.elevation);
+                                        void applyOrientation(
+                                            preset.azimuth,
+                                            preset.elevation,
+                                        );
                                     }}
                                     className={`rounded-md border px-2 py-2 text-xs font-medium disabled:opacity-50 ${activePreset === preset.face ? 'border-robin-500 bg-robin-100 text-slate-900 dark:bg-robin-900 dark:text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-robin-800 dark:text-slate-200 dark:hover:bg-dark-lighter'}`}
                                 >
@@ -102,19 +129,58 @@ export function BitmapImportModal({
                             ))}
                         </div>
                         <details className="mt-3 text-xs text-slate-600 dark:text-slate-300">
-                            <summary className="cursor-pointer select-none">Fine-tune direction</summary>
+                            <summary className="cursor-pointer select-none">
+                                Fine-tune direction
+                            </summary>
                             <div className="mt-3 grid grid-cols-2 gap-3">
                                 <label>
                                     Azimuth ({azimuth}°)
-                                    <input aria-label="Setup azimuth" type="range" min="-180" max="180" step="1" value={azimuth} onChange={(event) => setAzimuth(Number(event.currentTarget.value))} className="mt-1 block w-full" />
+                                    <input
+                                        aria-label="Setup azimuth"
+                                        type="range"
+                                        min="-180"
+                                        max="180"
+                                        step="1"
+                                        value={azimuth}
+                                        onChange={(event) =>
+                                            setAzimuth(
+                                                Number(
+                                                    event.currentTarget.value,
+                                                ),
+                                            )
+                                        }
+                                        className="mt-1 block w-full"
+                                    />
                                 </label>
                                 <label>
                                     Elevation ({elevation}°)
-                                    <input aria-label="Setup elevation" type="range" min="-90" max="90" step="1" value={elevation} onChange={(event) => setElevation(Number(event.currentTarget.value))} className="mt-1 block w-full" />
+                                    <input
+                                        aria-label="Setup elevation"
+                                        type="range"
+                                        min="-90"
+                                        max="90"
+                                        step="1"
+                                        value={elevation}
+                                        onChange={(event) =>
+                                            setElevation(
+                                                Number(
+                                                    event.currentTarget.value,
+                                                ),
+                                            )
+                                        }
+                                        className="mt-1 block w-full"
+                                    />
                                 </label>
                             </div>
-                            <button type="button" disabled={updating} onClick={() => void applyOrientation()} className="mt-3 rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-robin-700 dark:text-white dark:hover:bg-dark-lighter">
-                                {updating ? 'Updating preview…' : 'Apply fine-tuned direction'}
+                            <button
+                                type="button"
+                                disabled={updating}
+                                onClick={() => void applyOrientation()}
+                                className="mt-3 rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-robin-700 dark:text-white dark:hover:bg-dark-lighter"
+                            >
+                                {updating
+                                    ? 'Updating preview…'
+                                    : 'Apply fine-tuned direction'}
                             </button>
                         </details>
                     </section>
@@ -126,28 +192,39 @@ export function BitmapImportModal({
                             : 'A top-down cutter can only reach surfaces visible from above. Hidden undersides and tucked-under areas will not be cut.'}
                     </p>
                 )}
-                <div className={`mt-5 grid gap-3 ${choice.isSurfaceModel ? '' : 'sm:grid-cols-2'}`}>
+                <div
+                    className={`mt-5 grid gap-3 ${choice.isSurfaceModel ? '' : 'sm:grid-cols-2'}`}
+                >
                     <button
-                        disabled={choice.isSurfaceModel && choice.surfaceMachinableTopDown === false}
+                        disabled={
+                            choice.isSurfaceModel &&
+                            choice.surfaceMachinableTopDown === false
+                        }
                         onClick={onUseBitmap}
                         className="rounded-lg border border-robin-500 bg-robin-500 px-4 py-3 text-left text-sm font-medium text-white hover:bg-robin-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {choice.isSurfaceModel
-                            ? choice.surfaceMachinableTopDown === false ? 'Choose which side faces up' : 'Place 3D model'
+                            ? choice.surfaceMachinableTopDown === false
+                                ? 'Choose which side faces up'
+                                : 'Place 3D model'
                             : 'Use as bitmap'}
                         <span className="mt-1 block text-xs font-normal text-white/80">
-                            {choice.isSurfaceModel ? 'Keep 3D model for machining' : 'Raster, halftone, wavy, heightmap'}
+                            {choice.isSurfaceModel
+                                ? 'Keep 3D model for machining'
+                                : 'Raster, halftone, wavy, heightmap'}
                         </span>
                     </button>
-                    {!choice.isSurfaceModel && <button
-                        onClick={onTrace}
-                        className="rounded-lg border border-slate-300 px-4 py-3 text-left text-sm font-medium text-slate-800 hover:bg-slate-100 dark:border-robin-700 dark:text-white dark:hover:bg-dark-lighter"
-                    >
-                        Convert to vector
-                        <span className="mt-1 block text-xs font-normal text-slate-500">
-                            Trace and replace with editable paths
-                        </span>
-                    </button>}
+                    {!choice.isSurfaceModel && (
+                        <button
+                            onClick={onTrace}
+                            className="rounded-lg border border-slate-300 px-4 py-3 text-left text-sm font-medium text-slate-800 hover:bg-slate-100 dark:border-robin-700 dark:text-white dark:hover:bg-dark-lighter"
+                        >
+                            Convert to vector
+                            <span className="mt-1 block text-xs font-normal text-slate-500">
+                                Trace and replace with editable paths
+                            </span>
+                        </button>
+                    )}
                 </div>
                 <button
                     onClick={onCancel}

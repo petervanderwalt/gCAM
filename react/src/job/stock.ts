@@ -23,13 +23,22 @@ export function normalizeJobStock(value: unknown): JobStock {
     };
     const material = stock?.material;
     const allowed = new Set<MaterialId>([
-        'softwood', 'hardwood', 'sheet-goods', 'aluminium', 'brass',
-        'acrylic', 'hdpe', 'foam',
+        'softwood',
+        'hardwood',
+        'sheet-goods',
+        'aluminium',
+        'brass',
+        'acrylic',
+        'hdpe',
+        'foam',
     ]);
     return {
         widthMm: positive(stock?.widthMm, DEFAULT_JOB_STOCK.widthMm),
         heightMm: positive(stock?.heightMm, DEFAULT_JOB_STOCK.heightMm),
-        thicknessMm: positive(stock?.thicknessMm, DEFAULT_JOB_STOCK.thicknessMm),
+        thicknessMm: positive(
+            stock?.thicknessMm,
+            DEFAULT_JOB_STOCK.thicknessMm,
+        ),
         material: allowed.has(material as MaterialId)
             ? (material as MaterialId)
             : DEFAULT_JOB_STOCK.material,

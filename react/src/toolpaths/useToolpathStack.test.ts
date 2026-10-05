@@ -11,8 +11,12 @@ test('adding a toolpath clears selection so the sidebar returns to the list', ()
         setSelected,
         pushHistory: jest.fn(),
         setStatus: jest.fn(),
-        setDraftPreview: jest.fn() as Dispatch<SetStateAction<{ x: number; y: number }[][]>>,
-        setDraftProgress: jest.fn() as Dispatch<SetStateAction<{ percent: number; label: string } | null>>,
+        setDraftPreview: jest.fn() as Dispatch<
+            SetStateAction<{ x: number; y: number }[][]>
+        >,
+        setDraftProgress: jest.fn() as Dispatch<
+            SetStateAction<{ percent: number; label: string } | null>
+        >,
         setEditingId: jest.fn() as Dispatch<SetStateAction<string | null>>,
         showToast: jest.fn(),
     });

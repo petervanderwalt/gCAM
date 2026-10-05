@@ -3,7 +3,11 @@
  */
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { importVectorFile, scaleImportResult, type ImportResult } from '../lib/import';
+import {
+    importVectorFile,
+    scaleImportResult,
+    type ImportResult,
+} from '../lib/import';
 
 export interface VectorUnitImportChoice {
     file: File;
@@ -38,13 +42,15 @@ interface UseVectorImportOptions<TLoop extends ImportLoop, TStack> {
 export function useVectorImport<TLoop extends ImportLoop, TStack>(
     options: UseVectorImportOptions<TLoop, TStack>,
 ) {
-    const [unitImportChoice, setUnitImportChoice] = useState<VectorUnitImportChoice | null>(null);
+    const [unitImportChoice, setUnitImportChoice] =
+        useState<VectorUnitImportChoice | null>(null);
 
     const commitImport = (result: ImportResult, scale: number) => {
         const scaled = scaleImportResult(result, scale);
         options.pushHistory();
         const loops = scaled.loops.map(
-            (loop) => ({ ...loop, id: loop.id ?? options.newLoopId() }) as TLoop,
+            (loop) =>
+                ({ ...loop, id: loop.id ?? options.newLoopId() }) as TLoop,
         );
         options.setLoops(loops);
         options.setBounds(scaled.bounds);
@@ -60,13 +66,18 @@ export function useVectorImport<TLoop extends ImportLoop, TStack>(
     const importVector = async (file: File) => {
         try {
             const result = await importVectorFile(file);
-            if (result.unitScaleToMm === null || result.unitSource === 'svg-pixels') {
+            if (
+                result.unitScaleToMm === null ||
+                result.unitSource === 'svg-pixels'
+            ) {
                 setUnitImportChoice({ file, result });
                 return;
             }
             commitImport(result, result.unitScaleToMm);
         } catch (error) {
-            options.setStatus(error instanceof Error ? error.message : 'Import failed');
+            options.setStatus(
+                error instanceof Error ? error.message : 'Import failed',
+            );
         }
     };
 

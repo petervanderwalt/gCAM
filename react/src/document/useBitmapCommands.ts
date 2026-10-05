@@ -5,7 +5,12 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import { isBitmapFile, loadBitmapFile, placeBitmap } from '../lib/bitmap';
 import { BitmapAssetStore } from '../lib/assets';
 import { createDocumentId } from '../lib/ids';
-import { initialSurfacePlacement, readSurfaceMeshFile, renderHeightmapDataUrl, type StoredSurfaceMesh } from '../engine/surface-model';
+import {
+    initialSurfacePlacement,
+    readSurfaceMeshFile,
+    renderHeightmapDataUrl,
+    type StoredSurfaceMesh,
+} from '../engine/surface-model';
 import { parseObj, parseStl } from '../engine/surface-cam';
 
 interface Point {
@@ -73,7 +78,8 @@ export function useBitmapCommands<
     TStack,
     TBitmap extends PlacedBitmapRecord,
 >(options: UseBitmapCommandsOptions<TLoop, TStack, TBitmap>) {
-    const [surfaceUnitImportChoice, setSurfaceUnitImportChoice] = useState<SurfaceUnitImportChoice | null>(null);
+    const [surfaceUnitImportChoice, setSurfaceUnitImportChoice] =
+        useState<SurfaceUnitImportChoice | null>(null);
 
     const handleBitmapFile = async (file: File) => {
         try {
@@ -128,7 +134,8 @@ export function useBitmapCommands<
     const importSurfaceModel = async (file: File, units: 'mm' | 'inch') => {
         try {
             const surfaceMesh = await readSurfaceMeshFile(file, units);
-            const { dataUrl, machinableTopDown, machineUp, orientedBounds } = renderHeightmapDataUrl(surfaceMesh);
+            const { dataUrl, machinableTopDown, machineUp, orientedBounds } =
+                renderHeightmapDataUrl(surfaceMesh);
             surfaceMesh.machineUp = machineUp;
             const cx = options.bounds
                 ? (options.bounds.minX + options.bounds.maxX) / 2
@@ -146,7 +153,10 @@ export function useBitmapCommands<
             const img = new Image();
             await new Promise<void>((resolve, reject) => {
                 img.onload = () => resolve();
-                img.onerror = () => reject(new Error('Could not decode model heightmap preview.'));
+                img.onerror = () =>
+                    reject(
+                        new Error('Could not decode model heightmap preview.'),
+                    );
                 img.src = dataUrl;
             });
             const entry: PlacedBitmapRecord = {
@@ -173,7 +183,11 @@ export function useBitmapCommands<
             } as TLoop;
             options.setBitmapImportChoice({ entry, rect, fileName: file.name });
         } catch (error) {
-            options.setStatus(error instanceof Error ? error.message : '3D model import failed.');
+            options.setStatus(
+                error instanceof Error
+                    ? error.message
+                    : '3D model import failed.',
+            );
         }
     };
 
@@ -195,7 +209,11 @@ export function useBitmapCommands<
                 },
             });
         } catch (error) {
-            options.setStatus(error instanceof Error ? error.message : '3D model import failed.');
+            options.setStatus(
+                error instanceof Error
+                    ? error.message
+                    : '3D model import failed.',
+            );
         }
     };
 
@@ -215,12 +233,21 @@ export function useBitmapCommands<
         try {
             const originalMesh = choice.entry.surfaceMesh;
             if (!originalMesh) return;
-            const surfaceMesh: StoredSurfaceMesh = { ...originalMesh, machineUp };
-            const { dataUrl, machinableTopDown, orientedBounds } = renderHeightmapDataUrl(surfaceMesh);
+            const surfaceMesh: StoredSurfaceMesh = {
+                ...originalMesh,
+                machineUp,
+            };
+            const { dataUrl, machinableTopDown, orientedBounds } =
+                renderHeightmapDataUrl(surfaceMesh);
             const image = new Image();
             await new Promise<void>((resolve, reject) => {
                 image.onload = () => resolve();
-                image.onerror = () => reject(new Error('Could not decode the updated model heightmap preview.'));
+                image.onerror = () =>
+                    reject(
+                        new Error(
+                            'Could not decode the updated model heightmap preview.',
+                        ),
+                    );
                 image.src = dataUrl;
             });
             const centerX = choice.entry.x + choice.entry.w / 2;
@@ -250,9 +277,15 @@ export function useBitmapCommands<
                 ],
             } as TLoop;
             options.setBitmapImportChoice({ ...choice, entry, rect });
-            options.setStatus('Setup direction updated. Heightmap and draped 3-axis CAM coordinates are aligned.');
+            options.setStatus(
+                'Setup direction updated. Heightmap and draped 3-axis CAM coordinates are aligned.',
+            );
         } catch (error) {
-            options.setStatus(error instanceof Error ? error.message : 'Could not update model setup direction.');
+            options.setStatus(
+                error instanceof Error
+                    ? error.message
+                    : 'Could not update model setup direction.',
+            );
         }
     };
 

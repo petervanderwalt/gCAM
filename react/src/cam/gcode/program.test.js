@@ -70,13 +70,21 @@ test('pocket passes remain depth-first across the clearing contours', () => {
 
 test('helical contour entry descends on the compensated path before its finish lap', () => {
     const toolpath = makeToolpath('profile-inside');
-    toolpath.previewContours = [[
-        { x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 },
-        { x: 0, y: 20 }, { x: 0, y: 0 },
-    ]];
+    toolpath.previewContours = [
+        [
+            { x: 0, y: 0 },
+            { x: 20, y: 0 },
+            { x: 20, y: 20 },
+            { x: 0, y: 20 },
+            { x: 0, y: 0 },
+        ],
+    ];
     toolpath.passDepths = [-2];
     toolpath.helicalEntryEnabled = true;
-    const gcode = buildGcode({ toolpaths: [toolpath], forcePolylineArcs: true });
+    const gcode = buildGcode({
+        toolpaths: [toolpath],
+        forcePolylineArcs: true,
+    });
     expect(gcode).toContain('G1 X20 Y0 Z-');
     expect(gcode).toContain('G1 X0 Y0 Z-2');
     expect(gcode).not.toContain('G1 Z-2');

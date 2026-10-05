@@ -8,9 +8,28 @@ function selectionDeps(selected: string[], onSelect: (ids: string[]) => void) {
         viewRef: {
             current: {
                 loops: [
-                    { id: 'vector-1', points: [{ x: 10, y: 10 }, { x: 20, y: 20 }] },
-                    { id: 'model-1', bitmapId: 'stl-1', points: [{ x: 30, y: 30 }, { x: 40, y: 40 }] },
-                    { id: 'vector-2', points: [{ x: 50, y: 50 }, { x: 60, y: 60 }] },
+                    {
+                        id: 'vector-1',
+                        points: [
+                            { x: 10, y: 10 },
+                            { x: 20, y: 20 },
+                        ],
+                    },
+                    {
+                        id: 'model-1',
+                        bitmapId: 'stl-1',
+                        points: [
+                            { x: 30, y: 30 },
+                            { x: 40, y: 40 },
+                        ],
+                    },
+                    {
+                        id: 'vector-2',
+                        points: [
+                            { x: 50, y: 50 },
+                            { x: 60, y: 60 },
+                        ],
+                    },
                 ],
                 hidden: [],
                 selected,

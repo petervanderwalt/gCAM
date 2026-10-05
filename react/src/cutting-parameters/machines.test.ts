@@ -2,7 +2,11 @@
  * Purpose: Regression coverage for named machine capability presets.
  * Tests: Every preset has a valid spindle and axis envelope; lookup never guesses an unknown machine.
  */
-import { DEFAULT_MACHINE_PROFILE, MACHINE_PROFILES, machineProfileById } from './machines';
+import {
+    DEFAULT_MACHINE_PROFILE,
+    MACHINE_PROFILES,
+    machineProfileById,
+} from './machines';
 
 test('machine presets have usable RPM and axis limits', () => {
     for (const machine of MACHINE_PROFILES) {

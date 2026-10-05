@@ -29,30 +29,42 @@ const MM_PER_CSS_PIXEL = 25.4 / 96;
 
 function svgLengthToMm(value: string | null): number | null {
     if (!value) return null;
-    const match = value.trim().match(/^([+-]?(?:\d+\.?\d*|\.\d+))(mm|cm|in|px|pt|pc)?$/i);
+    const match = value
+        .trim()
+        .match(/^([+-]?(?:\d+\.?\d*|\.\d+))(mm|cm|in|px|pt|pc)?$/i);
     if (!match) return null;
     const amount = Number(match[1]);
     const unit = (match[2] ?? 'px').toLowerCase();
-    const scale = ({
-        mm: 1,
-        cm: 10,
-        in: 25.4,
-        px: MM_PER_CSS_PIXEL,
-        pt: 25.4 / 72,
-        pc: 25.4 / 6,
-    } as Record<string, number>)[unit];
+    const scale = (
+        {
+            mm: 1,
+            cm: 10,
+            in: 25.4,
+            px: MM_PER_CSS_PIXEL,
+            pt: 25.4 / 72,
+            pc: 25.4 / 6,
+        } as Record<string, number>
+    )[unit];
     return Number.isFinite(amount) && amount > 0 && scale !== undefined
         ? amount * scale
         : null;
 }
 
 /** SVG viewBox units scale to its physical viewport; unitless SVG lengths are CSS px at 96 DPI. */
-export function svgUnitScaleToMm(text: string): { scale: number; source: ImportResult['unitSource'] } {
+export function svgUnitScaleToMm(text: string): {
+    scale: number;
+    source: ImportResult['unitSource'];
+} {
     const documentNode = new DOMParser().parseFromString(text, 'image/svg+xml');
-    if (documentNode.querySelector('parsererror')) throw new Error('Invalid SVG');
+    if (documentNode.querySelector('parsererror'))
+        throw new Error('Invalid SVG');
     const root = documentNode.documentElement;
-    const viewBox = (root.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/).map(Number);
-    const viewBoxValid = viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0;
+    const viewBox = (root.getAttribute('viewBox') ?? '')
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
+    const viewBoxValid =
+        viewBox.length === 4 && viewBox[2] > 0 && viewBox[3] > 0;
     const widthMm = svgLengthToMm(root.getAttribute('width'));
     const heightMm = svgLengthToMm(root.getAttribute('height'));
     if (viewBoxValid && widthMm) {
@@ -88,10 +100,14 @@ export async function importVectorFile(file: File): Promise<ImportResult> {
     const name = file.name.toLowerCase();
     const isDxf = name.endsWith('.dxf');
     const svgUnits = name.endsWith('.svg') ? svgUnitScaleToMm(text) : null;
-    const unitScaleToMm = isDxf ? dxfUnitScaleToMm(text) : svgUnits?.scale ?? null;
+    const unitScaleToMm = isDxf
+        ? dxfUnitScaleToMm(text)
+        : (svgUnits?.scale ?? null);
     const unitSource: ImportResult['unitSource'] = isDxf
-        ? unitScaleToMm === null ? 'unknown' : 'dxf-metadata'
-        : svgUnits?.source ?? 'unknown';
+        ? unitScaleToMm === null
+            ? 'unknown'
+            : 'dxf-metadata'
+        : (svgUnits?.source ?? 'unknown');
     const entities = isDxf
         ? parseDxf(text)
         : name.endsWith('.svg')
@@ -112,10 +128,16 @@ export async function importVectorFile(file: File): Promise<ImportResult> {
 }
 
 /** Apply the source-to-mm conversion to all imported vector coordinates. */
-export function scaleImportResult(result: ImportResult, scale: number): ImportResult {
+export function scaleImportResult(
+    result: ImportResult,
+    scale: number,
+): ImportResult {
     const loops = result.loops.map((loop) => ({
         ...loop,
-        points: loop.points.map((point) => ({ x: point.x * scale, y: point.y * scale })),
+        points: loop.points.map((point) => ({
+            x: point.x * scale,
+            y: point.y * scale,
+        })),
     }));
     const bounds = result.bounds
         ? {

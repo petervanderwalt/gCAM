@@ -44,8 +44,12 @@ test('keeps the tool picker when at least one cutter is configured', () => {
         />,
     );
 
-    expect(screen.getByRole('button', { name: 'Tool library slot' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Set up your tools' })).not.toBeInTheDocument();
+    expect(
+        screen.getByRole('button', { name: 'Tool library slot' }),
+    ).toBeInTheDocument();
+    expect(
+        screen.queryByRole('button', { name: 'Set up your tools' }),
+    ).not.toBeInTheDocument();
 });
 
 test('explains when a tool exists but none match the selected operation', () => {

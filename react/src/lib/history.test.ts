@@ -22,7 +22,10 @@ test('history data cloning omits geometry methods and preserves nested data', ()
 
     const copy = cloneHistoryData(source);
 
-    expect(copy).toEqual({ points: [{ x: 1, y: 2 }], segment: { kind: 'polyline' } });
+    expect(copy).toEqual({
+        points: [{ x: 1, y: 2 }],
+        segment: { kind: 'polyline' },
+    });
     expect(copy).not.toBe(source);
     expect(copy.points).not.toBe(source.points);
 });

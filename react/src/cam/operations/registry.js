@@ -21,9 +21,13 @@ const countersinkOperation = defineOperation({
     id: 'countersink',
     validate(config) {
         if (!(config.toolDiameter > 0) || !(config.cutDepth > 0))
-            throw new Error('Countersink requires a configured V-bit and positive head diameter.');
+            throw new Error(
+                'Countersink requires a configured V-bit and positive head diameter.',
+            );
     },
-    createPreview() { return []; },
+    createPreview() {
+        return [];
+    },
     emission: 'countersink',
 });
 

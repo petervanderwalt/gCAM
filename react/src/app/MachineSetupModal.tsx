@@ -24,7 +24,9 @@ export function MachineSetupModal({
     machineProfileId,
     onChoose,
 }: MachineSetupModalProps) {
-    const [profileId, setProfileId] = useState(machineProfileId || DEFAULT_MACHINE_PROFILE.id);
+    const [profileId, setProfileId] = useState(
+        machineProfileId || DEFAULT_MACHINE_PROFILE.id,
+    );
     const [custom, setCustom] = useState({ x: '', y: '', z: '' });
     const selectedProfile = machineProfileById(profileId);
     const customValues = {
@@ -32,7 +34,9 @@ export function MachineSetupModal({
         y: Number(custom.y),
         z: Number(custom.z),
     };
-    const customValid = Object.values(customValues).every((value) => Number.isFinite(value) && value > 0);
+    const customValid = Object.values(customValues).every(
+        (value) => Number.isFinite(value) && value > 0,
+    );
 
     const choose = () => {
         if (selectedProfile) {
@@ -54,7 +58,10 @@ export function MachineSetupModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/60 p-4" role="presentation">
+        <div
+            className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/60 p-4"
+            role="presentation"
+        >
             <section
                 aria-labelledby="machine-setup-title"
                 aria-modal="true"
@@ -66,16 +73,23 @@ export function MachineSetupModal({
                         <Box size={20} />
                     </span>
                     <div>
-                        <h2 id="machine-setup-title" className="text-lg font-semibold text-slate-900 dark:text-white">
+                        <h2
+                            id="machine-setup-title"
+                            className="text-lg font-semibold text-slate-900 dark:text-white"
+                        >
                             Choose your CNC machine
                         </h2>
                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                            This sets your machine limits and the canvas starting size.
+                            This sets your machine limits and the canvas
+                            starting size.
                         </p>
                     </div>
                 </div>
 
-                <label className="mt-6 block text-sm font-medium text-slate-800 dark:text-slate-100" htmlFor="first-machine">
+                <label
+                    className="mt-6 block text-sm font-medium text-slate-800 dark:text-slate-100"
+                    htmlFor="first-machine"
+                >
                     Machine
                 </label>
                 <select
@@ -85,24 +99,37 @@ export function MachineSetupModal({
                     onChange={(event) => setProfileId(event.target.value)}
                 >
                     {MACHINE_PROFILES.map((profile) => (
-                        <option key={profile.id} value={profile.id}>{profile.displayName}</option>
+                        <option key={profile.id} value={profile.id}>
+                            {profile.displayName}
+                        </option>
                     ))}
-                    <option value={CUSTOM_MACHINE_PROFILE_ID}>Custom machine</option>
+                    <option value={CUSTOM_MACHINE_PROFILE_ID}>
+                        Custom machine
+                    </option>
                 </select>
 
                 {selectedProfile ? (
                     <div className="mt-3 rounded-lg bg-slate-100 px-4 py-3 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        Working area: {displayValue(selectedProfile.maxXTravelMm, units, 1)} × {displayValue(selectedProfile.maxYTravelMm, units, 1)} × {displayValue(selectedProfile.maxZTravelMm, units, 1)} {lengthUnit(units)}
+                        Working area:{' '}
+                        {displayValue(selectedProfile.maxXTravelMm, units, 1)} ×{' '}
+                        {displayValue(selectedProfile.maxYTravelMm, units, 1)} ×{' '}
+                        {displayValue(selectedProfile.maxZTravelMm, units, 1)}{' '}
+                        {lengthUnit(units)}
                     </div>
                 ) : (
                     <div className="mt-3 rounded-lg border border-slate-200 p-4 dark:border-robin-900">
                         <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-                            Enter the maximum travel shown for your CNC. You can change this later in Config.
+                            Enter the maximum travel shown for your CNC. You can
+                            change this later in Config.
                         </p>
                         <div className="grid grid-cols-3 gap-3">
                             {(['x', 'y', 'z'] as const).map((axis) => (
-                                <label key={axis} className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                                    Max {axis.toUpperCase()} ({lengthUnit(units)})
+                                <label
+                                    key={axis}
+                                    className="text-xs font-medium text-slate-600 dark:text-slate-300"
+                                >
+                                    Max {axis.toUpperCase()} (
+                                    {lengthUnit(units)})
                                     <input
                                         aria-label={`Maximum ${axis.toUpperCase()} travel`}
                                         className={fieldClass}
@@ -110,7 +137,12 @@ export function MachineSetupModal({
                                         step="any"
                                         type="number"
                                         value={custom[axis]}
-                                        onChange={(event) => setCustom((current) => ({ ...current, [axis]: event.target.value }))}
+                                        onChange={(event) =>
+                                            setCustom((current) => ({
+                                                ...current,
+                                                [axis]: event.target.value,
+                                            }))
+                                        }
                                     />
                                 </label>
                             ))}
@@ -119,7 +151,8 @@ export function MachineSetupModal({
                 )}
 
                 <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-                    Stock starts at the machine’s full working area as a guide. Set your actual stock size before creating toolpaths.
+                    Stock starts at the machine’s full working area as a guide.
+                    Set your actual stock size before creating toolpaths.
                 </p>
                 <button
                     className="mt-6 w-full rounded-lg bg-green-700 px-4 py-3 text-sm font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-40"

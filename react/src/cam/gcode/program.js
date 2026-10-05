@@ -144,14 +144,18 @@ export function buildGcode({
                 const [surface, target] = path.points || [];
                 if (!surface || !target) continue;
                 lines.push(`G0 Z${formatNumber(safeZ)}`);
-                lines.push(`G0 X${formatNumber(surface.x)} Y${formatNumber(surface.y)}`);
+                lines.push(
+                    `G0 X${formatNumber(surface.x)} Y${formatNumber(surface.y)}`,
+                );
                 if (!spindleRunning || currentSpindle !== spindle) {
                     if (spindleRunning) lines.push('M5');
                     lines.push(`M3 S${Math.round(spindle)}`);
                     spindleRunning = true;
                     currentSpindle = spindle;
                 }
-                lines.push(`G1 Z${formatNumber(target.z)} F${formatNumber(plunge)}`);
+                lines.push(
+                    `G1 Z${formatNumber(target.z)} F${formatNumber(plunge)}`,
+                );
                 lines.push(`G0 Z${formatNumber(safeZ)}`);
             }
             reportProgress(`Writing ${toolpath.operationLabel}`);
@@ -455,13 +459,15 @@ export function buildGcode({
                     toolpath.operation === 'profile-outside' ||
                     toolpath.operation === 'pocket');
             const entryDepth = contourDepths.get(contourIndex) ?? 0;
-            const helicalEntry = canHelix && emitHelicalContourEntry(
-                lines,
-                contour,
-                entryDepth,
-                depth,
-                feed,
-            );
+            const helicalEntry =
+                canHelix &&
+                emitHelicalContourEntry(
+                    lines,
+                    contour,
+                    entryDepth,
+                    depth,
+                    feed,
+                );
 
             if (!passUsesTabs) {
                 if (!helicalEntry) {

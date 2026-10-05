@@ -62,10 +62,16 @@ export const EMPTY_MACHINE_TRAVEL_LIMITS: MachineTravelLimits = {
     maxZTravelMm: null,
 };
 
-export function normalizeMachineTravelLimits(value: unknown): MachineTravelLimits {
-    const raw = value && typeof value === 'object' ? value as Partial<MachineTravelLimits> : {};
+export function normalizeMachineTravelLimits(
+    value: unknown,
+): MachineTravelLimits {
+    const raw =
+        value && typeof value === 'object'
+            ? (value as Partial<MachineTravelLimits>)
+            : {};
     const limit = (candidate: unknown, direction: 'positive' | 'negative') => {
-        if (typeof candidate !== 'number' || !Number.isFinite(candidate)) return null;
+        if (typeof candidate !== 'number' || !Number.isFinite(candidate))
+            return null;
         if (direction === 'positive' && candidate > 0) return candidate;
         if (direction === 'negative' && candidate < 0) return candidate;
         return null;

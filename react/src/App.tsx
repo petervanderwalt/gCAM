@@ -160,8 +160,10 @@ export default function App() {
     const document = useDocumentWorkspace({
         initialStock: {
             ...DEFAULT_JOB_STOCK,
-            widthMm: machineTravelLimits.maxXTravelMm ?? DEFAULT_JOB_STOCK.widthMm,
-            heightMm: machineTravelLimits.maxYTravelMm ?? DEFAULT_JOB_STOCK.heightMm,
+            widthMm:
+                machineTravelLimits.maxXTravelMm ?? DEFAULT_JOB_STOCK.widthMm,
+            heightMm:
+                machineTravelLimits.maxYTravelMm ?? DEFAULT_JOB_STOCK.heightMm,
         },
         setStatus,
         setDraftPreview,
@@ -533,7 +535,8 @@ export default function App() {
         const matchesCurrentBed =
             machineTravelLimits.maxXTravelMm !== null &&
             machineTravelLimits.maxYTravelMm !== null &&
-            Math.abs(stock.widthMm - machineTravelLimits.maxXTravelMm) < 0.001 &&
+            Math.abs(stock.widthMm - machineTravelLimits.maxXTravelMm) <
+                0.001 &&
             Math.abs(stock.heightMm - machineTravelLimits.maxYTravelMm) < 0.001;
         if (next && matchesCurrentBed) {
             pushHistory();
@@ -552,7 +555,8 @@ export default function App() {
         const matchesCurrentBed =
             machineTravelLimits.maxXTravelMm !== null &&
             machineTravelLimits.maxYTravelMm !== null &&
-            Math.abs(stock.widthMm - machineTravelLimits.maxXTravelMm) < 0.001 &&
+            Math.abs(stock.widthMm - machineTravelLimits.maxXTravelMm) <
+                0.001 &&
             Math.abs(stock.heightMm - machineTravelLimits.maxYTravelMm) < 0.001;
         if (matchesCurrentBed) {
             pushHistory();
@@ -697,7 +701,9 @@ export default function App() {
                     confirmation={confirmDialog}
                     bitmapImportChoice={bitmapImportChoice}
                     commitBitmapPlacement={commitBitmapPlacement}
-                    updateSurfaceSetupOrientation={updateSurfaceSetupOrientation}
+                    updateSurfaceSetupOrientation={
+                        updateSurfaceSetupOrientation
+                    }
                     setBitmapImportChoice={setBitmapImportChoice}
                     setPendingTraceBitmap={setPendingTraceBitmap}
                     traceOpen={traceOpen}

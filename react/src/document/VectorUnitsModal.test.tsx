@@ -15,9 +15,13 @@ test('explains and lets the user size an SVG without physical dimensions', () =>
         />,
     );
 
-    expect(screen.getByText(/this svg has no physical size/i)).toBeInTheDocument();
+    expect(
+        screen.getByText(/this svg has no physical size/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/1091\.0 × 786\.0 mm/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Drawing units'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Drawing units'), {
+        target: { value: '3' },
+    });
     expect(screen.getByText(/27711\.4 × 19964\.4 mm/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Import drawing' }));
 

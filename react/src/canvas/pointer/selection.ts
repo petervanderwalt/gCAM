@@ -109,13 +109,17 @@ function selectMarquee(
     });
     deps.onSelect(
         shift
-            ? Array.from(new Set([
-                  ...deps.viewRef.current.selected.filter((id) => {
-                      const loop = deps.viewRef.current.loops.find((item) => item.id === id);
-                      return loop && !loop.bitmapId;
-                  }),
-                  ...hits,
-              ]))
+            ? Array.from(
+                  new Set([
+                      ...deps.viewRef.current.selected.filter((id) => {
+                          const loop = deps.viewRef.current.loops.find(
+                              (item) => item.id === id,
+                          );
+                          return loop && !loop.bitmapId;
+                      }),
+                      ...hits,
+                  ]),
+              )
             : hits,
     );
 }
@@ -162,7 +166,9 @@ function selectAt(
         const linkedId = loops.find((loop) => loop.bitmapId === bitmap.id)?.id;
         if (linkedId) {
             deps.onSelect(
-                selected.length === 1 && selected[0] === linkedId ? [] : [linkedId],
+                selected.length === 1 && selected[0] === linkedId
+                    ? []
+                    : [linkedId],
             );
             return;
         }

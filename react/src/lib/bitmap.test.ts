@@ -10,14 +10,16 @@ test('routes SVG files to vector import even when the browser reports an image M
         ),
     ).toBe(false);
     expect(
-        isBitmapFile(new File(['<svg />'], 'drawing', { type: 'image/svg+xml' })),
+        isBitmapFile(
+            new File(['<svg />'], 'drawing', { type: 'image/svg+xml' }),
+        ),
     ).toBe(false);
 });
 
 test('keeps raster images in the bitmap import route', () => {
-    expect(isBitmapFile(new File(['pixels'], 'photo.png', { type: 'image/png' }))).toBe(
-        true,
-    );
+    expect(
+        isBitmapFile(new File(['pixels'], 'photo.png', { type: 'image/png' })),
+    ).toBe(true);
 });
 
 test('wide image caps at 80mm preserving aspect', () => {

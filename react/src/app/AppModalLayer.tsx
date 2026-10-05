@@ -108,110 +108,133 @@ export function AppModalLayer({
     const traceImage = traceSource?.img ?? null;
     return (
         <>
-        <ModalLayer
-            text={{
-                open: textAnchor !== null,
-                props: {
-                    units,
-                    text: drawText,
-                    font: drawFont,
-                    heightMm: drawTextHeight,
-                    onTextChange: setDrawText,
-                    onFontChange: setDrawFont,
-                    onHeightChange: setDrawTextHeight,
-                    onSubmit: async () => {
-                        if (!textAnchor) return;
-                        try {
-                            await onCommitText(textAnchor);
-                            setTextAnchor(null);
-                        } catch (error) {
-                            setStatus(
-                                error instanceof Error
-                                    ? error.message
-                                    : 'Could not add text.',
-                            );
-                        }
+            <ModalLayer
+                text={{
+                    open: textAnchor !== null,
+                    props: {
+                        units,
+                        text: drawText,
+                        font: drawFont,
+                        heightMm: drawTextHeight,
+                        onTextChange: setDrawText,
+                        onFontChange: setDrawFont,
+                        onHeightChange: setDrawTextHeight,
+                        onSubmit: async () => {
+                            if (!textAnchor) return;
+                            try {
+                                await onCommitText(textAnchor);
+                                setTextAnchor(null);
+                            } catch (error) {
+                                setStatus(
+                                    error instanceof Error
+                                        ? error.message
+                                        : 'Could not add text.',
+                                );
+                            }
+                        },
                     },
-                },
-                onClose: () => setTextAnchor(null),
-            }}
-            toast={<ToastStack toasts={toasts} onDismiss={dismissToast} />}
-            confirmation={confirmation}
-            bitmap={
-                bitmapImportChoice
-                    ? {
-                          choice: {
-                              ...bitmapImportChoice,
-                              isSurfaceModel: Boolean(bitmapImportChoice.entry.surfaceMesh),
-                              surfaceMachinableTopDown: bitmapImportChoice.entry.surfaceMachinableTopDown,
-                              surfacePreviewUrl: bitmapImportChoice.entry.dataUrl,
-                              machineUp: bitmapImportChoice.entry.surfaceMesh?.machineUp,
-                          },
-                          onSetupOrientation: (machineUp) => updateSurfaceSetupOrientation(bitmapImportChoice, machineUp),
-                          onUseBitmap: () => {
-                              commitBitmapPlacement(bitmapImportChoice);
-                              setBitmapImportChoice(null);
-                          },
-                          onTrace: () => {
-                              setPendingTraceBitmap(bitmapImportChoice);
-                              setBitmapImportChoice(null);
-                              setTraceOpen(true);
-                          },
-                          onCancel: () => setBitmapImportChoice(null),
-                      }
-                    : null
-            }
-            trace={{
-                open: traceOpen,
-                props:
-                    traceImage && traceSource
+                    onClose: () => setTextAnchor(null),
+                }}
+                toast={<ToastStack toasts={toasts} onDismiss={dismissToast} />}
+                confirmation={confirmation}
+                bitmap={
+                    bitmapImportChoice
                         ? {
-                              fileName: fileName || 'bitmap',
-                              img: traceImage,
-                              originX: traceSource.x,
-                              originY: traceSource.y,
-                              widthMm: traceSource.w,
-                              heightMm: traceSource.h,
-                              onClose: () => {
-                                  setTraceOpen(false);
-                                  setPendingTraceBitmap(null);
+                              choice: {
+                                  ...bitmapImportChoice,
+                                  isSurfaceModel: Boolean(
+                                      bitmapImportChoice.entry.surfaceMesh,
+                                  ),
+                                  surfaceMachinableTopDown:
+                                      bitmapImportChoice.entry
+                                          .surfaceMachinableTopDown,
+                                  surfacePreviewUrl:
+                                      bitmapImportChoice.entry.dataUrl,
+                                  machineUp:
+                                      bitmapImportChoice.entry.surfaceMesh
+                                          ?.machineUp,
                               },
-                              onImport: (traced) => {
-                                  setTraceOpen(false);
-                                  commitTraced(traced, traceSource.id);
-                                  setPendingTraceBitmap(null);
+                              onSetupOrientation: (machineUp) =>
+                                  updateSurfaceSetupOrientation(
+                                      bitmapImportChoice,
+                                      machineUp,
+                                  ),
+                              onUseBitmap: () => {
+                                  commitBitmapPlacement(bitmapImportChoice);
+                                  setBitmapImportChoice(null);
                               },
+                              onTrace: () => {
+                                  setPendingTraceBitmap(bitmapImportChoice);
+                                  setBitmapImportChoice(null);
+                                  setTraceOpen(true);
+                              },
+                              onCancel: () => setBitmapImportChoice(null),
                           }
-                        : null,
-            }}
-        />
-        {machineSetupOpen && (
-            <MachineSetupModal
-                units={units}
-                machineProfileId={machineProfileId}
-                onChoose={onChooseMachine}
+                        : null
+                }
+                trace={{
+                    open: traceOpen,
+                    props:
+                        traceImage && traceSource
+                            ? {
+                                  fileName: fileName || 'bitmap',
+                                  img: traceImage,
+                                  originX: traceSource.x,
+                                  originY: traceSource.y,
+                                  widthMm: traceSource.w,
+                                  heightMm: traceSource.h,
+                                  onClose: () => {
+                                      setTraceOpen(false);
+                                      setPendingTraceBitmap(null);
+                                  },
+                                  onImport: (traced) => {
+                                      setTraceOpen(false);
+                                      commitTraced(traced, traceSource.id);
+                                      setPendingTraceBitmap(null);
+                                  },
+                              }
+                            : null,
+                }}
             />
-        )}
-        {vectorUnitImportChoice && (
-            <VectorUnitsModal
-                key={vectorUnitImportChoice.file.name}
-                fileName={vectorUnitImportChoice.file.name}
-                fileType={vectorUnitImportChoice.file.name.toLowerCase().endsWith('.svg') ? 'SVG' : 'DXF'}
-                width={(vectorUnitImportChoice.result.bounds?.maxX ?? 0) - (vectorUnitImportChoice.result.bounds?.minX ?? 0)}
-                height={(vectorUnitImportChoice.result.bounds?.maxY ?? 0) - (vectorUnitImportChoice.result.bounds?.minY ?? 0)}
-                onApply={resolveVectorUnits}
-                onCancel={cancelVectorUnits}
-            />
-        )}
-        {surfaceUnitImportChoice && (
-            <SurfaceUnitsModal
-                key={surfaceUnitImportChoice.file.name}
-                fileName={surfaceUnitImportChoice.file.name}
-                sizeMm={surfaceUnitImportChoice.sizeMm}
-                onApply={resolveSurfaceModelUnits}
-                onCancel={cancelSurfaceModelUnits}
-            />
-        )}
+            {machineSetupOpen && (
+                <MachineSetupModal
+                    units={units}
+                    machineProfileId={machineProfileId}
+                    onChoose={onChooseMachine}
+                />
+            )}
+            {vectorUnitImportChoice && (
+                <VectorUnitsModal
+                    key={vectorUnitImportChoice.file.name}
+                    fileName={vectorUnitImportChoice.file.name}
+                    fileType={
+                        vectorUnitImportChoice.file.name
+                            .toLowerCase()
+                            .endsWith('.svg')
+                            ? 'SVG'
+                            : 'DXF'
+                    }
+                    width={
+                        (vectorUnitImportChoice.result.bounds?.maxX ?? 0) -
+                        (vectorUnitImportChoice.result.bounds?.minX ?? 0)
+                    }
+                    height={
+                        (vectorUnitImportChoice.result.bounds?.maxY ?? 0) -
+                        (vectorUnitImportChoice.result.bounds?.minY ?? 0)
+                    }
+                    onApply={resolveVectorUnits}
+                    onCancel={cancelVectorUnits}
+                />
+            )}
+            {surfaceUnitImportChoice && (
+                <SurfaceUnitsModal
+                    key={surfaceUnitImportChoice.file.name}
+                    fileName={surfaceUnitImportChoice.file.name}
+                    sizeMm={surfaceUnitImportChoice.sizeMm}
+                    onApply={resolveSurfaceModelUnits}
+                    onCancel={cancelSurfaceModelUnits}
+                />
+            )}
         </>
     );
 }

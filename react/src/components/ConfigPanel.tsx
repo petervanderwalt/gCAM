@@ -6,7 +6,11 @@ import { Box, Grid, Layers, Lightbulb, Ruler, Settings } from 'lucide-react';
 import cx from 'classnames';
 import { displayValue, lengthUnit, toMm, type UnitSystem } from '../lib/units';
 import { UnitInput } from './UnitInput';
-import { CUSTOM_MACHINE_PROFILE_ID, MACHINE_PROFILES, machineProfileById } from '../cutting-parameters/machines';
+import {
+    CUSTOM_MACHINE_PROFILE_ID,
+    MACHINE_PROFILES,
+    machineProfileById,
+} from '../cutting-parameters/machines';
 import {
     EMPTY_MACHINE_TRAVEL_LIMITS,
     normalizeMachineTravelLimits,
@@ -62,12 +66,14 @@ export function saveGrid(grid: GridState): void {
 
 function machineTravelLimitsForProfile(profileId: string): MachineTravelLimits {
     const profile = machineProfileById(profileId);
-    return profile ? {
-        maxXTravelMm: profile.maxXTravelMm,
-        maxYTravelMm: profile.maxYTravelMm,
-        minZTravelMm: -profile.maxZTravelMm,
-        maxZTravelMm: null,
-    } : EMPTY_MACHINE_TRAVEL_LIMITS;
+    return profile
+        ? {
+              maxXTravelMm: profile.maxXTravelMm,
+              maxYTravelMm: profile.maxYTravelMm,
+              minZTravelMm: -profile.maxZTravelMm,
+              maxZTravelMm: null,
+          }
+        : EMPTY_MACHINE_TRAVEL_LIMITS;
 }
 
 interface ConfigPanelProps {
@@ -175,15 +181,25 @@ export function ConfigPanel({
                 let importedMachineProfileId: string | null = null;
                 if (
                     typeof config.machineProfileId === 'string' &&
-                    (config.machineProfileId === CUSTOM_MACHINE_PROFILE_ID || machineProfileById(config.machineProfileId))
+                    (config.machineProfileId === CUSTOM_MACHINE_PROFILE_ID ||
+                        machineProfileById(config.machineProfileId))
                 ) {
                     importedMachineProfileId = config.machineProfileId;
                     onMachineProfileChange(config.machineProfileId);
                 }
-                if (importedMachineProfileId && importedMachineProfileId !== CUSTOM_MACHINE_PROFILE_ID) {
-                    onMachineTravelLimitsChange(machineTravelLimitsForProfile(importedMachineProfileId));
+                if (
+                    importedMachineProfileId &&
+                    importedMachineProfileId !== CUSTOM_MACHINE_PROFILE_ID
+                ) {
+                    onMachineTravelLimitsChange(
+                        machineTravelLimitsForProfile(importedMachineProfileId),
+                    );
                 } else if (config.machineTravelLimits) {
-                    onMachineTravelLimitsChange(normalizeMachineTravelLimits(config.machineTravelLimits));
+                    onMachineTravelLimitsChange(
+                        normalizeMachineTravelLimits(
+                            config.machineTravelLimits,
+                        ),
+                    );
                 }
                 if (typeof config.toastTimeout === 'number')
                     setToastTimeout(config.toastTimeout);
@@ -207,7 +223,9 @@ export function ConfigPanel({
         onEmitArcsChange(true);
         onUnitsChange('metric');
         onMachineProfileChange('longmill-router');
-        onMachineTravelLimitsChange(machineTravelLimitsForProfile('longmill-router'));
+        onMachineTravelLimitsChange(
+            machineTravelLimitsForProfile('longmill-router'),
+        );
         setToastTimeout(3000);
         flash('Configuration reset to defaults');
     };
@@ -259,7 +277,9 @@ export function ConfigPanel({
                                 const id = event.target.value;
                                 onMachineProfileChange(id);
                                 if (machineProfileById(id)) {
-                                    onMachineTravelLimitsChange(machineTravelLimitsForProfile(id));
+                                    onMachineTravelLimitsChange(
+                                        machineTravelLimitsForProfile(id),
+                                    );
                                 }
                             }}
                             className={cx(inputCls, 'max-w-[240px] text-left')}
@@ -270,13 +290,17 @@ export function ConfigPanel({
                                     {profile.displayName}
                                 </option>
                             ))}
-                            <option value={CUSTOM_MACHINE_PROFILE_ID}>Custom</option>
+                            <option value={CUSTOM_MACHINE_PROFILE_ID}>
+                                Custom
+                            </option>
                         </select>
                     </SettingRow>
                     {machineProfileId === CUSTOM_MACHINE_PROFILE_ID ? (
                         <div className="border-t border-slate-200 pt-3 dark:border-robin-900">
                             <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-                                Enter positive grblHAL maximum travel distances in {lengthUnit(units)}. Machine coordinates extend in the negative direction from home.
+                                Enter positive grblHAL maximum travel distances
+                                in {lengthUnit(units)}. Machine coordinates
+                                extend in the negative direction from home.
                             </p>
                             <div className="grid grid-cols-2 gap-2">
                                 <TravelLimitInput
@@ -284,27 +308,80 @@ export function ConfigPanel({
                                     value={machineTravelLimits.maxXTravelMm}
                                     units={units}
                                     minMm={0}
-                                    onChange={(value) => onMachineTravelLimitsChange({ ...machineTravelLimits, maxXTravelMm: value !== null && value > 0 ? value : null })}
+                                    onChange={(value) =>
+                                        onMachineTravelLimitsChange({
+                                            ...machineTravelLimits,
+                                            maxXTravelMm:
+                                                value !== null && value > 0
+                                                    ? value
+                                                    : null,
+                                        })
+                                    }
                                 />
                                 <TravelLimitInput
                                     label={`Max Y (${lengthUnit(units)})`}
                                     value={machineTravelLimits.maxYTravelMm}
                                     units={units}
                                     minMm={0}
-                                    onChange={(value) => onMachineTravelLimitsChange({ ...machineTravelLimits, maxYTravelMm: value !== null && value > 0 ? value : null })}
+                                    onChange={(value) =>
+                                        onMachineTravelLimitsChange({
+                                            ...machineTravelLimits,
+                                            maxYTravelMm:
+                                                value !== null && value > 0
+                                                    ? value
+                                                    : null,
+                                        })
+                                    }
                                 />
                                 <TravelLimitInput
                                     label={`Max Z (${lengthUnit(units)})`}
-                                    value={machineTravelLimits.minZTravelMm === null ? machineTravelLimits.maxZTravelMm : Math.abs(machineTravelLimits.minZTravelMm)}
+                                    value={
+                                        machineTravelLimits.minZTravelMm ===
+                                        null
+                                            ? machineTravelLimits.maxZTravelMm
+                                            : Math.abs(
+                                                  machineTravelLimits.minZTravelMm,
+                                              )
+                                    }
                                     units={units}
                                     minMm={0}
-                                    onChange={(value) => onMachineTravelLimitsChange({ ...machineTravelLimits, minZTravelMm: value !== null && value > 0 ? -value : null, maxZTravelMm: null })}
+                                    onChange={(value) =>
+                                        onMachineTravelLimitsChange({
+                                            ...machineTravelLimits,
+                                            minZTravelMm:
+                                                value !== null && value > 0
+                                                    ? -value
+                                                    : null,
+                                            maxZTravelMm: null,
+                                        })
+                                    }
                                 />
                             </div>
                         </div>
                     ) : (
                         <p className="border-t border-slate-200 pt-3 text-xs text-slate-500 dark:border-robin-900 dark:text-slate-400">
-                            Travel: X {displayValue(machineProfileById(machineProfileId)?.maxXTravelMm ?? 0, units, 1)} × Y {displayValue(machineProfileById(machineProfileId)?.maxYTravelMm ?? 0, units, 1)} × Z {displayValue(machineProfileById(machineProfileId)?.maxZTravelMm ?? 0, units, 1)} {lengthUnit(units)}
+                            Travel: X{' '}
+                            {displayValue(
+                                machineProfileById(machineProfileId)
+                                    ?.maxXTravelMm ?? 0,
+                                units,
+                                1,
+                            )}{' '}
+                            × Y{' '}
+                            {displayValue(
+                                machineProfileById(machineProfileId)
+                                    ?.maxYTravelMm ?? 0,
+                                units,
+                                1,
+                            )}{' '}
+                            × Z{' '}
+                            {displayValue(
+                                machineProfileById(machineProfileId)
+                                    ?.maxZTravelMm ?? 0,
+                                units,
+                                1,
+                            )}{' '}
+                            {lengthUnit(units)}
                         </p>
                     )}
                 </div>
@@ -530,9 +607,13 @@ function TravelLimitInput({
                 step={displayValue(1, units, 3)}
                 value={value === null ? '' : displayValue(value, units, 3)}
                 onChange={(event) => {
-                    if (!event.currentTarget.value) { onChange(null); return; }
+                    if (!event.currentTarget.value) {
+                        onChange(null);
+                        return;
+                    }
                     const display = Number(event.currentTarget.value);
-                    if (Number.isFinite(display)) onChange(toMm(display, units));
+                    if (Number.isFinite(display))
+                        onChange(toMm(display, units));
                 }}
                 aria-label={label}
                 className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-robin-900 dark:bg-dark dark:text-white"

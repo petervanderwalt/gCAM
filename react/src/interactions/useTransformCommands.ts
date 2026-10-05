@@ -86,12 +86,20 @@ export function useTransformCommands<
         if (!targets.length) return;
         try {
             const ids = new Set(targets.map((target) => target.id));
-            const bitmapIds = new Set(targets.flatMap((target) => target.bitmapId ? [target.bitmapId] : []));
+            const bitmapIds = new Set(
+                targets.flatMap((target) =>
+                    target.bitmapId ? [target.bitmapId] : [],
+                ),
+            );
             options.pushHistory();
             if (bitmapIds.size && transformBitmap) {
-                options.setBitmaps((current) => current.map((bitmap) =>
-                    bitmapIds.has(bitmap.id) ? transformBitmap(bitmap) : bitmap,
-                ));
+                options.setBitmaps((current) =>
+                    current.map((bitmap) =>
+                        bitmapIds.has(bitmap.id)
+                            ? transformBitmap(bitmap)
+                            : bitmap,
+                    ),
+                );
             }
             options.setLoops((current) => {
                 const next = current.map((loop) =>
@@ -141,15 +149,29 @@ export function useTransformCommands<
                 rotatePoints(points, delta, { x: frame.cx, y: frame.cy }),
             `Rotated to ${options.rotateDeg}°.`,
             (bitmap) => {
-                const center = { x: bitmap.x + bitmap.w / 2, y: bitmap.y + bitmap.h / 2 };
-                const radians = delta * Math.PI / 180;
+                const center = {
+                    x: bitmap.x + bitmap.w / 2,
+                    y: bitmap.y + bitmap.h / 2,
+                };
+                const radians = (delta * Math.PI) / 180;
                 const dx = center.x - frame.cx;
                 const dy = center.y - frame.cy;
                 const rotated = {
-                    x: frame.cx + dx * Math.cos(radians) - dy * Math.sin(radians),
-                    y: frame.cy + dx * Math.sin(radians) + dy * Math.cos(radians),
+                    x:
+                        frame.cx +
+                        dx * Math.cos(radians) -
+                        dy * Math.sin(radians),
+                    y:
+                        frame.cy +
+                        dx * Math.sin(radians) +
+                        dy * Math.cos(radians),
                 };
-                return { ...bitmap, x: rotated.x - bitmap.w / 2, y: rotated.y - bitmap.h / 2, rotation: (bitmap.rotation ?? 0) + delta };
+                return {
+                    ...bitmap,
+                    x: rotated.x - bitmap.w / 2,
+                    y: rotated.y - bitmap.h / 2,
+                    rotation: (bitmap.rotation ?? 0) + delta,
+                };
             },
         );
         options.orientRef.current.angle = options.rotateDeg;
@@ -174,10 +196,19 @@ export function useTransformCommands<
                 }),
             `Resized to ${options.formatLength(options.sizeW)} × ${options.formatLength(options.sizeH)}.`,
             (bitmap) => {
-                const center = { x: bitmap.x + bitmap.w / 2, y: bitmap.y + bitmap.h / 2 };
+                const center = {
+                    x: bitmap.x + bitmap.w / 2,
+                    y: bitmap.y + bitmap.h / 2,
+                };
                 const w = bitmap.w * widthFactor;
                 const h = bitmap.h * heightFactor;
-                return { ...bitmap, x: center.x - w / 2, y: center.y - h / 2, w, h };
+                return {
+                    ...bitmap,
+                    x: center.x - w / 2,
+                    y: center.y - h / 2,
+                    w,
+                    h,
+                };
             },
         );
     };

@@ -13,7 +13,10 @@ import {
     normalizeMachineTravelLimits,
     type MachineTravelLimits,
 } from '../cutting-parameters/types';
-import { DEFAULT_MACHINE_PROFILE, machineProfileById } from '../cutting-parameters/machines';
+import {
+    DEFAULT_MACHINE_PROFILE,
+    machineProfileById,
+} from '../cutting-parameters/machines';
 
 /** Persistent application-wide display and output preferences. */
 export function useAppPreferences() {
@@ -38,33 +41,42 @@ export function useAppPreferences() {
     const [machineProfileId, setMachineProfileId] = useState(() => {
         if (typeof window === 'undefined') return DEFAULT_MACHINE_PROFILE.id;
         return (
-            localStorage.getItem('gcam.machineProfileId') ?? DEFAULT_MACHINE_PROFILE.id
+            localStorage.getItem('gcam.machineProfileId') ??
+            DEFAULT_MACHINE_PROFILE.id
         );
     });
     const [machineSetupOpen, setMachineSetupOpen] = useState(() => {
         if (typeof window === 'undefined') return false;
-        const completed = localStorage.getItem('gcam.machineSetupComplete') === 'true';
-        const hasExistingMachine = localStorage.getItem('gcam.machineProfileId') !== null;
+        const completed =
+            localStorage.getItem('gcam.machineSetupComplete') === 'true';
+        const hasExistingMachine =
+            localStorage.getItem('gcam.machineProfileId') !== null;
         return !completed && !hasExistingMachine;
     });
-    const [machineTravelLimits, setMachineTravelLimits] = useState<MachineTravelLimits>(() => {
-        if (typeof window === 'undefined') return EMPTY_MACHINE_TRAVEL_LIMITS;
-        try {
-            const profileId = localStorage.getItem('gcam.machineProfileId') ?? DEFAULT_MACHINE_PROFILE.id;
-            const profile = machineProfileById(profileId);
-            if (profile) return {
-                maxXTravelMm: profile.maxXTravelMm,
-                maxYTravelMm: profile.maxYTravelMm,
-                minZTravelMm: -profile.maxZTravelMm,
-                maxZTravelMm: null,
-            };
-            const saved = localStorage.getItem('gcam.machineTravelLimits');
-            if (saved) return normalizeMachineTravelLimits(JSON.parse(saved));
-            return EMPTY_MACHINE_TRAVEL_LIMITS;
-        } catch {
-            return EMPTY_MACHINE_TRAVEL_LIMITS;
-        }
-    });
+    const [machineTravelLimits, setMachineTravelLimits] =
+        useState<MachineTravelLimits>(() => {
+            if (typeof window === 'undefined')
+                return EMPTY_MACHINE_TRAVEL_LIMITS;
+            try {
+                const profileId =
+                    localStorage.getItem('gcam.machineProfileId') ??
+                    DEFAULT_MACHINE_PROFILE.id;
+                const profile = machineProfileById(profileId);
+                if (profile)
+                    return {
+                        maxXTravelMm: profile.maxXTravelMm,
+                        maxYTravelMm: profile.maxYTravelMm,
+                        minZTravelMm: -profile.maxZTravelMm,
+                        maxZTravelMm: null,
+                    };
+                const saved = localStorage.getItem('gcam.machineTravelLimits');
+                if (saved)
+                    return normalizeMachineTravelLimits(JSON.parse(saved));
+                return EMPTY_MACHINE_TRAVEL_LIMITS;
+            } catch {
+                return EMPTY_MACHINE_TRAVEL_LIMITS;
+            }
+        });
 
     useEffect(() => saveGrid(grid), [grid]);
     useEffect(
@@ -83,7 +95,11 @@ export function useAppPreferences() {
         }
     }, [machineSetupOpen]);
     useEffect(
-        () => localStorage.setItem('gcam.machineTravelLimits', JSON.stringify(machineTravelLimits)),
+        () =>
+            localStorage.setItem(
+                'gcam.machineTravelLimits',
+                JSON.stringify(machineTravelLimits),
+            ),
         [machineTravelLimits],
     );
 

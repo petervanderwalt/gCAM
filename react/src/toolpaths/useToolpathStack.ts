@@ -45,7 +45,10 @@ function withoutBitmap(args: ProfileArgs): ProfileArgs {
 }
 
 function previewFor(result: ToolpathResult) {
-    return [...result.previewContours, ...(result.trochoidPreviewContours ?? [])].map((points) => ({
+    return [
+        ...result.previewContours,
+        ...(result.trochoidPreviewContours ?? []),
+    ].map((points) => ({
         points,
         intensity:
             Number(

@@ -9,7 +9,9 @@ export function throwIfSurfaceCamAborted(signal?: AbortSignal): void {
 }
 
 export function isSurfaceGpuFallbackError(message: string): boolean {
-    return /webgpu is unavailable|no webgpu adapter|cpu_fallback|webgpu device lost/i.test(message);
+    return /webgpu is unavailable|no webgpu adapter|cpu_fallback|webgpu device lost/i.test(
+        message,
+    );
 }
 
 export function raceSurfaceGpuWork<T>(
@@ -18,7 +20,9 @@ export function raceSurfaceGpuWork<T>(
 ): Promise<T> {
     const lost = deviceLost.then((info) => {
         const detail = [info.reason, info.message].filter(Boolean).join(': ');
-        throw new Error(`CPU_FALLBACK: WebGPU device lost${detail ? ` (${detail})` : ''}.`);
+        throw new Error(
+            `CPU_FALLBACK: WebGPU device lost${detail ? ` (${detail})` : ''}.`,
+        );
     });
     return Promise.race([work, lost]);
 }

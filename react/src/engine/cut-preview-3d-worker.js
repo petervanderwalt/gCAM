@@ -34,7 +34,12 @@ function boundsFor(toolpaths, stock) {
     if (!Number.isFinite(minX)) return null;
     const width = Number(stock?.widthMm);
     const height = Number(stock?.heightMm);
-    if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+    if (
+        Number.isFinite(width) &&
+        width > 0 &&
+        Number.isFinite(height) &&
+        height > 0
+    ) {
         // The entered stock is authoritative. Geometry beyond it is flagged in
         // the editor rather than silently stretching the material to fit.
         return {
@@ -114,7 +119,13 @@ function addContourSamples(target, toolpath, contour, depth, step, metadata) {
     }
 }
 
-function addMotionSamples(target, points, step, metadata, preserveCorners = false) {
+function addMotionSamples(
+    target,
+    points,
+    step,
+    metadata,
+    preserveCorners = false,
+) {
     for (let index = 1; index < points.length; index += 1) {
         const a = points[index - 1],
             b = points[index],
@@ -127,13 +138,16 @@ function addMotionSamples(target, points, step, metadata, preserveCorners = fals
             const outgoing = { x: next.x - b.x, y: next.y - b.y };
             const incomingLength = Math.hypot(incoming.x, incoming.y);
             const outgoingLength = Math.hypot(outgoing.x, outgoing.y);
-            const dot = incomingLength && outgoingLength
-                ? (incoming.x * outgoing.x + incoming.y * outgoing.y) / (incomingLength * outgoingLength)
-                : 1;
+            const dot =
+                incomingLength && outgoingLength
+                    ? (incoming.x * outgoing.x + incoming.y * outgoing.y) /
+                      (incomingLength * outgoingLength)
+                    : 1;
             const previousZ = Number(a.z) || 0;
             const currentZ = Number(b.z) || 0;
             const nextZ = Number(next.z) || 0;
-            const depthExtremum = (currentZ < previousZ && currentZ < nextZ) ||
+            const depthExtremum =
+                (currentZ < previousZ && currentZ < nextZ) ||
                 (currentZ > previousZ && currentZ > nextZ);
             preserveEnd = dot < 0.985 || depthExtremum;
         }
@@ -143,11 +157,11 @@ function addMotionSamples(target, points, step, metadata, preserveCorners = fals
                 x: a.x + (b.x - a.x) * ratio,
                 y: a.y + (b.y - a.y) * ratio,
                 z: (a.z || 0) + ((b.z || 0) - (a.z || 0)) * ratio,
-                preserve: preserveCorners && (
-                    (index === 1 && sample === 0) ||
-                    (index === points.length - 1 && sample === count) ||
-                    (preserveEnd && sample === count)
-                ),
+                preserve:
+                    preserveCorners &&
+                    ((index === 1 && sample === 0) ||
+                        (index === points.length - 1 && sample === count) ||
+                        (preserveEnd && sample === count)),
                 ...metadata,
             });
         }
@@ -193,20 +207,32 @@ function paintSampleInto(grid, sample, geometry) {
         rows - 1,
     );
     for (let row = minRow; row <= maxRow; row += 1) {
-        const y = bounds.minY + (row + .5) * cellY;
+        const y = bounds.minY + (row + 0.5) * cellY;
         for (let column = minColumn; column <= maxColumn; column += 1) {
-            const x = bounds.minX + (column + .5) * cellX;
+            const x = bounds.minX + (column + 0.5) * cellX;
             const radial = Math.hypot(x - sample.x, y - sample.y);
             if (radial > radius) continue;
-            const ball = sample.cutterType === 'ball' || sample.cutterType === 'ballnose';
+            const ball =
+                sample.cutterType === 'ball' ||
+                sample.cutterType === 'ballnose';
             const ballRadius = sample.cutter / 2;
             const z = sample.surfaceTip
                 ? ballTipCutterSurfaceZ(sample.z, radial, ballRadius)
                 : sample.vbit
-                ? Math.min(0, sample.z + radial / tangent)
-                : ball
-                  ? Math.min(0, sample.z + ballRadius - Math.sqrt(Math.max(0, ballRadius * ballRadius - radial * radial)))
-                  : sample.z;
+                  ? Math.min(0, sample.z + radial / tangent)
+                  : ball
+                    ? Math.min(
+                          0,
+                          sample.z +
+                              ballRadius -
+                              Math.sqrt(
+                                  Math.max(
+                                      0,
+                                      ballRadius * ballRadius - radial * radial,
+                                  ),
+                              ),
+                      )
+                    : sample.z;
             grid[row * columns + column] = Math.min(
                 grid[row * columns + column],
                 z,
@@ -227,15 +253,21 @@ function pathLength(points) {
 function estimatedSampleLength(toolpaths) {
     return toolpaths.reduce((total, toolpath) => {
         if (toolpath.motionPaths?.length)
-            return total + toolpath.motionPaths.reduce(
-                (sum, path) => sum + pathLength(path.points || []),
-                0,
+            return (
+                total +
+                toolpath.motionPaths.reduce(
+                    (sum, path) => sum + pathLength(path.points || []),
+                    0,
+                )
             );
         const contourLength = (toolpath.previewContours || []).reduce(
             (sum, contour) => sum + pathLength(contour),
             0,
         );
-        return total + contourLength * Math.max(1, toolpath.passDepths?.length || 0);
+        return (
+            total +
+            contourLength * Math.max(1, toolpath.passDepths?.length || 0)
+        );
     }, 0);
 }
 
@@ -253,7 +285,8 @@ async function build(version, toolpaths, stock) {
         1,
         ...toolpaths.map((path) => Number(path.toolDiameter) || 1),
     );
-    const hasJobStock = Number(stock?.widthMm) > 0 && Number(stock?.heightMm) > 0;
+    const hasJobStock =
+        Number(stock?.widthMm) > 0 && Number(stock?.heightMm) > 0;
     if (!hasJobStock) {
         const padding = Math.max(8, maxDiameter * 1.5);
         bounds.minX -= padding;
@@ -297,25 +330,39 @@ async function build(version, toolpaths, stock) {
     // contain hundreds of thousands of tiny G-code segments, so cap the mesh
     // workload while retaining a sample density that resolves the cutter.
     const maxSamples = 45000;
-    const baseStep = Math.max(
-        Math.max(cellX, cellY) * 0.85,
-        minCutter * 0.18,
-    );
+    const baseStep = Math.max(Math.max(cellX, cellY) * 0.85, minCutter * 0.18);
     let samples = [];
     self.postMessage({ type: 'progress', version, progress: 0, total: 0 });
     await yieldWorker();
     const lengths = toolpaths.map(sampleLengthForToolpath);
-    const totalLength = Math.max(1, lengths.reduce((sum, length) => sum + length, 0));
-    const minimumPerToolpath = Math.min(6000, Math.floor(maxSamples / Math.max(1, toolpaths.length)));
-    const distributableSamples = Math.max(0, maxSamples - minimumPerToolpath * toolpaths.length);
-    for (let toolpathIndex = 0; toolpathIndex < toolpaths.length; toolpathIndex += 1) {
+    const totalLength = Math.max(
+        1,
+        lengths.reduce((sum, length) => sum + length, 0),
+    );
+    const minimumPerToolpath = Math.min(
+        6000,
+        Math.floor(maxSamples / Math.max(1, toolpaths.length)),
+    );
+    const distributableSamples = Math.max(
+        0,
+        maxSamples - minimumPerToolpath * toolpaths.length,
+    );
+    for (
+        let toolpathIndex = 0;
+        toolpathIndex < toolpaths.length;
+        toolpathIndex += 1
+    ) {
         const toolpath = toolpaths[toolpathIndex];
         // Do not let a dense V-carve steal the profile's sampling budget. A
         // profile gets a guaranteed minimum, then the remaining budget is
         // distributed by cutting length.
         const sampleBudget = Math.max(
             1,
-            minimumPerToolpath + Math.floor(distributableSamples * lengths[toolpathIndex] / totalLength),
+            minimumPerToolpath +
+                Math.floor(
+                    (distributableSamples * lengths[toolpathIndex]) /
+                        totalLength,
+                ),
         );
         const step = Math.max(baseStep, lengths[toolpathIndex] / sampleBudget);
         const toolpathSamples = [];
@@ -338,7 +385,13 @@ async function build(version, toolpaths, stock) {
         };
         if (toolpath.motionPaths?.length) {
             for (const path of toolpath.motionPaths)
-                addMotionSamples(toolpathSamples, path.points || [], step, metadata, metadata.vbit);
+                addMotionSamples(
+                    toolpathSamples,
+                    path.points || [],
+                    step,
+                    metadata,
+                    metadata.vbit,
+                );
         } else {
             for (const depth of toolpath.passDepths || []) {
                 for (const contour of toolpath.previewContours || [])

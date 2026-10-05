@@ -72,42 +72,74 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 `;
 
 self.onmessage = async (event: MessageEvent) => {
-const { id, field, cutter, diameterMm, allowanceMm, sampleRows } = event.data;
+    const { id, field, cutter, diameterMm, allowanceMm, sampleRows } =
+        event.data;
     let device: GPUDevice | null = null;
     const buffers: GPUBuffer[] = [];
     try {
         const gpu = (self.navigator as unknown as { gpu?: any }).gpu;
-        if (!gpu) throw new Error('WebGPU is unavailable in this browser. 3D CAM needs a WebGPU-capable browser and secure context.');
+        if (!gpu)
+            throw new Error(
+                'WebGPU is unavailable in this browser. 3D CAM needs a WebGPU-capable browser and secure context.',
+            );
         const adapter = await gpu.requestAdapter();
-        if (!adapter) throw new Error('CPU_FALLBACK: No WebGPU adapter is available on this device.');
+        if (!adapter)
+            throw new Error(
+                'CPU_FALLBACK: No WebGPU adapter is available on this device.',
+            );
         const gpuDevice = await adapter.requestDevice();
         device = gpuDevice;
         const deviceLost = gpuDevice.lost;
         const count = field.columns * sampleRows.length;
         const byteLength = count * Float32Array.BYTES_PER_ELEMENT;
-        const gridByteLength = field.columns * field.rows * Float32Array.BYTES_PER_ELEMENT;
-        if (gridByteLength > gpuDevice.limits.maxBufferSize || gridByteLength > gpuDevice.limits.maxStorageBufferBindingSize ||
-            byteLength > gpuDevice.limits.maxBufferSize || byteLength > gpuDevice.limits.maxStorageBufferBindingSize)
-            throw new Error('The mesh resolution exceeds this GPU’s buffer limit. Increase the machining grid size.');
+        const gridByteLength =
+            field.columns * field.rows * Float32Array.BYTES_PER_ELEMENT;
+        if (
+            gridByteLength > gpuDevice.limits.maxBufferSize ||
+            gridByteLength > gpuDevice.limits.maxStorageBufferBindingSize ||
+            byteLength > gpuDevice.limits.maxBufferSize ||
+            byteLength > gpuDevice.limits.maxStorageBufferBindingSize
+        )
+            throw new Error(
+                'The mesh resolution exceeds this GPU’s buffer limit. Increase the machining grid size.',
+            );
         const heights = new Float32Array(field.heights);
-        for (let i = 0; i < heights.length; i += 1) if (!field.covered[i]) heights[i] = -3.402823e+38;
+        for (let i = 0; i < heights.length; i += 1)
+            if (!field.covered[i]) heights[i] = -3.402823e38;
         const covered = new Uint32Array(field.covered);
         const params = new ArrayBuffer(64);
         const view = new DataView(params);
         view.setUint32(0, field.columns, true);
         view.setUint32(4, field.rows, true);
-        view.setInt32(8, Math.ceil((diameterMm / 2 + field.cellSize / 2 * Math.SQRT2) / field.cellSize), true);
+        view.setInt32(
+            8,
+            Math.ceil(
+                (diameterMm / 2 + (field.cellSize / 2) * Math.SQRT2) /
+                    field.cellSize,
+            ),
+            true,
+        );
         view.setUint32(12, cutter === 'flat' ? 0 : 1, true);
         view.setFloat32(16, field.cellSize, true);
         view.setFloat32(20, field.bounds.minX, true);
         view.setFloat32(24, field.bounds.minY, true);
         view.setFloat32(28, diameterMm / 2, true);
         view.setFloat32(32, allowanceMm, true);
-        const dispatch = getSurfaceDispatchShape(count, gpuDevice.limits.maxComputeWorkgroupsPerDimension);
-        const { workgroupsX: dispatchX, workgroupsY: dispatchY, dispatchWidth } = dispatch;
+        const dispatch = getSurfaceDispatchShape(
+            count,
+            gpuDevice.limits.maxComputeWorkgroupsPerDimension,
+        );
+        const {
+            workgroupsX: dispatchX,
+            workgroupsY: dispatchY,
+            dispatchWidth,
+        } = dispatch;
         view.setUint32(48, dispatchWidth, true);
         const inputBuffer = (data: Float32Array | Uint32Array | Uint8Array) => {
-            const buffer = gpuDevice.createBuffer({ size: data.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+            const buffer = gpuDevice.createBuffer({
+                size: data.byteLength,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            });
             buffers.push(buffer);
             gpuDevice.queue.writeBuffer(buffer, 0, data);
             return buffer;
@@ -115,7 +147,10 @@ const { id, field, cutter, diameterMm, allowanceMm, sampleRows } = event.data;
         const heightBuffer = inputBuffer(heights);
         const coveredBuffer = inputBuffer(covered);
         const sampleRowBuffer = inputBuffer(new Uint32Array(sampleRows));
-        const outputBuffer = gpuDevice.createBuffer({ size: byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+        const outputBuffer = gpuDevice.createBuffer({
+            size: byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        });
         buffers.push(outputBuffer);
         const paramsBuffer = gpuDevice.createBuffer({
             size: params.byteLength,
@@ -123,16 +158,28 @@ const { id, field, cutter, diameterMm, allowanceMm, sampleRows } = event.data;
         });
         buffers.push(paramsBuffer);
         gpuDevice.queue.writeBuffer(paramsBuffer, 0, params);
-        const readBuffer = gpuDevice.createBuffer({ size: byteLength, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+        const readBuffer = gpuDevice.createBuffer({
+            size: byteLength,
+            usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        });
         buffers.push(readBuffer);
         const module = gpuDevice.createShaderModule({ code: shader });
         const pipeline = await raceSurfaceGpuWork<GPUComputePipeline>(
-            gpuDevice.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint: 'main' } }),
+            gpuDevice.createComputePipelineAsync({
+                layout: 'auto',
+                compute: { module, entryPoint: 'main' },
+            }),
             deviceLost,
         );
         const bindGroup = gpuDevice.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
-            entries: [heightBuffer, coveredBuffer, outputBuffer, paramsBuffer, sampleRowBuffer].map((buffer, binding) => ({ binding, resource: { buffer } })),
+            entries: [
+                heightBuffer,
+                coveredBuffer,
+                outputBuffer,
+                paramsBuffer,
+                sampleRowBuffer,
+            ].map((buffer, binding) => ({ binding, resource: { buffer } })),
         });
         const encoder = gpuDevice.createCommandEncoder();
         const pass = encoder.beginComputePass();
@@ -142,12 +189,21 @@ const { id, field, cutter, diameterMm, allowanceMm, sampleRows } = event.data;
         pass.end();
         encoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, byteLength);
         gpuDevice.queue.submit([encoder.finish()]);
-        await raceSurfaceGpuWork(readBuffer.mapAsync(GPUMapMode.READ), deviceLost);
+        await raceSurfaceGpuWork(
+            readBuffer.mapAsync(GPUMapMode.READ),
+            deviceLost,
+        );
         const result = new Float32Array(readBuffer.getMappedRange().slice(0));
         readBuffer.unmap();
         self.postMessage({ id, result }, [result.buffer]);
     } catch (error) {
-        self.postMessage({ id, error: error instanceof Error ? error.message : 'WebGPU surface calculation failed.' });
+        self.postMessage({
+            id,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'WebGPU surface calculation failed.',
+        });
     } finally {
         for (const buffer of buffers) buffer.destroy();
         device?.destroy();

@@ -13,8 +13,12 @@ describe('MachineSetupModal', () => {
             />,
         );
 
-        expect(screen.getByText('Working area: 810 × 855 × 120 mm')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Use this machine' }));
+        expect(
+            screen.getByText('Working area: 810 × 855 × 120 mm'),
+        ).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Use this machine' }),
+        );
 
         expect(onChoose).toHaveBeenCalledWith('longmill-router', {
             maxXTravelMm: 810,
@@ -33,13 +37,21 @@ describe('MachineSetupModal', () => {
                 onChoose={onChoose}
             />,
         );
-        fireEvent.change(screen.getByLabelText('Machine'), { target: { value: 'custom' } });
+        fireEvent.change(screen.getByLabelText('Machine'), {
+            target: { value: 'custom' },
+        });
         const submit = screen.getByRole('button', { name: 'Use this machine' });
         expect(submit).toBeDisabled();
 
-        fireEvent.change(screen.getByLabelText('Maximum X travel'), { target: { value: '10' } });
-        fireEvent.change(screen.getByLabelText('Maximum Y travel'), { target: { value: '20' } });
-        fireEvent.change(screen.getByLabelText('Maximum Z travel'), { target: { value: '4' } });
+        fireEvent.change(screen.getByLabelText('Maximum X travel'), {
+            target: { value: '10' },
+        });
+        fireEvent.change(screen.getByLabelText('Maximum Y travel'), {
+            target: { value: '20' },
+        });
+        fireEvent.change(screen.getByLabelText('Maximum Z travel'), {
+            target: { value: '4' },
+        });
         expect(submit).toBeEnabled();
         fireEvent.click(submit);
 

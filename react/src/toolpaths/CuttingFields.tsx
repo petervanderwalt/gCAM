@@ -97,7 +97,9 @@ export function CuttingFields({
                     <input
                         type="checkbox"
                         checked={helicalEntry}
-                        onChange={(event) => onHelicalEntryChange(event.target.checked)}
+                        onChange={(event) =>
+                            onHelicalEntryChange(event.target.checked)
+                        }
                         className="accent-robin-500"
                     />
                     Helical contour entry

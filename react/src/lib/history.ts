@@ -62,7 +62,10 @@ function cloneHistoryValue(
         const copy = new Map();
         seen.set(value, copy);
         for (const [key, item] of value)
-            copy.set(cloneHistoryValue(key, seen), cloneHistoryValue(item, seen));
+            copy.set(
+                cloneHistoryValue(key, seen),
+                cloneHistoryValue(item, seen),
+            );
         return copy;
     }
 

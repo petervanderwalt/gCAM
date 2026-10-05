@@ -49,15 +49,19 @@ export function GcodeViewer3DView({
             return;
         }
         setStatus('Preparing G-code preview…');
-        void viewer.loadFromText(gcode).then(() => {
-            if (request !== requestRef.current) return;
-            const bounds = viewer.getBounds();
-            if (bounds) viewer.setOptions({ grid: gridForBounds(bounds) });
-            viewer.focusToModel();
-            setStatus('Drag to orbit · scroll to zoom · right-drag to pan');
-        }).catch(() => {
-            if (request === requestRef.current) setStatus('Unable to render this G-code.');
-        });
+        void viewer
+            .loadFromText(gcode)
+            .then(() => {
+                if (request !== requestRef.current) return;
+                const bounds = viewer.getBounds();
+                if (bounds) viewer.setOptions({ grid: gridForBounds(bounds) });
+                viewer.focusToModel();
+                setStatus('Drag to orbit · scroll to zoom · right-drag to pan');
+            })
+            .catch(() => {
+                if (request === requestRef.current)
+                    setStatus('Unable to render this G-code.');
+            });
     }, [gcode]);
 
     return (
@@ -99,8 +103,12 @@ export function GcodeViewer3DView({
                     }}
                     callbacks={{
                         onProgress: (event) => {
-                            if (event.state === 'determinate') setStatus(`${event.label} ${event.processed}/${event.total}`);
-                            else if (event.state === 'indeterminate') setStatus(event.label);
+                            if (event.state === 'determinate')
+                                setStatus(
+                                    `${event.label} ${event.processed}/${event.total}`,
+                                );
+                            else if (event.state === 'indeterminate')
+                                setStatus(event.label);
                         },
                     }}
                 />

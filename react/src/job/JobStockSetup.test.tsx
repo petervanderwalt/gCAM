@@ -31,13 +31,21 @@ test('describes bed-sized stock as a starting guide and switches to actual-stock
         widthMm: 1260,
         heightMm: 1248,
     };
-    const { rerender } = render(
-        <JobStockSetup stock={bedStock} {...props} />,
-    );
+    const { rerender } = render(<JobStockSetup stock={bedStock} {...props} />);
 
-    expect(screen.getByText(/Starting stock is set to AltMill MK2 4x4's full working area/)).toBeInTheDocument();
+    expect(
+        screen.getByText(
+            /Starting stock is set to AltMill MK2 4x4's full working area/,
+        ),
+    ).toBeInTheDocument();
 
     rerender(<JobStockSetup stock={DEFAULT_JOB_STOCK} {...props} />);
-    expect(screen.getByText(/Set these dimensions to match the material fixed on your CNC/)).toBeInTheDocument();
-    expect(screen.queryByText(/Starting stock is set to/)).not.toBeInTheDocument();
+    expect(
+        screen.getByText(
+            /Set these dimensions to match the material fixed on your CNC/,
+        ),
+    ).toBeInTheDocument();
+    expect(
+        screen.queryByText(/Starting stock is set to/),
+    ).not.toBeInTheDocument();
 });

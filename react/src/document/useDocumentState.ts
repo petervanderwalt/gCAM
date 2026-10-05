@@ -44,7 +44,9 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
     const [stack, setStack] = useState<TStack[]>([]);
     const [bitmaps, setBitmaps] = useState<TBitmap[]>([]);
     const [guides, setGuides] = useState<TGuide[]>([]);
-    const [stock, setStock] = useState<JobStock>(() => options.initialStock ?? DEFAULT_JOB_STOCK);
+    const [stock, setStock] = useState<JobStock>(
+        () => options.initialStock ?? DEFAULT_JOB_STOCK,
+    );
     const [, setVersion] = useState(0);
     const stateRef = useRef<DocumentSnapshot<TLoop, TStack, TBitmap, TGuide>>({
         loops,
@@ -55,7 +57,15 @@ export function useDocumentState<TLoop, TStack, TBitmap, TGuide>(
         guides,
         stock,
     });
-    stateRef.current = { loops, selected, hidden, stack, bitmaps, guides, stock };
+    stateRef.current = {
+        loops,
+        selected,
+        hidden,
+        stack,
+        bitmaps,
+        guides,
+        stock,
+    };
     const historyRef = useRef(
         createHistory(options.historyLimit ?? 60, options.clone),
     );

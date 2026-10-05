@@ -40,7 +40,12 @@ test('real pipeline rejects empty selection', async () => {
 test('3D surface results emit XYZ finishing moves through the shared GRBL program', () => {
     const result = buildSurfaceToolpathResult({
         operation: 'surface-finish',
-        paths: [[{ x: 1, y: 2, z: -0.5 }, { x: 3, y: 4, z: -1.25 }]],
+        paths: [
+            [
+                { x: 1, y: 2, z: -0.5 },
+                { x: 3, y: 4, z: -1.25 },
+            ],
+        ],
         toolDiameter: 3,
         cutterType: 'ballnose',
         libraryToolId: 'catalog:ball-3mm',
@@ -53,7 +58,9 @@ test('3D surface results emit XYZ finishing moves through the shared GRBL progra
         stockToLeave: 0,
         surfaceBitmapId: 'surface-1',
     });
-    expect(result.gcode).toContain('(3D Surface Finishing - 3D Surface Finishing)');
+    expect(result.gcode).toContain(
+        '(3D Surface Finishing - 3D Surface Finishing)',
+    );
     expect(result.gcode).toContain('T3');
     expect(result.gcode).toContain('G1 Z-0.5');
     expect(result.gcode).toContain('G1 X3 Y4 Z-1.25');
@@ -64,7 +71,12 @@ test('3D surface results emit XYZ finishing moves through the shared GRBL progra
 test('3D waterline contours package as ball-tip XYZ moves', () => {
     const result = buildSurfaceToolpathResult({
         operation: 'surface-waterline',
-        paths: [[{ x: 1, y: 2, z: -0.5 }, { x: 1.5, y: 2.5, z: -0.75 }]],
+        paths: [
+            [
+                { x: 1, y: 2, z: -0.5 },
+                { x: 1.5, y: 2.5, z: -0.75 },
+            ],
+        ],
         toolDiameter: 3,
         cutterType: 'ballnose',
         libraryToolId: 'catalog:ball-3mm',

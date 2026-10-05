@@ -69,9 +69,9 @@ export const MACHINE_PROFILES: MachineProfile[] = [
 
 export const CUSTOM_MACHINE_PROFILE_ID = 'custom';
 
-export const DEFAULT_MACHINE_PROFILE = MACHINE_PROFILES.find(
-    (profile) => profile.id === 'altmill-spindle',
-) ?? MACHINE_PROFILES[0];
+export const DEFAULT_MACHINE_PROFILE =
+    MACHINE_PROFILES.find((profile) => profile.id === 'altmill-spindle') ??
+    MACHINE_PROFILES[0];
 
 export function machineProfileById(id: string | null | undefined) {
     return MACHINE_PROFILES.find((profile) => profile.id === id) ?? null;

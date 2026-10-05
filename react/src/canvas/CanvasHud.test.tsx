@@ -22,7 +22,9 @@ test('offers a direct route to job stock when geometry exceeds it', () => {
         />,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/exceeds the configured stock/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+        /exceeds the configured stock/i,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Edit job stock' }));
     expect(onAdjustStock).toHaveBeenCalledTimes(1);
 });

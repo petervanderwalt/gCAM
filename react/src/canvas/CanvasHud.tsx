@@ -59,7 +59,10 @@ export function CanvasHud({
                 units={units}
             />
             {jobExceedsStock && (
-                <div role="alert" className="absolute top-11 left-2 flex items-center gap-2 rounded border border-amber-500/70 bg-amber-100/95 px-2 py-1 text-xs font-medium text-amber-950 shadow dark:bg-amber-950/90 dark:text-amber-100">
+                <div
+                    role="alert"
+                    className="absolute top-11 left-2 flex items-center gap-2 rounded border border-amber-500/70 bg-amber-100/95 px-2 py-1 text-xs font-medium text-amber-950 shadow dark:bg-amber-950/90 dark:text-amber-100"
+                >
                     <span>Job geometry exceeds the configured stock.</span>
                     {onAdjustStock && (
                         <button

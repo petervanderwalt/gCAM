@@ -17,7 +17,9 @@ test('shows an explicit cancel action while a cancellable build is running', () 
         />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel 3D CAM build' }));
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel 3D CAM build' }),
+    );
     expect(onCancelBuild).toHaveBeenCalledTimes(1);
 });
 
@@ -33,5 +35,7 @@ test('does not show a cancellation action for normal toolpath builds', () => {
             onGenerate={() => {}}
         />,
     );
-    expect(screen.queryByRole('button', { name: 'Cancel 3D CAM build' })).not.toBeInTheDocument();
+    expect(
+        screen.queryByRole('button', { name: 'Cancel 3D CAM build' }),
+    ).not.toBeInTheDocument();
 });

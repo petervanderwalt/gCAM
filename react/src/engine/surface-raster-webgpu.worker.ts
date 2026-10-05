@@ -99,13 +99,15 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
 }
 `;
 
-self.onmessage = async (event: MessageEvent<{
-    id: string;
-    vertices: Float32Array;
-    bounds: SurfaceBounds;
-    sourceName: string;
-    resolutionMm: number;
-}>) => {
+self.onmessage = async (
+    event: MessageEvent<{
+        id: string;
+        vertices: Float32Array;
+        bounds: SurfaceBounds;
+        sourceName: string;
+        resolutionMm: number;
+    }>,
+) => {
     const { id, vertices, bounds, sourceName, resolutionMm } = event.data;
     let device: GPUDevice | null = null;
     const buffers: GPUBuffer[] = [];
@@ -113,32 +115,66 @@ self.onmessage = async (event: MessageEvent<{
         const gpu = (self.navigator as unknown as { gpu?: any }).gpu;
         if (!gpu) throw new Error('WebGPU is unavailable in this browser.');
         const adapter = await gpu.requestAdapter();
-        if (!adapter) throw new Error('CPU_FALLBACK: No WebGPU adapter is available on this device.');
+        if (!adapter)
+            throw new Error(
+                'CPU_FALLBACK: No WebGPU adapter is available on this device.',
+            );
         const gpuDevice = await adapter.requestDevice();
         device = gpuDevice;
         const deviceLost = gpuDevice.lost;
-        const columns = Math.ceil((bounds.maxX - bounds.minX) / resolutionMm) + 1;
+        const columns =
+            Math.ceil((bounds.maxX - bounds.minX) / resolutionMm) + 1;
         const rows = Math.ceil((bounds.maxY - bounds.minY) / resolutionMm) + 1;
         const cellCount = columns * rows;
-        if (!Number.isSafeInteger(cellCount) || cellCount <= 0 || cellCount > 4_000_000)
-            throw new Error('CPU_FALLBACK: GPU surface raster is limited to 4 million cells; increase machining resolution.');
+        if (
+            !Number.isSafeInteger(cellCount) ||
+            cellCount <= 0 ||
+            cellCount > 4_000_000
+        )
+            throw new Error(
+                'CPU_FALLBACK: GPU surface raster is limited to 4 million cells; increase machining resolution.',
+            );
         if (cellCount * (vertices.length / 9) > 500_000_000)
-            throw new Error('CPU_FALLBACK: GPU surface raster workload is too large; increase machining resolution or simplify the STL.');
+            throw new Error(
+                'CPU_FALLBACK: GPU surface raster workload is too large; increase machining resolution or simplify the STL.',
+            );
         const cellBytes = cellCount * 4;
         const meshBytes = vertices.byteLength;
-        const maxBinding = Math.min(gpuDevice.limits.maxBufferSize, gpuDevice.limits.maxStorageBufferBindingSize);
+        const maxBinding = Math.min(
+            gpuDevice.limits.maxBufferSize,
+            gpuDevice.limits.maxStorageBufferBindingSize,
+        );
         if (cellBytes > maxBinding || meshBytes > maxBinding)
-            throw new Error('CPU_FALLBACK: The STL or requested height field exceeds this GPU’s storage-buffer limit. Increase resolution.');
-        const dispatch = getSurfaceDispatchShape(cellCount, gpuDevice.limits.maxComputeWorkgroupsPerDimension);
-        const create = (size: number, usage: GPUBufferUsageFlags, initial?: Float32Array | Uint8Array) => {
+            throw new Error(
+                'CPU_FALLBACK: The STL or requested height field exceeds this GPU’s storage-buffer limit. Increase resolution.',
+            );
+        const dispatch = getSurfaceDispatchShape(
+            cellCount,
+            gpuDevice.limits.maxComputeWorkgroupsPerDimension,
+        );
+        const create = (
+            size: number,
+            usage: GPUBufferUsageFlags,
+            initial?: Float32Array | Uint8Array,
+        ) => {
             const buffer = gpuDevice.createBuffer({ size, usage });
             buffers.push(buffer);
             if (initial) gpuDevice.queue.writeBuffer(buffer, 0, initial);
             return buffer;
         };
-        const vertexBuffer = create(meshBytes, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, vertices);
-        const heightBuffer = create(cellBytes, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-        const coveredBuffer = create(cellBytes, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        const vertexBuffer = create(
+            meshBytes,
+            GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            vertices,
+        );
+        const heightBuffer = create(
+            cellBytes,
+            GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        );
+        const coveredBuffer = create(
+            cellBytes,
+            GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        );
         const paramData = new ArrayBuffer(32);
         const params = new DataView(paramData);
         params.setUint32(0, columns, true);
@@ -148,17 +184,35 @@ self.onmessage = async (event: MessageEvent<{
         params.setFloat32(16, resolutionMm, true);
         params.setFloat32(20, bounds.minX, true);
         params.setFloat32(24, bounds.minY, true);
-        const paramBuffer = create(32, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, new Uint8Array(paramData));
-        const heightRead = create(cellBytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
-        const coveredRead = create(cellBytes, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+        const paramBuffer = create(
+            32,
+            GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            new Uint8Array(paramData),
+        );
+        const heightRead = create(
+            cellBytes,
+            GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        );
+        const coveredRead = create(
+            cellBytes,
+            GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        );
         const module = gpuDevice.createShaderModule({ code: shader });
         const pipeline = await raceSurfaceGpuWork<GPUComputePipeline>(
-            gpuDevice.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint: 'main' } }),
+            gpuDevice.createComputePipelineAsync({
+                layout: 'auto',
+                compute: { module, entryPoint: 'main' },
+            }),
             deviceLost,
         );
         const bindGroup = gpuDevice.createBindGroup({
             layout: pipeline.getBindGroupLayout(0),
-            entries: [vertexBuffer, heightBuffer, coveredBuffer, paramBuffer].map((buffer, binding) => ({ binding, resource: { buffer } })),
+            entries: [
+                vertexBuffer,
+                heightBuffer,
+                coveredBuffer,
+                paramBuffer,
+            ].map((buffer, binding) => ({ binding, resource: { buffer } })),
         });
         const encoder = gpuDevice.createCommandEncoder();
         const pass = encoder.beginComputePass();
@@ -170,14 +224,19 @@ self.onmessage = async (event: MessageEvent<{
         encoder.copyBufferToBuffer(coveredBuffer, 0, coveredRead, 0, cellBytes);
         gpuDevice.queue.submit([encoder.finish()]);
         await raceSurfaceGpuWork(
-            Promise.all([heightRead.mapAsync(GPUMapMode.READ), coveredRead.mapAsync(GPUMapMode.READ)]),
+            Promise.all([
+                heightRead.mapAsync(GPUMapMode.READ),
+                coveredRead.mapAsync(GPUMapMode.READ),
+            ]),
             deviceLost,
         );
         const heights = new Float32Array(heightRead.getMappedRange().slice(0));
         const covered = new Uint8Array(cellCount);
         const rawCovered = new Uint32Array(coveredRead.getMappedRange());
-        for (let index = 0; index < cellCount; index += 1) covered[index] = rawCovered[index] ? 1 : 0;
-        heightRead.unmap(); coveredRead.unmap();
+        for (let index = 0; index < cellCount; index += 1)
+            covered[index] = rawCovered[index] ? 1 : 0;
+        heightRead.unmap();
+        coveredRead.unmap();
         for (let index = 0; index < cellCount; index += 1) {
             if (!covered[index]) heights[index] = Number.NaN;
         }
@@ -191,7 +250,13 @@ self.onmessage = async (event: MessageEvent<{
         };
         self.postMessage({ id, field }, [heights.buffer, covered.buffer]);
     } catch (error) {
-        self.postMessage({ id, error: error instanceof Error ? error.message : 'WebGPU surface raster failed.' });
+        self.postMessage({
+            id,
+            error:
+                error instanceof Error
+                    ? error.message
+                    : 'WebGPU surface raster failed.',
+        });
     } finally {
         for (const buffer of buffers) buffer.destroy();
         device?.destroy();

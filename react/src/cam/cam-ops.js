@@ -434,31 +434,47 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
             if (!Array.isArray(loop.points) || loop.points.length < 13)
                 throw new Error('V-bit countersink requires selected circles.');
             const center = polygonCentroid(loop.points || []);
-            const radii = (loop.points || []).slice(0, -1).map((point) =>
-                Math.hypot(point.x - center.x, point.y - center.y),
-            );
+            const radii = (loop.points || [])
+                .slice(0, -1)
+                .map((point) =>
+                    Math.hypot(point.x - center.x, point.y - center.y),
+                );
             if (radii.length < 12 || !radii.length)
                 throw new Error('V-bit countersink requires selected circles.');
-            const holeRadius = radii.reduce((sum, radius) => sum + radius, 0) / radii.length;
-            if (radii.some((radius) => Math.abs(radius - holeRadius) > tolerance))
-                throw new Error('V-bit countersink only accepts circular hole geometry.');
+            const holeRadius =
+                radii.reduce((sum, radius) => sum + radius, 0) / radii.length;
+            if (
+                radii.some(
+                    (radius) => Math.abs(radius - holeRadius) > tolerance,
+                )
+            )
+                throw new Error(
+                    'V-bit countersink only accepts circular hole geometry.',
+                );
             if (headDiameter < holeRadius * 2 - tolerance)
-                throw new Error('Screw head diameter must be at least as large as each selected hole.');
-            motionPaths.push({ points: [
-                { x: center.x, y: center.y, z: 0 },
-                { x: center.x, y: center.y, z: -cutDepth },
-            ] });
+                throw new Error(
+                    'Screw head diameter must be at least as large as each selected hole.',
+                );
+            motionPaths.push({
+                points: [
+                    { x: center.x, y: center.y, z: 0 },
+                    { x: center.x, y: center.y, z: -cutDepth },
+                ],
+            });
             const preview = [];
             for (let index = 0; index <= 48; index += 1) {
                 const angle = (index / 48) * Math.PI * 2;
                 preview.push({
-                    x: center.x + Math.cos(angle) * headDiameter / 2,
-                    y: center.y + Math.sin(angle) * headDiameter / 2,
+                    x: center.x + (Math.cos(angle) * headDiameter) / 2,
+                    y: center.y + (Math.sin(angle) * headDiameter) / 2,
                 });
             }
             previewContours.push(preview);
         }
-        if (!motionPaths.length) throw new Error('Select one or more circular holes for countersinking.');
+        if (!motionPaths.length)
+            throw new Error(
+                'Select one or more circular holes for countersinking.',
+            );
     }
 
     const label =
@@ -533,7 +549,8 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
         trochoidRadius,
         trochoidEngagementPercent,
         helicalEntryEnabled: Boolean(config.helicalEntryEnabled),
-        countersinkHeadDiameterMm: Number(config.countersinkHeadDiameterMm) || 0,
+        countersinkHeadDiameterMm:
+            Number(config.countersinkHeadDiameterMm) || 0,
         tabWidth: config.tabWidth,
         tabHeight: config.tabHeight,
         safeZ: config.safeZ,

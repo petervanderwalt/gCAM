@@ -42,7 +42,9 @@ export function ToolCatalogSelect({
                 Catalog tool
             </span>
             <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                Choose the cutter installed in this tool slot. A catalog choice fills in its details; use Custom for a cutter that is not listed.
+                Choose the cutter installed in this tool slot. A catalog choice
+                fills in its details; use Custom for a cutter that is not
+                listed.
             </p>
             <ImagePicker
                 ariaLabel="Catalog tool"

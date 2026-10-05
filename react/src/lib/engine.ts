@@ -124,7 +124,11 @@ export function buildSurfaceToolpathResult(options: {
     fileName?: string;
 }): ToolpathResult {
     const clearing = options.operation === 'surface-clear';
-    const label = clearing ? '3D Surface Clearing' : options.operation === 'surface-waterline' ? '3D Waterline Finishing' : '3D Surface Finishing';
+    const label = clearing
+        ? '3D Surface Clearing'
+        : options.operation === 'surface-waterline'
+          ? '3D Waterline Finishing'
+          : '3D Surface Finishing';
     const motionPaths = options.paths.map((points) => ({
         points: points.map((point) => ({ ...point })),
     }));
