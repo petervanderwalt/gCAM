@@ -341,5 +341,51 @@ function buildEntity(type, data) {
         };
     }
 
+    if (type === 'TEXT' || type === 'MTEXT') {
+        return buildTextEntity(type, common, data, v, number);
+    }
+
     return null;
+}
+
+function buildTextEntity(type, common, data, value, number) {
+    const rawText = type === 'MTEXT'
+        ? (data.arrays.get(3) || []).join('') + (value(1, '') || '')
+        : value(1, '');
+    const text = normalizeDxfText(rawText);
+    const baseHeight = Math.abs(number(40, 1)) || 1;
+    const leadingHeight = type === 'MTEXT'
+        ? rawText.match(/^\s*\{?\\H([+-]?(?:\d+\.?\d*|\.\d+))(x?);/i)
+        : null;
+    const height = leadingHeight
+        ? baseHeight * Number(leadingHeight[1]) * (leadingHeight[2] ? 1 : 1 / baseHeight)
+        : baseHeight;
+    const insertion = { x: number(10), y: number(20) };
+    return {
+        ...common,
+        type: 'CAD_TEXT',
+        text,
+        x: insertion.x,
+        y: insertion.y,
+        height,
+        rotationDeg: number(50),
+        attachmentPoint: type === 'MTEXT' ? number(71, 1) : null,
+        lineSpacingFactor: type === 'MTEXT' ? number(44, 1) : 1,
+        fontStyle: value(7, ''),
+        strokes: [],
+        __cadTextMode: 'stroke',
+    };
+}
+
+function normalizeDxfText(value) {
+    return String(value || '')
+        .replace(/\\P/g, '\n')
+        .replace(/\\~/g, ' ')
+        .replace(/\\[HWCQTAF][^;]*;/gi, '')
+        .replace(/\\\\/g, '\\')
+        .replace(/\\([{}])/g, '$1')
+        .replace(/[{}]/g, '')
+        .replace(/%%[dD]/g, '°')
+        .replace(/%%[pP]/g, '±')
+        .replace(/%%[cC]/g, 'Ø');
 }

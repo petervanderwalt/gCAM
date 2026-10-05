@@ -13,6 +13,7 @@ import type {
 } from './types';
 import type { UnitSystem } from '../lib/units';
 import type { JobStock } from '../job/stock';
+import type { Guide, GuideDraft, GuidePlacement } from '../lib/guides';
 
 export type Point = { x: number; y: number };
 
@@ -37,6 +38,8 @@ export type CanvasStageProps = {
     drawTool: DrawTool;
     drawSides: number;
     polygonMode: 'inscribed' | 'circumscribed';
+    onPolygonSidesChange?: (sides: number) => void;
+    onPolygonModeChange?: (mode: 'inscribed' | 'circumscribed') => void;
     grid: {
         visible: boolean;
         spacingMm: number;
@@ -44,9 +47,11 @@ export type CanvasStageProps = {
         style: 'lines' | 'dots';
     };
     stock: JobStock;
-    guides: { id: string; axis: 'x' | 'y'; pos: number }[];
-    guidePlacement?: 'x' | 'y' | null;
-    onPlaceGuide?: (axis: 'x' | 'y', position: number) => void;
+    guides: Guide[];
+    guidePlacement?: 'edge' | null;
+    guideDraft: GuideDraft | null;
+    onPlaceGuide?: (guide: GuidePlacement) => void;
+    onGuideDraftChange?: (draft: GuideDraft | null) => void;
     onCancelGuide?: () => void;
     bitmaps: {
         id: string;

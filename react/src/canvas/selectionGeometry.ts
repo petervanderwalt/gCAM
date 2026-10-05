@@ -3,6 +3,7 @@
  */
 import { nearestPointOnPolyline } from '../cam/cam-ops.js';
 import { snapToEndpoints } from '../draw/geometry';
+import { snapToGuides, type Guide } from '../lib/guides';
 import {
     rotatePoints,
     scalePoints,
@@ -113,7 +114,7 @@ export function snapDrawPoint(
     world: { x: number; y: number },
     scale: number,
     grid: { snap: boolean; spacingMm: number } | null = null,
-    guides: { axis: 'x' | 'y'; pos: number }[] = [],
+    guides: Guide[] = [],
 ): { x: number; y: number } {
     const hiddenIds = new Set(hidden);
     const endpoint = snapToEndpoints(
@@ -126,15 +127,8 @@ export function snapDrawPoint(
     if (endpoint !== world) return endpoint;
     const tolerance = 12 / Math.max(scale, 0.01);
     if (Math.hypot(world.x, world.y) <= tolerance) return { x: 0, y: 0 };
-    const guide = guides.find((candidate) =>
-        candidate.axis === 'x'
-            ? Math.abs(world.x - candidate.pos) <= tolerance
-            : Math.abs(world.y - candidate.pos) <= tolerance,
-    );
-    if (guide)
-        return guide.axis === 'x'
-            ? { x: guide.pos, y: world.y }
-            : { x: world.x, y: guide.pos };
+    const guideSnap = snapToGuides(world, guides, tolerance);
+    if (guideSnap.x !== world.x || guideSnap.y !== world.y) return guideSnap;
     if (grid?.snap && grid.spacingMm > 0) {
         return {
             x: Math.round(world.x / grid.spacingMm) * grid.spacingMm,

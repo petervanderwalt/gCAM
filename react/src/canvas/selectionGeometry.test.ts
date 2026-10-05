@@ -34,7 +34,11 @@ test('snap priority is endpoints, then guides, then grid', () => {
     ).toEqual({ x: 1, y: 2 });
     expect(
         snapDrawPoint([], [], { x: 10.2, y: 4.9 }, 10, null, [
-            { axis: 'x', pos: 10 },
+            {
+                id: 'guide',
+                point: { x: 10, y: 0 },
+                direction: { x: 0, y: 1 },
+            },
         ]),
     ).toEqual({ x: 10, y: 4.9 });
 });

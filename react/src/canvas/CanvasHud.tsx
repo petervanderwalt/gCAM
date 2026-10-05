@@ -3,19 +3,42 @@
  */
 import type { RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { displayValue, lengthUnit, type UnitSystem } from '../lib/units';
+import {
+    displayValue,
+    lengthUnit,
+    MM_PER_INCH,
+    type UnitSystem,
+} from '../lib/units';
+import type { Camera } from './types';
+import type { GuideDraft } from '../lib/guides';
 
 type Point = { x: number; y: number };
+export type DraftDimensionField = 'width' | 'height' | 'radius' | 'length' | 'angle' | 'bulge' | 'sweep';
+export type DraftDimension = {
+    x: number;
+    y: number;
+    fields: { key: DraftDimensionField; label: string; value: number; unit: 'length' | 'angle' }[];
+    polygon?: { sides: number; mode: 'inscribed' | 'circumscribed' };
+};
 
 interface CanvasHudProps {
     loopCount: number;
     darkMode: boolean;
     cursorRef: RefObject<Point | null>;
-    guidePlacement: 'x' | 'y' | null;
+    guidePlacement: 'edge' | null;
+    guideDraft: GuideDraft | null;
+    camera: Camera;
+    onGuideOffsetChange(offset: number): void;
+    onCancelGuide(): void;
     units: UnitSystem;
     draftProgress: { percent: number; label: string } | null | undefined;
     progressPosition: Point | null;
-    draftDimension: { label: string; x: number; y: number } | null;
+    draftDimension: DraftDimension | null;
+    onDraftDimensionChange(key: DraftDimensionField, value: number): void;
+    onDraftDimensionCommit(): void;
+    onDraftDimensionCancel(): void;
+    onPolygonSidesChange(sides: number): void;
+    onPolygonModeChange(mode: 'inscribed' | 'circumscribed'): void;
     jobExceedsStock: boolean;
     onAdjustStock?: () => void;
     onZoom(factor: number): void;
@@ -28,10 +51,19 @@ export function CanvasHud({
     darkMode,
     cursorRef,
     guidePlacement,
+    guideDraft,
+    camera,
+    onGuideOffsetChange,
+    onCancelGuide,
     units,
     draftProgress,
     progressPosition,
     draftDimension,
+    onDraftDimensionChange,
+    onDraftDimensionCommit,
+    onDraftDimensionCancel,
+    onPolygonSidesChange,
+    onPolygonModeChange,
     jobExceedsStock,
     onAdjustStock,
     onZoom,
@@ -56,8 +88,19 @@ export function CanvasHud({
                 cursorRef={cursorRef}
                 darkMode={darkMode}
                 guidePlacement={guidePlacement}
+                guideDraft={guideDraft}
                 units={units}
             />
+            {guideDraft && (
+                <GuideOffsetInput
+                    draft={guideDraft}
+                    camera={camera}
+                    darkMode={darkMode}
+                    units={units}
+                    onChange={onGuideOffsetChange}
+                    onCancel={onCancelGuide}
+                />
+            )}
             {jobExceedsStock && (
                 <div
                     role="alert"
@@ -111,14 +154,85 @@ export function CanvasHud({
                 )}
             {draftDimension && (
                 <div
-                    role="status"
-                    className={`pointer-events-none absolute z-10 rounded border px-2 py-1 text-[11px] tabular-nums shadow ${chip}`}
+                    aria-label="Shape dimensions"
+                    className={`absolute z-20 flex items-center gap-1 rounded border px-1.5 py-1 text-[11px] shadow ${darkMode ? 'border-orange-400 bg-dark text-slate-100' : 'border-orange-500 bg-white text-slate-700'}`}
                     style={{
                         left: draftDimension.x,
                         top: draftDimension.y,
                     }}
                 >
-                    {draftDimension.label}
+                    {draftDimension.fields.map((field) => (
+                        <label key={field.key} className="flex items-center gap-1 whitespace-nowrap">
+                            <span>{field.label}</span>
+                            <input
+                                aria-label={`Shape ${field.label.toLowerCase()}`}
+                                type="number"
+                                step={field.unit === 'angle' ? '0.1' : '0.01'}
+                                value={Number(field.value.toFixed(field.unit === 'angle' ? 1 : 2))}
+                                onChange={(event) => {
+                                    const numeric = Number(event.currentTarget.value);
+                                    if (Number.isFinite(numeric)) onDraftDimensionChange(field.key, numeric);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        onDraftDimensionCommit();
+                                    } else if (event.key === 'Escape') {
+                                        event.preventDefault();
+                                        onDraftDimensionCancel();
+                                    }
+                                }}
+                                className={`w-16 appearance-none border-0 bg-transparent text-right tabular-nums outline-none ${darkMode ? 'text-white' : 'text-slate-900'}`}
+                            />
+                            <span>{field.unit === 'angle' ? 'deg' : lengthUnit(units)}</span>
+                        </label>
+                    ))}
+                    {draftDimension.polygon && (
+                        <>
+                            <div className="mx-0.5 h-5 border-l border-slate-300 dark:border-slate-600" />
+                            {(['inscribed', 'circumscribed'] as const).map((mode) => (
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    aria-pressed={draftDimension.polygon?.mode === mode}
+                                    onClick={() => onPolygonModeChange(mode)}
+                                    className={`rounded px-1.5 py-1 text-[10px] capitalize ${draftDimension.polygon?.mode === mode ? 'bg-blue-100 font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
+                                >
+                                    {mode}
+                                </button>
+                            ))}
+                            <label className="ml-1 flex items-center gap-1 whitespace-nowrap">
+                                <span>Sides</span>
+                                <input
+                                    aria-label="Polygon sides"
+                                    type="number"
+                                    min={3}
+                                    max={128}
+                                    step={1}
+                                    value={draftDimension.polygon.sides}
+                                    onChange={(event) => {
+                                        const sides = Number(event.currentTarget.value);
+                                        if (Number.isFinite(sides) && sides > 0) onPolygonSidesChange(Math.min(128, Math.round(sides)));
+                                    }}
+                                    onBlur={(event) => {
+                                        const sides = Number(event.currentTarget.value);
+                                        if (Number.isFinite(sides)) onPolygonSidesChange(Math.min(128, Math.max(3, Math.round(sides))));
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            onDraftDimensionCommit();
+                                        } else if (event.key === 'Escape') {
+                                            event.preventDefault();
+                                            onDraftDimensionCancel();
+                                        }
+                                    }}
+                                    className={`w-10 border-0 bg-transparent text-right tabular-nums outline-none ${darkMode ? 'text-white' : 'text-slate-900'}`}
+                                />
+                                <span>#</span>
+                            </label>
+                        </>
+                    )}
                 </div>
             )}
             <div className="absolute bottom-2 right-2 flex gap-1">
@@ -142,11 +256,13 @@ function CursorReadout({
     cursorRef,
     darkMode,
     guidePlacement,
+    guideDraft,
     units,
 }: {
     cursorRef: RefObject<Point | null>;
     darkMode: boolean;
-    guidePlacement: 'x' | 'y' | null;
+    guidePlacement: 'edge' | null;
+    guideDraft: GuideDraft | null;
     units: UnitSystem;
 }) {
     const cursor = cursorRef.current;
@@ -156,9 +272,67 @@ function CursorReadout({
             className={`absolute bottom-2 left-2 text-xs px-2 py-1 rounded border tabular-nums ${darkMode ? 'bg-dark/80 border-robin-900 text-slate-300' : 'bg-white/90 border-slate-300 text-slate-600'}`}
         >
             {guidePlacement
-                ? `${guidePlacement === 'x' ? 'Vertical' : 'Horizontal'} guide: ${displayValue(guidePlacement === 'x' ? cursor.x : cursor.y, units, 2)} ${lengthUnit(units)}`
+                ? guideDraft
+                    ? `Guide from ${guideDraft.sourceLabel} · Offset ${displayValue(guideDraft.offset, units, 2)} ${lengthUnit(units)}`
+                    : 'Guide: hover an edge or axis, then click'
                 : `X ${displayValue(cursor.x, units, 2)} · Y ${displayValue(cursor.y, units, 2)} ${lengthUnit(units)}`}
         </div>
+    );
+}
+
+function GuideOffsetInput({
+    draft,
+    camera,
+    darkMode,
+    units,
+    onChange,
+    onCancel,
+}: {
+    draft: GuideDraft;
+    camera: Camera;
+    darkMode: boolean;
+    units: UnitSystem;
+    onChange(offset: number): void;
+    onCancel(): void;
+}) {
+    const normal = { x: -draft.direction.y, y: draft.direction.x };
+    const anchor = {
+        x: draft.source.x + normal.x * draft.offset,
+        y: draft.source.y + normal.y * draft.offset,
+    };
+    const left = (camera.tx + (draft.source.x + anchor.x) * camera.scale / 2) + 12;
+    const top = (camera.ty - (draft.source.y + anchor.y) * camera.scale / 2) - 14;
+    const value = units === 'imperial' ? draft.offset / MM_PER_INCH : draft.offset;
+    return (
+        <label
+            className={`absolute z-20 flex items-center gap-1 rounded border px-1.5 py-1 text-xs shadow ${darkMode ? 'border-orange-400 bg-dark text-slate-100' : 'border-orange-500 bg-white text-slate-700'}`}
+            style={{ left, top }}
+        >
+            <span>Offset</span>
+            <input
+                aria-label="Guide offset distance"
+                type="number"
+                step="any"
+                value={Number(value.toFixed(3))}
+                onChange={(event) => {
+                    const numeric = Number(event.currentTarget.value);
+                    if (Number.isFinite(numeric))
+                        onChange(numeric * (units === 'imperial' ? MM_PER_INCH : 1));
+                }}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                        // Keep the guide as a live preview; the next canvas
+                        // click is the single, predictable placement action.
+                        event.preventDefault();
+                    } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        onCancel();
+                    }
+                }}
+                className={`w-16 border-0 bg-transparent text-right tabular-nums outline-none ${darkMode ? 'text-white' : 'text-slate-900'}`}
+            />
+            <span>{lengthUnit(units)}</span>
+        </label>
     );
 }
 

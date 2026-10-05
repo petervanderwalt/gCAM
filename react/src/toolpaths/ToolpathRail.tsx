@@ -1,7 +1,8 @@
 /**
  * Purpose: Implementation module for ToolpathRail in the react domain.
  */
-import { Download, Layers, Pencil, Trash2 } from 'lucide-react';
+import { Download, FileUp, Pencil, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { ToolpathPanel } from './ToolpathPanel';
 import type { ToolpathStackEntry } from './useToolpathStack';
@@ -58,6 +59,7 @@ interface ToolpathRailProps {
         destructive?: boolean;
     }) => Promise<boolean>;
     showToast: (message: string, tone: 'info', duration: number) => void;
+    onImportFile: () => void;
 }
 
 /** The toolpath form and committed-stack rail; independent from canvas layout. */
@@ -89,34 +91,60 @@ export function ToolpathRail({
     rebuildEntryTabs,
     confirm,
     showToast,
+    onImportFile,
 }: ToolpathRailProps) {
     const editing = Boolean(editingId && editingEntry);
     const configuring = selected.length > 0;
     const showEditor = editing || configuring;
+    const emptyWorkspace =
+        !loops.length &&
+        !bitmaps.length &&
+        !selected.length &&
+        !stack.length &&
+        !editing;
+    const showJobStock = !showEditor;
+
+    useEffect(() => {
+        if (!editing && selected.length === 0) {
+            setDraftPreview([]);
+            setDraftProgress(null);
+        }
+    }, [editing, selected.length, setDraftPreview, setDraftProgress]);
+
     return (
         <aside className="w-[340px] shrink-0 border-l border-slate-200 bg-white dark:border-robin-900 dark:bg-dark flex flex-col min-h-0">
-            <div className="shrink-0 p-3 border-b border-slate-200 dark:border-robin-900 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <Layers size={18} className="text-robin-400" />
-                <span className="font-medium text-slate-900 dark:text-white">
-                    {editing
-                        ? `Edit ${editingEntry?.label ?? 'Toolpath'}`
-                        : configuring
-                          ? 'Toolpath Setup'
-                          : 'Job Setup & Toolpaths'}
-                </span>
-            </div>
             <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
-                <JobStockSetup
-                    stock={stock}
-                    units={units}
-                    onChange={setStock}
-                    maxXTravelMm={machineTravelLimits.maxXTravelMm}
-                    maxYTravelMm={machineTravelLimits.maxYTravelMm}
-                    machineName={
-                        machineProfileById(machineProfileId)?.displayName ??
-                        'Custom machine'
-                    }
-                />
+                {showJobStock && (
+                    <JobStockSetup
+                        stock={stock}
+                        units={units}
+                        onChange={setStock}
+                        maxXTravelMm={machineTravelLimits.maxXTravelMm}
+                        maxYTravelMm={machineTravelLimits.maxYTravelMm}
+                        machineName={
+                            machineProfileById(machineProfileId)?.displayName ??
+                            'Custom machine'
+                        }
+                    />
+                )}
+                {emptyWorkspace && (
+                    <section className="mx-3 mt-1 mb-1 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/40">
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                            Start with a design
+                        </h2>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                            Import a DXF, SVG, STL, or image to get started.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={onImportFile}
+                            className="mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                        >
+                            <FileUp size={16} />
+                            Import a file
+                        </button>
+                    </section>
+                )}
                 {showEditor ? (
                     <ToolpathPanel
                         loops={loops}
@@ -174,6 +202,7 @@ export function ToolpathRail({
                             rebuildEntryTabs={rebuildEntryTabs}
                             confirm={confirm}
                             showToast={showToast}
+                            tightTopGap={emptyWorkspace}
                         />
                     </>
                 )}
@@ -218,6 +247,7 @@ function CommittedToolpaths({
     rebuildEntryTabs,
     confirm,
     showToast,
+    tightTopGap = false,
 }: Omit<
     ToolpathRailProps,
     | 'loops'
@@ -236,9 +266,12 @@ function CommittedToolpaths({
     | 'setDraftProgress'
     | 'onResult'
     | 'onUpdate'
->) {
+    | 'onImportFile'
+> & { tightTopGap?: boolean }) {
     return (
-        <section className="mx-3 mt-3 mb-3 space-y-2 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50">
+        <section
+            className={`mx-3 ${tightTopGap ? 'mt-1' : 'mt-3'} mb-3 space-y-2 rounded-lg border border-slate-200 bg-white/60 p-2.5 dark:border-robin-900 dark:bg-dark-lighter/50`}
+        >
             <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Job toolpaths{' '}

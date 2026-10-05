@@ -7,7 +7,7 @@ import {
     updateChainCursor,
     updateDrawDraft,
 } from './draw';
-import { placeGuide } from './guides';
+import { placeGuide, updateGuideInteraction } from './guides';
 import { completePolylineOnDoubleClick, handleCanvasKeyDown } from './keyboard';
 import { beginPan, finishSelection, movePan, updateMarquee } from './selection';
 import {
@@ -56,6 +56,7 @@ export function CanvasPointerController(props: CanvasPointerControllerProps) {
                     transformDragRef: props.transformDragRef,
                     onDeleteTab: props.onDeleteTab,
                     onCancelGuide: props.onCancelGuide,
+                    onGuideDraftChange: props.onGuideDraftChange,
                     onTransformCommit: props.onTransformCommit,
                     onCommitLoop: props.onCommitLoop,
                     forceTick: props.forceTick,
@@ -94,6 +95,7 @@ export function CanvasPointerController(props: CanvasPointerControllerProps) {
                 if (movePan(event, props)) return;
                 if (updateChainCursor(event, props)) return;
                 props.updateCursor(event);
+                if (updateGuideInteraction(event, props)) return;
                 updateTabHover(event, props);
                 props.forceTick();
                 if (updateDrawDraft(event, props)) return;
@@ -120,15 +122,16 @@ export function CanvasPointerController(props: CanvasPointerControllerProps) {
                 if (placeTab(props)) return;
                 finishSelection(event, props, down, marquee);
             }}
-            onMouseLeave={() => {
-                props.marqueeRef.current = null;
-                props.draftRef.current = null;
-                props.cursorRef.current = null;
-                props.onTrimHover(null);
-                props.transformDragRef.current = null;
-                const canvas = props.canvasRef.current;
-                if (canvas) canvas.style.cursor = '';
-                props.forceTick();
+            onMouseLeave={(event) => {
+                // The floating dimension/guide controls are siblings of the
+                // canvas inside its viewport. Keep the draft alive while the
+                // pointer moves from the drawing surface into those controls.
+                const viewport = event.currentTarget.parentElement;
+                if (
+                    event.relatedTarget instanceof Node &&
+                    viewport?.contains(event.relatedTarget)
+                ) return;
+                props.onViewportLeave();
             }}
             onContextMenu={(event) => event.preventDefault()}
         />

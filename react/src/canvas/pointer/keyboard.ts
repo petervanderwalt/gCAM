@@ -8,7 +8,8 @@ import type { LoopMeta, TabMarker } from '../types';
 type Point = { x: number; y: number };
 
 type KeyboardView = {
-    guidePlacement: 'x' | 'y' | null;
+    guidePlacement: 'edge' | null;
+    guideDraft: import('../../lib/guides').GuideDraft | null;
     transformMode: unknown;
     drawTool: string | null;
 };
@@ -25,6 +26,7 @@ export function handleCanvasKeyDown(
         transformDragRef: { current: unknown };
         onDeleteTab: (entryId: string, tabIndex: number) => void;
         onCancelGuide: () => void;
+        onGuideDraftChange: (draft: import('../../lib/guides').GuideDraft | null) => void;
         onTransformCommit: (commit: TransformCommit | null) => void;
         onCommitLoop: (points: Point[], meta?: LoopMeta) => void;
         forceTick: () => void;
@@ -40,6 +42,7 @@ export function handleCanvasKeyDown(
         transformDragRef,
         onDeleteTab,
         onCancelGuide,
+        onGuideDraftChange,
         onTransformCommit,
         onCommitLoop,
         forceTick,
@@ -56,7 +59,10 @@ export function handleCanvasKeyDown(
         return;
     }
     if (event.key === 'Escape') {
-        if (viewRef.current.guidePlacement) onCancelGuide();
+        if (viewRef.current.guidePlacement) {
+            onCancelGuide();
+            onGuideDraftChange(null);
+        }
         clicksRef.current = [];
         cursorRef.current = null;
         pendingAnchorRef.current = null;

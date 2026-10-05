@@ -16,6 +16,15 @@ export function ToolbarSeparator() {
     );
 }
 
+export function ToolbarMenuSeparator() {
+    return (
+        <div
+            role="separator"
+            className="my-1 border-t border-slate-200 dark:border-robin-900"
+        />
+    );
+}
+
 export function ToolbarMenu({
     label,
     icon,
@@ -62,12 +71,14 @@ export function ToolbarMenu({
 
 export function ToolbarMenuItem({
     label,
+    icon,
     active,
     danger,
     disabled,
     onClick,
 }: {
     label: string;
+    icon?: ReactNode;
     active?: boolean;
     danger?: boolean;
     disabled?: boolean;
@@ -79,7 +90,7 @@ export function ToolbarMenuItem({
             disabled={disabled}
             onClick={onClick}
             className={cx(
-                'w-full text-left rounded-md px-3 py-2 text-sm capitalize touch-manipulation disabled:cursor-not-allowed disabled:opacity-40',
+                'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm capitalize touch-manipulation disabled:cursor-not-allowed disabled:opacity-40',
                 active
                     ? 'bg-robin-500 text-white'
                     : danger
@@ -87,6 +98,17 @@ export function ToolbarMenuItem({
                       : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-dark-lighter',
             )}
         >
+            {icon && (
+                <span
+                    aria-hidden="true"
+                    className={cx(
+                        'flex h-4 w-4 shrink-0 items-center justify-center opacity-75',
+                        active && 'opacity-100',
+                    )}
+                >
+                    {icon}
+                </span>
+            )}
             {label}
         </button>
     );

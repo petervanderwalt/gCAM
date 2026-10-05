@@ -5,6 +5,7 @@ import type { DrawTool } from '../draw/geometry';
 import type { TransformMode } from '../lib/transform';
 import type { UnitSystem } from '../lib/units';
 import type { JobStock } from '../job/stock';
+import type { Guide, GuideDraft } from '../lib/guides';
 import type {
     PreviewLoop,
     TabHoverCandidate,
@@ -41,8 +42,9 @@ export interface CanvasViewState {
         style: 'lines' | 'dots';
     };
     stock: JobStock;
-    guides: { id: string; axis: 'x' | 'y'; pos: number }[];
-    guidePlacement: 'x' | 'y' | null;
+    guides: Guide[];
+    guidePlacement: 'edge' | null;
+    guideDraft: GuideDraft | null;
     transformMode: TransformMode | null;
     cornerTool: 'fillet' | 'dogbone' | null;
     cornerRadius: number;

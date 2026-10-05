@@ -66,7 +66,7 @@ export function updateMarquee(
 function selectMarquee(
     deps: CanvasPointerControllerProps,
     marquee: { x0: number; y0: number; x1: number; y1: number },
-    shift: boolean,
+    additive: boolean,
 ): void {
     const camera = deps.cameraRef.current;
     const toWorld = (x: number, y: number): Point => ({
@@ -108,7 +108,7 @@ function selectMarquee(
         }
     });
     deps.onSelect(
-        shift
+        additive
             ? Array.from(
                   new Set([
                       ...deps.viewRef.current.selected.filter((id) => {
@@ -199,7 +199,8 @@ function selectAt(
                 ? selected.filter((id) => id !== best)
                 : [...selected, best],
         );
-    else if (!event.shiftKey) deps.onSelect([]);
+    else if (!(event.shiftKey || event.ctrlKey || event.metaKey))
+        deps.onSelect([]);
 }
 
 export function finishSelection(
@@ -209,7 +210,11 @@ export function finishSelection(
     marquee: { x0: number; y0: number; x1: number; y1: number } | null,
 ): void {
     if (marquee) {
-        selectMarquee(deps, marquee, event.shiftKey);
+        selectMarquee(
+            deps,
+            marquee,
+            event.shiftKey || event.ctrlKey || event.metaKey,
+        );
         deps.forceTick();
     } else if (down) selectAt(event, deps, down);
 }

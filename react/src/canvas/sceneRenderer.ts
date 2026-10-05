@@ -5,6 +5,7 @@ import { getMinimumTabWidth, getTabCenterlineSpan } from '../cam/cam-ops.js';
 import { pointAtDistance, polylineLength } from '../geometry/primitives.js';
 import { drawOriginGuides, strokePoints } from './primitives';
 import type { CanvasCamera } from './camera';
+import { findGuideSource, type Guide, type GuideDraft } from '../lib/guides';
 
 type Point = { x: number; y: number };
 
@@ -87,8 +88,9 @@ export interface CanvasSceneInput {
         rotation?: number;
         img?: HTMLImageElement;
     }[];
-    guides: { id: string; axis: 'x' | 'y'; pos: number }[];
-    guidePlacement: 'x' | 'y' | null;
+    guides: Guide[];
+    guidePlacement: 'edge' | null;
+    guideDraft: GuideDraft | null;
     guideCursor: Point | null;
 }
 
@@ -119,17 +121,18 @@ export function drawCanvasScene(input: CanvasSceneInput): void {
         bitmaps,
         guides,
         guidePlacement,
+        guideDraft,
         guideCursor,
     } = input;
     ctx.fillStyle = theme.bg;
     ctx.fillRect(0, 0, w, h);
-    drawGuides(ctx, w, h, cam, guides, guidePlacement, guideCursor);
     drawGrid(ctx, w, h, cam, grid, theme, stockBounds);
     drawOriginGuides(ctx, w, h, cam, theme);
     if (!loops.length || !hasBounds) {
         ctx.fillStyle = theme.emptyText;
         ctx.font = '12px system-ui';
         ctx.fillText('gCAM canvas — drop DXF/SVG here', 16, h - 16);
+        drawGuides(ctx, w, h, cam, guides, guidePlacement, guideDraft, guideCursor, loops, hidden);
         return;
     }
     const toScreen = (x: number, y: number) => ({
@@ -173,6 +176,7 @@ export function drawCanvasScene(input: CanvasSceneInput): void {
         strokePoints(ctx, draft, toScreen);
         ctx.setLineDash([]);
     }
+    drawGuides(ctx, w, h, cam, guides, guidePlacement, guideDraft, guideCursor, loops, hidden);
 }
 
 function drawGuides(
@@ -182,45 +186,90 @@ function drawGuides(
     cam: CanvasCamera,
     guides: CanvasSceneInput['guides'],
     placement: CanvasSceneInput['guidePlacement'],
+    guideDraft: GuideDraft | null,
     cursor: Point | null,
+    loops: CanvasSceneInput['loops'],
+    hidden: string[],
 ): void {
-    if (guides.length) {
-        ctx.strokeStyle = 'rgba(232,121,249,0.65)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([8, 5]);
+    const line = (point: Point, direction: Point, color: string, width: number, dash: number[]) => {
+        const length = Math.hypot(direction.x, direction.y) || 1;
+        const dx = direction.x / length;
+        const dy = direction.y / length;
+        const span = (w + h) / Math.max(cam.scale, 1e-6);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.setLineDash(dash);
         ctx.beginPath();
-        for (const guide of guides) {
-            const coordinate =
-                guide.axis === 'x'
-                    ? Math.round(cam.tx + guide.pos * cam.scale) + 0.5
-                    : Math.round(cam.ty - guide.pos * cam.scale) + 0.5;
-            if (guide.axis === 'x') {
-                ctx.moveTo(coordinate, 0);
-                ctx.lineTo(coordinate, h);
-            } else {
-                ctx.moveTo(0, coordinate);
-                ctx.lineTo(w, coordinate);
-            }
-        }
+        ctx.moveTo(cam.tx + (point.x - dx * span) * cam.scale, cam.ty - (point.y - dy * span) * cam.scale);
+        ctx.lineTo(cam.tx + (point.x + dx * span) * cam.scale, cam.ty - (point.y + dy * span) * cam.scale);
         ctx.stroke();
+    };
+        for (const guide of guides) {
+            if (
+                !guide.point ||
+                !guide.direction ||
+                !Number.isFinite(guide.point.x) ||
+                !Number.isFinite(guide.point.y) ||
+                !Number.isFinite(guide.direction.x) ||
+                !Number.isFinite(guide.direction.y)
+            ) continue;
+            line(guide.point, guide.direction, 'rgba(232,121,249,0.72)', 1, [8, 5]);
+    }
+    if (!placement) {
         ctx.setLineDash([]);
+        return;
     }
-    if (!placement || !cursor) return;
     ctx.save();
-    ctx.strokeStyle = 'rgba(59,130,246,0.9)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([6, 4]);
-    ctx.beginPath();
-    if (placement === 'x') {
-        const x = Math.round(cam.tx + cursor.x * cam.scale) + 0.5;
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-    } else {
-        const y = Math.round(cam.ty - cursor.y * cam.scale) + 0.5;
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
+    if (guideDraft) {
+        const normal = { x: -guideDraft.direction.y, y: guideDraft.direction.x };
+        const anchor = {
+            x: guideDraft.source.x + normal.x * guideDraft.offset,
+            y: guideDraft.source.y + normal.y * guideDraft.offset,
+        };
+        line(anchor, guideDraft.direction, 'rgba(249,115,22,0.95)', 1.7, [7, 4]);
+        ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(249,115,22,0.9)';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(cam.tx + guideDraft.source.x * cam.scale, cam.ty - guideDraft.source.y * cam.scale);
+        ctx.lineTo(cam.tx + anchor.x * cam.scale, cam.ty - anchor.y * cam.scale);
+        ctx.stroke();
+        const sx = cam.tx + guideDraft.source.x * cam.scale;
+        const sy = cam.ty - guideDraft.source.y * cam.scale;
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    } else if (cursor) {
+        const source = findGuideSource(cursor, loops, hidden, cam.scale);
+        if (source) {
+            // Match the guide-tool hover preview: show the full dashed guide
+            // through the snapped edge/axis before the user places it.
+            line(source.point, source.direction, '#e8590c', 2.4, [5, 4]);
+            ctx.setLineDash([]);
+            const x = cam.tx + source.point.x * cam.scale;
+            const y = cam.ty - source.point.y * cam.scale;
+            ctx.strokeStyle = '#ea580c';
+            ctx.fillStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.font = '12px system-ui';
+            const label = `Guide from ${source.label}`;
+            const labelX = x + 10;
+            const labelY = y - 8;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(labelX - 4, labelY - 13, ctx.measureText(label).width + 8, 18);
+            ctx.fillStyle = '#c2410c';
+            ctx.fillText(label, labelX, labelY);
+        }
     }
-    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
 }
 

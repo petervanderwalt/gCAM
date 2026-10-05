@@ -11,7 +11,10 @@ import { pointAtDistance, polylineLength } from '../geometry/primitives.js';
 import { boundsOfPoints } from '../geometry/bounds.js';
 import {
     arcPoints3,
+    arcBulgeDistance,
+    arcSweepDegrees,
     draftPoints,
+    defaultArcBulgePoint,
     rulerStep,
     type DrawTool,
 } from '../draw/geometry';
@@ -31,7 +34,7 @@ import {
     paintSelectionFeedback,
 } from './paintInteractionOverlays';
 import { CanvasViewport } from './CanvasViewport';
-import { CanvasHud } from './CanvasHud';
+import { CanvasHud, type DraftDimension, type DraftDimensionField } from './CanvasHud';
 import { DARK_CANVAS_THEME, LIGHT_CANVAS_THEME } from './theme';
 import type { CanvasStageProps } from './CanvasStage.types';
 import type { CanvasViewState } from './stageViewState';
@@ -48,10 +51,7 @@ import type {
 } from './types';
 import { trimNearestSegment } from '../lib/trim';
 import {
-    displayValue,
-    lengthUnit,
     MM_PER_INCH,
-    type UnitSystem,
 } from '../lib/units';
 
 /**
@@ -92,11 +92,15 @@ export function CanvasStage({
     drawTool,
     drawSides,
     polygonMode,
+    onPolygonSidesChange = () => {},
+    onPolygonModeChange = () => {},
     grid,
     stock,
     guides,
     guidePlacement = null,
+    guideDraft,
     onPlaceGuide = () => {},
+    onGuideDraftChange = () => {},
     onCancelGuide = () => {},
     bitmaps,
     onCommitLoop,
@@ -108,7 +112,6 @@ export function CanvasStage({
     cornerTool,
     cornerRadius,
     onFilletCorner,
-    preserveViewToken,
     viewportCommand,
     units = 'metric',
 }: CanvasStageProps) {
@@ -188,6 +191,7 @@ export function CanvasStage({
         stock,
         guides,
         guidePlacement,
+        guideDraft,
         transformMode,
         cornerTool: cornerTool ?? null,
         cornerRadius: cornerRadius ?? 3,
@@ -214,6 +218,7 @@ export function CanvasStage({
         stock,
         guides,
         guidePlacement,
+        guideDraft,
         transformMode,
         cornerTool: cornerTool ?? null,
         cornerRadius: cornerRadius ?? 3,
@@ -236,6 +241,9 @@ export function CanvasStage({
         // Attach wheel listener with passive: false to allow preventDefault()
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
+            // Keep the drawing coordinate frame stable until the shape is
+            // finished; trackpad wheel noise should not zoom mid-gesture.
+            if (pendingAnchorRef.current || clicksRef.current.length) return;
             const rect = canvas.getBoundingClientRect();
             zoomBy(
                 Math.exp(-e.deltaY * 0.002),
@@ -348,12 +356,13 @@ export function CanvasStage({
                 };
                 centeredRef.current = true;
             }
-            if (bounds && cameraRef.current.scale === 1) {
+            if (bounds && !centeredRef.current) {
                 cameraRef.current = fitCamera(
                     bounds,
                     canvas.width,
                     canvas.height,
                 );
+                centeredRef.current = true;
             }
             drawCanvasScene({
                 ctx,
@@ -391,8 +400,9 @@ export function CanvasStage({
                     maxY: stock.heightMm,
                 },
                 bitmaps,
-                guides,
-                guidePlacement,
+                guides: viewRef.current.guides,
+                guidePlacement: viewRef.current.guidePlacement,
+                guideDraft: viewRef.current.guideDraft,
                 guideCursor: cursorRef.current,
             });
             paintRulers();
@@ -434,6 +444,9 @@ export function CanvasStage({
                 clicks: clicksRef.current,
                 cursor: cursorRef.current,
                 drawTool: viewRef.current.drawTool,
+                draft: draftRef.current,
+                drawSides: viewRef.current.drawSides,
+                polygonMode: viewRef.current.polygonMode,
                 grid: viewRef.current.grid,
                 guides: viewRef.current.guides,
             });
@@ -474,9 +487,6 @@ export function CanvasStage({
         canvasRef,
         cameraRef,
         viewRef,
-        bounds,
-        loopCount: loops.length,
-        preserveViewToken,
         viewportCommand,
         repaint: forceTick,
     });
@@ -501,21 +511,168 @@ export function CanvasStage({
                   y: progressPointerRef.current.y + 18,
               }
             : null;
-    const draftDimension = (() => {
-        const draft = draftRef.current;
-        if (!draft || !drawTool) return null;
+    const draftDimension: DraftDimension | null = (() => {
+        const polylineAnchor = drawTool === 'polyline' ? clicksRef.current[clicksRef.current.length - 1] : null;
+        const polylineCursor = drawTool === 'polyline' ? cursorRef.current : null;
+        const arcStart = drawTool === 'arc' ? clicksRef.current[0] : null;
+        const arcEnd = drawTool === 'arc' && clicksRef.current.length >= 2 ? clicksRef.current[1] : null;
+        const arcCursor = drawTool === 'arc' ? cursorRef.current : null;
+        const arcFirstPhase = drawTool === 'arc' && clicksRef.current.length === 1 && arcStart && arcCursor;
+        const arcBulgePhase = drawTool === 'arc' && arcStart && arcEnd && arcCursor;
+        const draft = draftRef.current ?? (arcFirstPhase
+            ? { ax: arcStart.x, ay: arcStart.y, bx: arcCursor.x, by: arcCursor.y }
+            : polylineAnchor && polylineCursor
+            ? { ax: polylineAnchor.x, ay: polylineAnchor.y, bx: polylineCursor.x, by: polylineCursor.y }
+            : null);
+        if (arcBulgePhase && arcStart && arcEnd && arcCursor) {
+            const fields: DraftDimension['fields'] = [
+                { key: 'bulge', label: 'Bulge', value: units === 'imperial' ? arcBulgeDistance(arcStart, arcEnd, arcCursor) / MM_PER_INCH : arcBulgeDistance(arcStart, arcEnd, arcCursor), unit: 'length' },
+                { key: 'sweep', label: 'Sweep', value: arcSweepDegrees(arcStart, arcEnd, arcCursor), unit: 'angle' },
+            ];
+            const x = camNow.tx + (arcStart.x + arcEnd.x) * camNow.scale / 2 + 12;
+            const y = camNow.ty - (arcStart.y + arcEnd.y) * camNow.scale / 2 - 36;
+            return { fields, x, y };
+        }
+        if (!draft || !drawTool || !['rectangle', 'circle', 'line', 'polygon', 'polyline', 'arc'].includes(drawTool)) return null;
         const dx = draft.bx - draft.ax;
         const dy = draft.by - draft.ay;
         const distance = Math.hypot(dx, dy);
         if (!(distance > 0.01)) return null;
-        const label =
-            drawTool === 'circle'
-                ? `R ${displayValue(distance, units, 2)} ${lengthUnit(units)}`
-                : `ΔX ${displayValue(dx, units, 2)}  ΔY ${displayValue(dy, units, 2)}  L ${displayValue(distance, units, 2)} ${lengthUnit(units)}`;
-        const x = camNow.tx + draft.bx * camNow.scale + 16;
-        const y = camNow.ty - draft.by * camNow.scale + 18;
-        return { label, x, y };
+        const length = units === 'imperial' ? distance / MM_PER_INCH : distance;
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+        const fields: DraftDimension['fields'] = drawTool === 'rectangle'
+            ? [
+                  { key: 'width', label: 'Width', value: units === 'imperial' ? Math.abs(dx) / MM_PER_INCH : Math.abs(dx), unit: 'length' },
+                  { key: 'height', label: 'Height', value: units === 'imperial' ? Math.abs(dy) / MM_PER_INCH : Math.abs(dy), unit: 'length' },
+              ]
+            : drawTool === 'circle' || drawTool === 'polygon'
+              ? [{ key: 'radius', label: drawTool === 'circle' ? 'Radius' : 'Radius', value: length, unit: 'length' }]
+              : [
+                    { key: 'length', label: 'Length', value: length, unit: 'length' },
+                    { key: 'angle', label: 'Angle', value: angle, unit: 'angle' },
+                ];
+        const x = camNow.tx + (draft.ax + draft.bx) * camNow.scale / 2 + 12;
+        const y = camNow.ty - Math.max(draft.ay, draft.by) * camNow.scale - 36;
+        return {
+            fields,
+            x,
+            y,
+            ...(drawTool === 'polygon' ? { polygon: { sides: drawSides, mode: polygonMode } } : {}),
+        };
     })();
+
+    const onDraftDimensionChange = (key: DraftDimensionField, value: number) => {
+        const polyline = drawTool === 'polyline';
+        const arc = drawTool === 'arc';
+        const point = cursorRef.current;
+        const anchor = polyline ? clicksRef.current[clicksRef.current.length - 1] : null;
+        const arcStart = arc ? clicksRef.current[0] : null;
+        const arcEnd = arc && clicksRef.current.length >= 2 ? clicksRef.current[1] : null;
+        if (arc && arcStart && arcEnd && point) {
+            const dx = arcEnd.x - arcStart.x;
+            const dy = arcEnd.y - arcStart.y;
+            const chord = Math.hypot(dx, dy);
+            if (chord > 1e-8) {
+                const cross = dx * (point.y - arcStart.y) - dy * (point.x - arcStart.x);
+                const side = Math.sign(cross) || 1;
+                const height = key === 'bulge'
+                    ? Math.max(0.001, Math.abs(value * (units === 'imperial' ? MM_PER_INCH : 1)))
+                    : (chord / 2) * Math.tan((Math.min(359, Math.max(1, Math.abs(value))) * Math.PI) / 720);
+                const midpoint = { x: (arcStart.x + arcEnd.x) / 2, y: (arcStart.y + arcEnd.y) / 2 };
+                cursorRef.current = {
+                    x: midpoint.x - (dy / chord) * side * height,
+                    y: midpoint.y + (dx / chord) * side * height,
+                };
+                forceTick();
+            }
+            return;
+        }
+        const current = draftRef.current ?? (arc && arcStart && point
+            ? { ax: arcStart.x, ay: arcStart.y, bx: point.x, by: point.y }
+            : anchor && point
+            ? { ax: anchor.x, ay: anchor.y, bx: point.x, by: point.y }
+            : null);
+        if (!current || !Number.isFinite(value)) return;
+        const draft = { ...current };
+        const scale = units === 'imperial' ? MM_PER_INCH : 1;
+        if (drawTool === 'rectangle') {
+            const width = key === 'width' ? Math.abs(value * scale) : Math.abs(draft.bx - draft.ax);
+            const height = key === 'height' ? Math.abs(value * scale) : Math.abs(draft.by - draft.ay);
+            draft.bx = draft.ax + Math.sign(draft.bx - draft.ax || 1) * width;
+            draft.by = draft.ay + Math.sign(draft.by - draft.ay || 1) * height;
+        } else if (drawTool === 'circle' || drawTool === 'polygon') {
+            const radius = Math.max(0, value * scale);
+            const direction = Math.atan2(draft.by - draft.ay, draft.bx - draft.ax);
+            draft.bx = draft.ax + Math.cos(direction) * radius;
+            draft.by = draft.ay + Math.sin(direction) * radius;
+        } else if (drawTool === 'line' || polyline || arc) {
+            const length = key === 'length' ? Math.max(0, value * scale) : Math.hypot(draft.bx - draft.ax, draft.by - draft.ay);
+            const angle = key === 'angle' ? (value * Math.PI) / 180 : Math.atan2(draft.by - draft.ay, draft.bx - draft.ax);
+            draft.bx = draft.ax + Math.cos(angle) * length;
+            draft.by = draft.ay + Math.sin(angle) * length;
+        }
+        if (polyline || arc) cursorRef.current = { x: draft.bx, y: draft.by };
+        else draftRef.current = draft;
+        forceTick();
+    };
+
+    const onDraftDimensionCommit = () => {
+        if (drawTool === 'arc' && clicksRef.current.length === 1 && cursorRef.current) {
+            clicksRef.current = [...clicksRef.current, cursorRef.current];
+            cursorRef.current = defaultArcBulgePoint(clicksRef.current[0], clicksRef.current[1]);
+            forceTick();
+            return;
+        }
+        if (drawTool === 'arc' && clicksRef.current.length >= 2 && cursorRef.current) {
+            const points = arcPoints3(clicksRef.current[0], cursorRef.current, clicksRef.current[1]);
+            clicksRef.current = [];
+            cursorRef.current = null;
+            if (points) onCommitLoop(points);
+            forceTick();
+            return;
+        }
+        if (drawTool === 'polyline') {
+            const chain = cursorRef.current
+                ? [...clicksRef.current, cursorRef.current]
+                : clicksRef.current;
+            if (chain.length >= 2) onCommitLoop(chain);
+            clicksRef.current = [];
+            cursorRef.current = null;
+            forceTick();
+            return;
+        }
+        const draft = draftRef.current;
+        const anchor = pendingAnchorRef.current;
+        if (!draft || !anchor || !drawTool) return;
+        const points = draftPoints(
+            drawTool,
+            draft,
+            drawSides,
+            grid.snap ? grid.spacingMm : null,
+            polygonMode,
+        );
+        pendingAnchorRef.current = null;
+        draftRef.current = null;
+        if (points && points.length >= 2) {
+            const snapStep = grid.snap && grid.spacingMm > 0 ? grid.spacingMm : 0.1;
+            const snap = (coordinate: number) => Math.round(coordinate / snapStep) * snapStep;
+            const radius = Math.hypot(snap(draft.bx) - snap(anchor.x), snap(draft.by) - snap(anchor.y));
+            onCommitLoop(points, {
+                sourceType: drawTool,
+                ...(drawTool === 'circle' || drawTool === 'polygon' ? { radius } : {}),
+                ...(drawTool === 'polygon' ? { sides: Math.min(128, Math.max(3, Math.round(drawSides))), polygonMode } : {}),
+            });
+        }
+        forceTick();
+    };
+
+    const onDraftDimensionCancel = () => {
+        clicksRef.current = [];
+        cursorRef.current = null;
+        pendingAnchorRef.current = null;
+        draftRef.current = null;
+        forceTick();
+    };
 
     const chrome = darkMode
         ? 'bg-[#0b1220] border-robin-900'
@@ -531,6 +688,17 @@ export function CanvasStage({
                 bounds.maxX > stock.widthMm ||
                 bounds.maxY > stock.heightMm),
     );
+    const clearViewportInteraction = () => {
+        marqueeRef.current = null;
+        draftRef.current = null;
+        cursorRef.current = null;
+        trimHoverRef.current = null;
+        transformDragRef.current = null;
+        const canvas = canvasRef.current;
+        if (canvas) canvas.style.cursor = '';
+        renderRef.current();
+        forceTick();
+    };
 
     return (
         <div
@@ -560,7 +728,10 @@ export function CanvasStage({
                     className="block shrink-0 self-stretch"
                     style={{ width: RULER }}
                 />
-                <div className="relative flex-1 min-w-0">
+                <div
+                    className="relative flex-1 min-w-0"
+                    onMouseLeave={clearViewportInteraction}
+                >
                     <CanvasViewport
                         canvasRef={canvasRef}
                         viewRef={viewRef}
@@ -574,6 +745,7 @@ export function CanvasStage({
                         updateCursor={updateCursor}
                         zoomBy={zoomBy}
                         forceTick={forceTick}
+                        onViewportLeave={clearViewportInteraction}
                         onCommitLoop={onCommitLoop}
                         activeTool={activeTool}
                         onCommitText={onCommitText}
@@ -598,6 +770,7 @@ export function CanvasStage({
                             renderRef.current();
                         }}
                         onPlaceGuide={onPlaceGuide}
+                        onGuideDraftChange={onGuideDraftChange}
                         onCancelGuide={onCancelGuide}
                     />
                     <CanvasHud
@@ -605,10 +778,24 @@ export function CanvasStage({
                         darkMode={darkMode}
                         cursorRef={cursorRef}
                         guidePlacement={guidePlacement}
+                        guideDraft={guideDraft}
+                        camera={cameraRef.current}
+                        onCancelGuide={onCancelGuide}
+                        onGuideOffsetChange={(offset) => {
+                            if (guideDraft) {
+                                onGuideDraftChange({ ...guideDraft, offset });
+                                forceTick();
+                            }
+                        }}
                         units={units}
                         draftProgress={draftProgress}
                         progressPosition={pillPos}
                         draftDimension={draftDimension}
+                        onDraftDimensionChange={onDraftDimensionChange}
+                        onDraftDimensionCommit={onDraftDimensionCommit}
+                        onDraftDimensionCancel={onDraftDimensionCancel}
+                        onPolygonSidesChange={onPolygonSidesChange}
+                        onPolygonModeChange={onPolygonModeChange}
                         jobExceedsStock={jobExceedsStock}
                         onAdjustStock={onAdjustStock}
                         onZoom={zoomBy}

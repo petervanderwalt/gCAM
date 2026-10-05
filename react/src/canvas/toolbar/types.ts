@@ -3,6 +3,7 @@
  */
 import type { DrawTool } from '../../draw/geometry';
 import type { BooleanOperation } from '../../lib/engine';
+import type { Guide } from '../../lib/guides';
 import type { TransformMode } from '../../lib/transform';
 import type { UnitSystem } from '../../lib/units';
 
@@ -66,9 +67,9 @@ export interface CanvasToolbarProps {
     onSheetW: (v: number) => void;
     onSheetH: (v: number) => void;
     onApplyNest: () => void;
-    onAddGuide: (axis: 'x' | 'y') => void;
+    onAddGuide: () => void;
     onDeleteGuide: (id: string) => void;
-    guides: { id: string; axis: 'x' | 'y'; pos: number }[];
+    guides: Guide[];
     hasSelection: boolean;
     hasGeometry: boolean;
     onDuplicate: () => void;

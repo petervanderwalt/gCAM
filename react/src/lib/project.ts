@@ -41,8 +41,8 @@ export interface BitmapLike {
 
 export interface GuideLike {
     id: string;
-    axis: 'x' | 'y';
-    pos: number;
+    point: { x: number; y: number };
+    direction: { x: number; y: number };
 }
 
 export interface ProjectEnvelopeV1 {

@@ -64,6 +64,23 @@ test('parseDxf reads an LWPOLYLINE square', () => {
     expect(bounds.maxY).toBeCloseTo(20);
 });
 
+test('parseDxf preserves TEXT and MTEXT content and applies inline height', () => {
+    const dxf = [
+        '0', 'SECTION', '2', 'ENTITIES',
+        '0', 'TEXT', '10', '5', '20', '10', '40', '2', '1', 'A1',
+        '0', 'MTEXT', '10', '20', '20', '30', '40', '3', '71', '1',
+        '1', '\\H2x;Title\\PSecond line',
+        '0', 'ENDSEC', '0', 'EOF', '',
+    ].join('\n');
+    const entities = parseDxf(dxf);
+    expect(entities).toHaveLength(2);
+    expect(entities.map((entity) => entity.type)).toEqual(['CAD_TEXT', 'CAD_TEXT']);
+    expect(entities[1].text).toBe('Title\nSecond line');
+    expect(entities[1].height).toBe(6);
+    expect(entities[1].fontStyle).toBe('');
+    expect(entities[1].strokes).toEqual([]);
+});
+
 test('buildLoops closes the square with correct area and perimeter', () => {
     const entities = parseDxf(SQUARE_DXF);
     const loops = buildLoops(entities);

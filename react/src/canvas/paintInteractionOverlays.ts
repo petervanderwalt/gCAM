@@ -1,9 +1,10 @@
 /**
  * Purpose: Implementation module for paintInteractionOverlays in the react domain.
  */
-import { cubicBezierPoints, type DrawTool } from '../draw/geometry';
+import { arcPoints3, cubicBezierPoints, draftPoints, type DrawTool, type Draft } from '../draw/geometry';
 import { dogboneCorner, filletCorner } from '../lib/corners';
 import type { TransformMode } from '../lib/transform';
+import type { Guide } from '../lib/guides';
 import {
     applyDragPreview,
     selectionFrame,
@@ -34,13 +35,16 @@ interface PaintInteractionOverlaysOptions {
     clicks: Point[];
     cursor: Point | null;
     drawTool: DrawTool;
+    draft?: Draft | null;
+    drawSides?: number;
+    polygonMode?: 'inscribed' | 'circumscribed';
     grid: {
         visible: boolean;
         spacingMm: number;
         snap: boolean;
         style: 'lines' | 'dots';
     };
-    guides: { id: string; axis: 'x' | 'y'; pos: number }[];
+    guides: Guide[];
 }
 
 /** Paints transient interaction feedback after the persistent scene frame. */
@@ -66,9 +70,27 @@ export function paintSelectionFeedback(
 
 /** Draft draw chain, bezier construction and endpoint snap feedback. */
 export function paintDrawingFeedback(options: PaintInteractionOverlaysOptions) {
+    paintShapeDraft(options);
     paintClickChain(options);
     paintBezierPreview(options);
     paintSnapMarker(options);
+}
+
+function paintShapeDraft({ ctx, camera, darkMode, drawTool, draft, drawSides, polygonMode, grid }: PaintInteractionOverlaysOptions) {
+    if (!draft || !drawTool || !['line', 'rectangle', 'circle', 'polygon'].includes(drawTool)) return;
+    const points = draftPoints(drawTool, draft, drawSides, grid.snap ? grid.spacingMm : null, polygonMode);
+    if (!points || points.length < 2) return;
+    const screen = points.map((point) => toScreen(camera, point));
+    ctx.save();
+    ctx.strokeStyle = (darkMode ? DARK_CANVAS_THEME : LIGHT_CANVAS_THEME).chain;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(screen[0].x, screen[0].y);
+    for (const point of screen.slice(1)) ctx.lineTo(point.x, point.y);
+    if (drawTool !== 'line') ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
 }
 
 function toScreen(camera: Camera, point: Point) {
@@ -190,9 +212,32 @@ function paintClickChain({
     darkMode,
     clicks,
     cursor,
+    drawTool,
 }: PaintInteractionOverlaysOptions) {
     if (!clicks.length) return;
     const color = darkMode ? DARK_CANVAS_THEME.chain : LIGHT_CANVAS_THEME.chain;
+    if (drawTool === 'arc' && clicks.length >= 2 && cursor) {
+        const arc = arcPoints3(clicks[0], cursor, clicks[1]);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        if (arc) strokePoints(ctx, arc, (x, y) => toScreen(camera, { x, y }));
+        const start = toScreen(camera, clicks[0]);
+        const end = toScreen(camera, clicks[1]);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        for (const point of clicks) {
+            const screen = toScreen(camera, point);
+            ctx.fillRect(screen.x - 2.5, screen.y - 2.5, 5, 5);
+        }
+        return;
+    }
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 4]);

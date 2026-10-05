@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ToolpathStackEntry } from './useToolpathStack';
 
 await jest.unstable_mockModule('./ToolpathPanel', () => ({
@@ -54,18 +54,33 @@ function makeProps(
         rebuildEntryTabs: jest.fn(),
         confirm: jest.fn(async () => true),
         showToast: jest.fn(),
+        onImportFile: jest.fn(),
         ...overrides,
     } as ComponentProps<typeof ToolpathRail>;
 }
 
 test('shows stock, the committed list, tabs and G-code export when nothing is selected', () => {
-    render(<ToolpathRail {...makeProps()} />);
+    const onImportFile = jest.fn();
+    render(<ToolpathRail {...makeProps({ onImportFile })} />);
 
-    expect(screen.getByText('Job Setup & Toolpaths')).toBeInTheDocument();
     expect(screen.getByText('Stock setup')).toBeInTheDocument();
     expect(
-        screen.getByRole('heading', { name: 'Job toolpaths (0)' }),
+        screen.getByRole('heading', { name: 'Start with a design' }),
     ).toBeInTheDocument();
+    expect(
+        screen.getByRole('heading', { name: 'Start with a design' })
+            .parentElement,
+    ).toHaveClass('mt-1', 'mb-1');
+    expect(
+        screen.getByRole('button', { name: 'Import a file' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Import a file' }));
+    expect(onImportFile).toHaveBeenCalledTimes(1);
+    const jobToolpathsHeading = screen.getByRole('heading', {
+        name: 'Job toolpaths (0)',
+    });
+    expect(jobToolpathsHeading).toBeInTheDocument();
+    expect(jobToolpathsHeading.closest('section')).toHaveClass('mt-1');
     expect(
         screen.getByRole('button', { name: 'Add a Tab' }),
     ).toBeInTheDocument();
@@ -81,17 +96,82 @@ test('shows stock, the committed list, tabs and G-code export when nothing is se
     expect(screen.queryByText('Toolpath editor')).not.toBeInTheDocument();
 });
 
-test('keeps job stock accessible alongside toolpath setup for selected geometry', () => {
+test('hides job stock and removes the setup title while configuring selected geometry', () => {
     render(<ToolpathRail {...makeProps({ selected: ['vector-1'] })} />);
 
-    expect(screen.getByText('Toolpath Setup')).toBeInTheDocument();
     expect(screen.getByText('Toolpath editor')).toBeInTheDocument();
-    expect(screen.getByText('Stock setup')).toBeInTheDocument();
+    expect(screen.queryByText('Stock setup')).not.toBeInTheDocument();
+    expect(screen.queryByText('Toolpath Setup')).not.toBeInTheDocument();
+    expect(
+        screen.queryByRole('heading', { name: 'Start with a design' }),
+    ).not.toBeInTheDocument();
     expect(
         screen.queryByRole('heading', { name: /Job toolpaths/ }),
     ).not.toBeInTheDocument();
     expect(
         screen.queryByRole('button', { name: 'Export G-code' }),
+    ).not.toBeInTheDocument();
+});
+
+test('clearing the canvas selection removes the uncommitted preview and progress', () => {
+    const setDraftPreview = jest.fn();
+    const setDraftProgress = jest.fn();
+    const { rerender } = render(
+        <ToolpathRail
+            {...makeProps({
+                loops: [{ id: 'vector-1', points: [] }] as never,
+                selected: ['vector-1'],
+                setDraftPreview,
+                setDraftProgress,
+            })}
+        />,
+    );
+
+    rerender(
+        <ToolpathRail
+            {...makeProps({
+                loops: [{ id: 'vector-1', points: [] }] as never,
+                setDraftPreview,
+                setDraftProgress,
+            })}
+        />,
+    );
+
+    expect(setDraftPreview).toHaveBeenCalledWith([]);
+    expect(setDraftProgress).toHaveBeenCalledWith(null);
+});
+
+test('hides the import callout when the workspace contains a bitmap or toolpath', () => {
+    const bitmap = { id: 'bitmap-1', x: 0, y: 0, w: 10, h: 10 };
+    const { rerender } = render(
+        <ToolpathRail {...makeProps({ bitmaps: [bitmap] })} />,
+    );
+    expect(
+        screen.queryByRole('heading', { name: 'Start with a design' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+        <ToolpathRail
+            {...makeProps({
+                stack: [
+                    {
+                        id: 'path-1',
+                        label: 'Pocket',
+                        args: {
+                            loops: [],
+                            operation: 'profile-outside',
+                            toolDiameter: 6,
+                            cutDepth: 1,
+                        },
+                        preview: [],
+                        toolpath: {},
+                    },
+                ],
+            })}
+        />,
+    );
+    expect(
+        screen.queryByRole('heading', { name: 'Start with a design' }),
     ).not.toBeInTheDocument();
 });
 
@@ -114,9 +194,9 @@ test('shows only the edited toolpath and hides the created list while editing', 
         />,
     );
 
-    expect(screen.getByText('Edit Outside Profile')).toBeInTheDocument();
     expect(screen.getByText('Toolpath editor')).toBeInTheDocument();
-    expect(screen.getByText('Stock setup')).toBeInTheDocument();
+    expect(screen.queryByText('Edit Outside Profile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Stock setup')).not.toBeInTheDocument();
     expect(
         screen.queryByRole('heading', { name: /Job toolpaths/ }),
     ).not.toBeInTheDocument();

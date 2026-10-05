@@ -50,11 +50,14 @@ export interface WorkspaceModelOptions {
         | 'onMoveTab'
         | 'onDeleteTab'
         | 'onPlaceGuide'
+        | 'onGuideDraftChange'
         | 'onCancelGuide'
         | 'onCommitLoop'
         | 'onTrimAt'
         | 'onTrimStroke'
         | 'onCommitText'
+        | 'onPolygonSidesChange'
+        | 'onPolygonModeChange'
         | 'onTransformCommit'
         | 'onFilletCorner'
         | 'onAdjustStock'
@@ -119,6 +122,7 @@ export function createWorkspaceModel(
                 stock: options.previewWorkspaceProps.stock,
                 guides: options.document.guides,
                 guidePlacement: options.drawing.guidePlacement,
+                guideDraft: options.drawing.guideDraft,
                 bitmaps: options.document.bitmaps,
                 hidden: options.document.hidden,
                 transformMode: options.transforms.transformMode,

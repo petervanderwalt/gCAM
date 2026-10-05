@@ -44,7 +44,7 @@ export function EmptyCanvasPrompt({
                     disabled={loadingSample}
                     className="mt-1 rounded border border-transparent px-2 py-1 text-xs text-slate-500 hover:border-slate-300 hover:text-slate-700 disabled:opacity-40 dark:text-slate-400 dark:hover:border-robin-900 dark:hover:text-slate-200"
                 >
-                    {loadingSample ? 'Loading…' : 'Try Sample Vector'}
+                    {loadingSample ? 'Loading…' : 'Try Tic-Tac-Toe Sample'}
                 </button>
             </div>
         </div>

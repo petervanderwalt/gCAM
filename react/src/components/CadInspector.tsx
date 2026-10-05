@@ -65,6 +65,7 @@ export function CadInspector({
     const [text, setText] = useState(loop.text ?? 'TEXT');
     const [fontId, setFontId] = useState(loop.fontId ?? 'single-line');
     const [fontSize, setFontSize] = useState(loop.fontSize ?? h);
+    const [dirty, setDirty] = useState(false);
     const currentPatch = (): InspectorPatch => ({
         x,
         y,
@@ -80,6 +81,10 @@ export function CadInspector({
     });
 
     useEffect(() => {
+        if (!dirty) {
+            onPreview?.(null);
+            return;
+        }
         onPreview?.(currentPatch());
         return () => onPreview?.(null);
     }, [
@@ -94,6 +99,7 @@ export function CadInspector({
         text,
         fontId,
         fontSize,
+        dirty,
     ]);
 
     const numCls =
@@ -125,7 +131,7 @@ export function CadInspector({
                         units={units}
                         stepMm={0.1}
                         valueMm={x}
-                        onChangeMm={setX}
+                        onChangeMm={(value) => { setDirty(true); setX(value); }}
                         className={numCls}
                     />
                 </label>
@@ -137,36 +143,40 @@ export function CadInspector({
                         units={units}
                         stepMm={0.1}
                         valueMm={y}
-                        onChangeMm={setY}
+                        onChangeMm={(value) => { setDirty(true); setY(value); }}
                         className={numCls}
                     />
                 </label>
-                <label className="space-y-1">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Width ({lengthUnit(units)})
-                    </span>
-                    <UnitInput
-                        units={units}
-                        stepMm={0.1}
-                        minMm={0.01}
-                        valueMm={width}
-                        onChangeMm={setWidth}
-                        className={numCls}
-                    />
-                </label>
-                <label className="space-y-1">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Height ({lengthUnit(units)})
-                    </span>
-                    <UnitInput
-                        units={units}
-                        stepMm={0.1}
-                        minMm={0.01}
-                        valueMm={height}
-                        onChangeMm={setHeight}
-                        className={numCls}
-                    />
-                </label>
+                {!isPolygon && (
+                    <>
+                        <label className="space-y-1">
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Width ({lengthUnit(units)})
+                            </span>
+                            <UnitInput
+                                units={units}
+                                stepMm={0.1}
+                                minMm={0.01}
+                                valueMm={width}
+                                onChangeMm={(value) => { setDirty(true); setWidth(value); }}
+                                className={numCls}
+                            />
+                        </label>
+                        <label className="space-y-1">
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Height ({lengthUnit(units)})
+                            </span>
+                            <UnitInput
+                                units={units}
+                                stepMm={0.1}
+                                minMm={0.01}
+                                valueMm={height}
+                                onChangeMm={(value) => { setDirty(true); setHeight(value); }}
+                                className={numCls}
+                            />
+                        </label>
+                    </>
+                )}
                 <label className="space-y-1 col-span-2">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
                         Angle (°)
@@ -175,7 +185,7 @@ export function CadInspector({
                         type="number"
                         step={0.1}
                         value={deg}
-                        onChange={(e) => setDeg(Number(e.target.value))}
+                        onChange={(e) => { setDirty(true); setDeg(Number(e.target.value)); }}
                         className={numCls}
                     />
                 </label>
@@ -189,7 +199,7 @@ export function CadInspector({
                             stepMm={0.1}
                             minMm={0.01}
                             valueMm={radius}
-                            onChangeMm={setRadius}
+                            onChangeMm={(value) => { setDirty(true); setRadius(value); }}
                             className={numCls}
                         />
                     </label>
@@ -205,18 +215,19 @@ export function CadInspector({
                             min={3}
                             max={128}
                             value={sides}
-                            onChange={(e) => setSides(Number(e.target.value))}
+                            onChange={(e) => { setDirty(true); setSides(Number(e.target.value)); }}
                             className={numCls}
                         />
                         <select
                             value={polygonMode}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                                setDirty(true);
                                 setPolygonMode(
                                     e.target.value as
                                         | 'inscribed'
                                         | 'circumscribed',
-                                )
-                            }
+                                );
+                            }}
                             className={numCls}
                         >
                             <option value="inscribed">Inscribed</option>
@@ -232,7 +243,7 @@ export function CadInspector({
                             </span>
                             <input
                                 value={text}
-                                onChange={(e) => setText(e.target.value)}
+                                onChange={(e) => { setDirty(true); setText(e.target.value); }}
                                 className={numCls}
                             />
                         </label>
@@ -242,7 +253,7 @@ export function CadInspector({
                             </span>
                             <select
                                 value={fontId}
-                                onChange={(e) => setFontId(e.target.value)}
+                                onChange={(e) => { setDirty(true); setFontId(e.target.value); }}
                                 className={numCls}
                             >
                                 {FONT_OPTIONS.map((font) => (
@@ -261,7 +272,7 @@ export function CadInspector({
                                 minMm={1}
                                 stepMm={0.1}
                                 valueMm={fontSize}
-                                onChangeMm={setFontSize}
+                                onChangeMm={(value) => { setDirty(true); setFontSize(value); }}
                                 className={numCls}
                             />
                         </label>

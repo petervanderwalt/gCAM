@@ -786,6 +786,19 @@ export function ToolpathPanel({
     // form values directly so a preview renders even before a tool slot
     // is configured.
     const draftToken = useRef(0);
+    const draftCallbacksRef = useRef({ onDraftPreview, onDraftProgress });
+    draftCallbacksRef.current = { onDraftPreview, onDraftProgress };
+    useEffect(
+        () => () => {
+            // The panel unmounts when the user clears the canvas selection.
+            // Invalidate any in-flight worker response so it cannot restore
+            // the now-stale draft after the rail has been reset.
+            draftToken.current += 1;
+            draftCallbacksRef.current.onDraftPreview?.(null);
+            draftCallbacksRef.current.onDraftProgress?.(null);
+        },
+        [],
+    );
     const [draftError, setDraftError] = useState<string | null>(null);
     const solidDraftPreview =
         operation === 'laser-raster' ||

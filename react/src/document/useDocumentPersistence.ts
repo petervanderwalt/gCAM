@@ -27,6 +27,7 @@ interface UseDocumentPersistenceOptions {
     guides: Guide[];
     stock: JobStock;
     fileName: string;
+    onFitView(): void;
     restore(snapshot: AppSnapshot): void;
     setBitmaps: Dispatch<SetStateAction<PlacedBitmapRecord[]>>;
     setFileName: Dispatch<SetStateAction<string>>;
@@ -44,6 +45,7 @@ export function useDocumentPersistence({
     guides,
     stock,
     fileName,
+    onFitView,
     restore,
     setBitmaps,
     setFileName,
@@ -74,6 +76,7 @@ export function useDocumentPersistence({
                     guides: recovery.snapshot.guides,
                     stock: normalizeJobStock(recovery.snapshot.stock),
                 });
+                onFitView();
                 setFileName(recovery.snapshot.fileName);
                 setStatus('Recovered the last local project.');
             })

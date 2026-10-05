@@ -2,8 +2,11 @@
  * Tests: rectangle draft closes the box; line draft returns both endpoints snapped; circle draft is a 72-segment loop of the right radius; polygon draft honors side count and closes; and related cases.
  */
 import {
+    arcBulgeDistance,
     arcPoints3,
+    arcSweepDegrees,
     cubicBezierPoints,
+    defaultArcBulgePoint,
     draftPoints,
     snapToEndpoints,
 } from './geometry';
@@ -29,6 +32,21 @@ test('circle draft is a 72-segment loop of the right radius', () => {
     expect(pts).toHaveLength(73);
     // click center (0,0) then edge (20,0): radius 20, angle-0 point (20,0)
     expect(pts?.[0]).toEqual({ x: 20, y: 0 });
+});
+
+test('grid snapping preserves a mathematically circular perimeter', () => {
+    const center = { x: 10, y: 20 };
+    const radius = 20;
+    const pts = draftPoints(
+        'circle',
+        { ax: center.x, ay: center.y, bx: center.x + radius, by: center.y },
+        6,
+        10,
+    );
+    expect(pts).toHaveLength(73);
+    for (const point of pts ?? []) {
+        expect(Math.hypot(point.x - center.x, point.y - center.y)).toBeCloseTo(radius, 8);
+    }
 });
 
 test('polygon draft honors side count and closes', () => {
@@ -90,6 +108,20 @@ test('collinear arc points return null', () => {
     expect(
         arcPoints3({ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 10, y: 0 }),
     ).toBeNull();
+});
+
+test('arc chord bulge controls calculate distance and major sweep', () => {
+    const start = { x: 0, y: 0 };
+    const end = { x: 200, y: 0 };
+    const defaultBulge = defaultArcBulgePoint(start, end);
+    expect(defaultBulge).toEqual({ x: 100, y: 40 });
+    expect(arcBulgeDistance(start, end, defaultBulge)).toBeCloseTo(40);
+    expect(arcSweepDegrees(start, end, defaultBulge)).toBeCloseTo(87.2, 0);
+
+    const majorBulge = { x: 100, y: 128 };
+    expect(arcSweepDegrees(start, end, majorBulge)).toBeCloseTo(208, 0);
+    const arc = arcPoints3(start, majorBulge, end);
+    expect(Math.max(...(arc ?? []).map((point) => point.y))).toBeGreaterThan(100);
 });
 test('cubic bezier starts/ends on its anchors', () => {
     const pts = cubicBezierPoints(

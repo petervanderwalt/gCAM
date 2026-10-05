@@ -24,6 +24,44 @@ export interface DraftPoint {
     y: number;
 }
 
+/** Default arc control point offset to the left of the start-to-end chord. */
+export function defaultArcBulgePoint(start: DraftPoint, end: DraftPoint): DraftPoint {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy);
+    if (length < 1e-8) return { ...end };
+    const height = Math.max(length * 0.2, 1);
+    return {
+        x: (start.x + end.x) / 2 - (dy / length) * height,
+        y: (start.y + end.y) / 2 + (dx / length) * height,
+    };
+}
+
+/** Perpendicular distance of a bulge point from the chord. */
+export function arcBulgeDistance(
+    start: DraftPoint,
+    end: DraftPoint,
+    bulge: DraftPoint,
+): number {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const chord = Math.hypot(dx, dy);
+    if (chord < 1e-8) return 0;
+    const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    return Math.abs(dx * (bulge.y - midpoint.y) - dy * (bulge.x - midpoint.x)) / chord;
+}
+
+/** Included angle in degrees represented by chord and sagitta. */
+export function arcSweepDegrees(
+    start: DraftPoint,
+    end: DraftPoint,
+    bulge: DraftPoint,
+): number {
+    const chord = Math.hypot(end.x - start.x, end.y - start.y);
+    if (chord < 1e-8) return 0;
+    return (4 * Math.atan((2 * arcBulgeDistance(start, end, bulge)) / chord) * 180) / Math.PI;
+}
+
 /** Shape points for a click-click draft, snapped to grid (or 0.1mm).
  *  Null when degenerate. Semantics mirror camcanvas: rectangle takes
  *  opposite corners; circle/polygon take center + edge. */
@@ -40,6 +78,7 @@ export function draftPoints(
         const rounded = Math.round(v / step) * step;
         return rounded === 0 ? 0 : rounded;
     };
+    const clean = (v: number) => (Math.abs(v) < 1e-10 ? 0 : v);
     const ax = snap(draft.ax);
     const ay = snap(draft.ay);
     const bx = snap(draft.bx);
@@ -73,13 +112,14 @@ export function draftPoints(
         const firstAngle =
             base + (polygonMode === 'circumscribed' ? Math.PI / n : 0);
         const pts: DraftPoint[] = [];
-        for (let i = 0; i <= n; i += 1) {
+        for (let i = 0; i < n; i += 1) {
             const a = firstAngle + (i / n) * Math.PI * 2;
             pts.push({
-                x: snap(ax + Math.cos(a) * vertexRadius),
-                y: snap(ay + Math.sin(a) * vertexRadius),
+                x: clean(ax + Math.cos(a) * vertexRadius),
+                y: clean(ay + Math.sin(a) * vertexRadius),
             });
         }
+        pts.push({ ...pts[0] });
         return pts;
     }
     if (tool !== 'circle' && tool !== 'bezier') return null;
@@ -89,13 +129,17 @@ export function draftPoints(
         return null;
     }
     const pts: DraftPoint[] = [];
-    for (let i = 0; i <= 72; i += 1) {
+    for (let i = 0; i < 72; i += 1) {
         const a = (i / 72) * Math.PI * 2;
+        // Snap the center and radius endpoints above, not every generated
+        // perimeter sample. Snapping samples independently turns circles
+        // into visibly faceted/grid-aligned shapes.
         pts.push({
-            x: snap(ax + Math.cos(a) * r),
-            y: snap(ay + Math.sin(a) * r),
+            x: clean(ax + Math.cos(a) * r),
+            y: clean(ay + Math.sin(a) * r),
         });
     }
+    pts.push({ ...pts[0] });
     return pts;
 }
 /** Cubic bezier through 4 control clicks (camcanvas bezier tool). */

@@ -1,12 +1,7 @@
 /**
  * Purpose: React hook that owns the CanvasViewportCommands workflow.
  */
-import {
-    useEffect,
-    useRef,
-    type MutableRefObject,
-    type RefObject,
-} from 'react';
+import { useEffect, type MutableRefObject, type RefObject } from 'react';
 import { fitCamera } from './camera';
 import type { CanvasViewState } from './stageViewState';
 import type { Camera } from './types';
@@ -20,9 +15,6 @@ interface CanvasViewportCommandOptions {
     canvasRef: RefObject<HTMLCanvasElement>;
     cameraRef: MutableRefObject<Camera>;
     viewRef: MutableRefObject<CanvasViewState>;
-    bounds: CanvasViewState['bounds'];
-    loopCount: number;
-    preserveViewToken?: number;
     viewportCommand?: ViewportCommand;
     repaint: () => void;
 }
@@ -33,15 +25,9 @@ export function useCanvasViewportCommands({
     canvasRef,
     cameraRef,
     viewRef,
-    bounds,
-    loopCount,
-    preserveViewToken,
     viewportCommand,
     repaint,
 }: CanvasViewportCommandOptions) {
-    const preserveViewTokenRef = useRef(preserveViewToken ?? 0);
-    const repaintRef = useRef(repaint);
-    repaintRef.current = repaint;
     const zoomBy = (factor: number, cx?: number, cy?: number) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -67,20 +53,6 @@ export function useCanvasViewportCommands({
         cameraRef.current = fitCamera(viewBounds, rect.width, rect.height);
         repaint();
     };
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas || !bounds) return;
-        if (preserveViewTokenRef.current !== (preserveViewToken ?? 0)) {
-            preserveViewTokenRef.current = preserveViewToken ?? 0;
-            repaintRef.current();
-            return;
-        }
-        const rect = canvas.parentElement?.getBoundingClientRect();
-        if (!rect) return;
-        cameraRef.current = fitCamera(bounds, rect.width, rect.height);
-        repaintRef.current();
-    }, [bounds, loopCount, preserveViewToken, canvasRef, cameraRef]);
 
     useEffect(() => {
         if (!viewportCommand) return;

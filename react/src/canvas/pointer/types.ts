@@ -5,6 +5,7 @@ import type React from 'react';
 import type { DrawTool } from '../../draw/geometry';
 import type { TransformCommit, TransformMode } from '../../lib/transform';
 import type { CornerHover, TransformDragState } from '../selectionGeometry';
+import type { Guide, GuideDraft, GuidePlacement } from '../../lib/guides';
 import type {
     Camera,
     LoopMeta,
@@ -39,8 +40,9 @@ export type CanvasView = {
         snap: boolean;
         style: 'lines' | 'dots';
     };
-    guides: { id: string; axis: 'x' | 'y'; pos: number }[];
-    guidePlacement: 'x' | 'y' | null;
+    guides: Guide[];
+    guidePlacement: 'edge' | null;
+    guideDraft: GuideDraft | null;
     transformMode: TransformMode | null;
     cornerTool: 'fillet' | 'dogbone' | null;
     cornerRadius: number;
@@ -72,6 +74,7 @@ export type CanvasPointerControllerProps = {
     updateCursor: (event: React.MouseEvent) => void;
     zoomBy: (factor: number, cx?: number, cy?: number) => void;
     forceTick: () => void;
+    onViewportLeave: () => void;
     onCommitLoop: (points: Point[], meta?: LoopMeta) => void;
     activeTool: Tool;
     onTrimAt?: (point: Point) => void;
@@ -80,7 +83,8 @@ export type CanvasPointerControllerProps = {
     onTrimHover: (
         hover: { loopId: string; segmentIndex: number } | null,
     ) => void;
-    onPlaceGuide: (axis: 'x' | 'y', position: number) => void;
+    onPlaceGuide: (guide: GuidePlacement) => void;
+    onGuideDraftChange: (draft: GuideDraft | null) => void;
     onCancelGuide: () => void;
     onCommitText: (at: Point) => void;
     onSelect: (ids: string[]) => void;

@@ -4,6 +4,11 @@ import type { CanvasPointerControllerProps } from './types';
 
 function selectionDeps(selected: string[], onSelect: (ids: string[]) => void) {
     return {
+        canvasRef: {
+            current: {
+                getBoundingClientRect: () => ({ left: 0, top: 0 }),
+            },
+        },
         cameraRef: { current: { tx: 0, ty: 100, scale: 1 } },
         viewRef: {
             current: {
@@ -33,6 +38,7 @@ function selectionDeps(selected: string[], onSelect: (ids: string[]) => void) {
                 ],
                 hidden: [],
                 selected,
+                bitmaps: [],
             },
         },
         onSelect,
@@ -56,6 +62,39 @@ test('shift-marquee drops previously selected 3D models and keeps vector selecti
     finishSelection(
         { shiftKey: true } as React.MouseEvent<HTMLCanvasElement>,
         selectionDeps(['model-1', 'vector-1'], onSelect),
+        null,
+        { x0: 0, y0: 0, x1: 100, y1: 100 },
+    );
+    expect(onSelect).toHaveBeenCalledWith(['vector-1', 'vector-2']);
+});
+
+test('control-clicking empty space preserves the current selection', () => {
+    const onSelect = jest.fn();
+    finishSelection(
+        {
+            button: 0,
+            clientX: 100,
+            clientY: 100,
+            ctrlKey: true,
+            shiftKey: false,
+            metaKey: false,
+        } as React.MouseEvent<HTMLCanvasElement>,
+        selectionDeps(['vector-1'], onSelect),
+        { x: 100, y: 100 },
+        null,
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+});
+
+test('control-marquee adds to the current selection', () => {
+    const onSelect = jest.fn();
+    finishSelection(
+        {
+            ctrlKey: true,
+            shiftKey: false,
+            metaKey: false,
+        } as React.MouseEvent<HTMLCanvasElement>,
+        selectionDeps(['vector-1'], onSelect),
         null,
         { x0: 0, y0: 0, x1: 100, y1: 100 },
     );

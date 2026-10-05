@@ -27,6 +27,7 @@ interface Options {
     expandedSelectedIds: () => string[];
     confirm: ReturnType<typeof useConfirmation>['confirm'];
     setStatus: Dispatch<SetStateAction<string>>;
+    onFitView(): void;
     setDraftPreview: Dispatch<SetStateAction<{ x: number; y: number }[][]>>;
     setEmptyStateDismissed: Dispatch<SetStateAction<boolean>>;
     setDraftProgress: Dispatch<
@@ -45,6 +46,7 @@ export function useDocumentEditingCommands({
     expandedSelectedIds,
     confirm,
     setStatus,
+    onFitView,
     setDraftPreview,
     setEmptyStateDismissed,
     setDraftProgress,
@@ -96,7 +98,10 @@ export function useDocumentEditingCommands({
         setStatus,
         pushHistory,
         newLoopId,
-        onLoadedBounds: refreshBounds,
+        onLoadedBounds: (loadedLoops) => {
+            refreshBounds(loadedLoops);
+            onFitView();
+        },
     });
 
     const trim = useTrimCommands<ViewLoop, ToolpathStackEntry>({

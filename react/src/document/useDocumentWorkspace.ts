@@ -104,6 +104,7 @@ export function useDocumentWorkspace({
         guides,
         stock,
         fileName,
+        onFitView,
         restore,
         setBitmaps,
         setFileName,

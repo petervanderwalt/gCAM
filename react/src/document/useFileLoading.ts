@@ -31,13 +31,13 @@ export function useFileLoading(options: UseFileLoadingOptions) {
 
     const handleLoadSample = async () => {
         options.setLoadingSample(true);
-        options.setStatus('Loading sample vector…');
+        options.setStatus('Loading Tic-Tac-Toe sample…');
         try {
-            const response = await fetch('samples/Hockey Sticks Cut 1.dxf');
+            const response = await fetch('samples/TicTacToe.dxf');
             if (!response.ok) throw new Error('Sample not found.');
             const text = await response.text();
             await handleFiles([
-                new File([text], 'Hockey Sticks Cut 1.dxf', {
+                new File([text], 'TicTacToe.dxf', {
                     type: 'application/dxf',
                 }),
             ]);

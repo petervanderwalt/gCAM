@@ -2,18 +2,28 @@
  * Purpose: Implementation module for ToolbarCommands in the canvas domain.
  */
 import {
+    ArrowLeftRight,
+    ArrowUpRight,
+    Circle,
     Copy,
     Expand,
+    Hexagon,
+    Minus,
     MousePointer2,
     Move,
     PenTool,
     Redo2,
+    Ruler,
     RotateCw,
     Scissors,
+    Spline,
+    Square,
     Trash2,
+    Type,
     Undo2,
 } from 'lucide-react';
 import cx from 'classnames';
+import type { ReactNode } from 'react';
 import type { DrawTool } from '../../draw/geometry';
 import {
     ToolbarMenu,
@@ -23,15 +33,15 @@ import {
 import { toolbarButton, toolbarButtonActive } from './styles';
 import type { CanvasToolbarProps, ToolbarAction } from './types';
 
-const drawTools: { value: NonNullable<DrawTool>; label: string }[] = [
-    { value: 'line', label: 'Line' },
-    { value: 'rectangle', label: 'Rectangle' },
-    { value: 'polygon', label: 'Polygon' },
-    { value: 'circle', label: 'Circle' },
-    { value: 'arc', label: 'Arc' },
-    { value: 'bezier', label: 'Bezier' },
-    { value: 'polyline', label: 'Polyline' },
-    { value: 'text', label: 'Text' },
+const drawTools: { value: NonNullable<DrawTool>; label: string; icon: ReactNode }[] = [
+    { value: 'line', label: 'Line', icon: <ArrowLeftRight size={16} /> },
+    { value: 'rectangle', label: 'Rectangle', icon: <Square size={16} /> },
+    { value: 'polygon', label: 'Polygon', icon: <Hexagon size={16} /> },
+    { value: 'circle', label: 'Circle', icon: <Circle size={16} /> },
+    { value: 'arc', label: 'Arc', icon: <ArrowUpRight size={16} /> },
+    { value: 'bezier', label: 'Bezier', icon: <Spline size={16} /> },
+    { value: 'polyline', label: 'Polyline', icon: <Minus size={16} /> },
+    { value: 'text', label: 'Text', icon: <Type size={16} /> },
 ];
 
 interface ToolbarCommandsProps {
@@ -128,6 +138,7 @@ export function ToolbarCommands({ props, open, close }: ToolbarCommandsProps) {
                     <ToolbarMenuItem
                         key={tool.value}
                         label={tool.label}
+                        icon={tool.icon}
                         active={props.drawTool === tool.value}
                         onClick={() => {
                             props.onDrawTool(tool.value);
@@ -136,12 +147,12 @@ export function ToolbarCommands({ props, open, close }: ToolbarCommandsProps) {
                     />
                 ))}
                 <ToolbarMenuItem
-                    label="Vertical Guide"
-                    onClick={() => props.onAddGuide('x')}
-                />
-                <ToolbarMenuItem
-                    label="Horizontal Guide"
-                    onClick={() => props.onAddGuide('y')}
+                    label="Guide"
+                    icon={<Ruler size={16} />}
+                    onClick={() => {
+                        props.onAddGuide();
+                        close();
+                    }}
                 />
             </ToolbarMenu>
             <ToolbarSeparator />

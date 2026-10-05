@@ -349,10 +349,10 @@ export default function App() {
 
     const { startGuidePlacement, placeGuide, handleDeleteGuide } =
         useGuideCommands({
-            formatLength,
             pushHistory,
             setGuides,
             setGuidePlacement,
+            setGuideDraft: drawing.setGuideDraft,
             setStatus,
         });
 
@@ -401,6 +401,7 @@ export default function App() {
         expandedSelectedIds,
         confirm,
         setStatus,
+        onFitView: () => setViewportCommand({ type: 'fit', token: Date.now() }),
         setDraftPreview,
         setEmptyStateDismissed,
         setDraftProgress,
@@ -431,7 +432,10 @@ export default function App() {
         hasSelection: selected.length > 0,
         setActiveTool: () => setActiveTool('select'),
         clearTransform: () => setTransformMode(null),
-        clearGuidePlacement: () => setGuidePlacement(null),
+        clearGuidePlacement: () => {
+            setGuidePlacement(null);
+            drawing.setGuideDraft(null);
+        },
         fitViewport: () =>
             setViewportCommand({ type: 'fit', token: Date.now() }),
         undo,
@@ -477,7 +481,11 @@ export default function App() {
             applyOffset: handleOffset,
             applyBoolean: handleBoolean,
             applyNest: handleNest,
-            addGuide: startGuidePlacement,
+            addGuide: () => {
+                drawing.setDrawTool(null);
+                drawing.setActiveTool('select');
+                startGuidePlacement();
+            },
             deleteGuide: handleDeleteGuide,
             duplicate: handleDuplicateSelected,
             deleteSelected: handleDeleteSelected,
@@ -521,6 +529,7 @@ export default function App() {
         rebuildEntryTabs,
         confirm,
         showToast,
+        onImportFile: () => fileRef.current?.click(),
     };
     const previewWorkspaceProps = {
         toolpaths: previewToolpaths,
@@ -601,8 +610,14 @@ export default function App() {
             onMoveTab: handleMoveTab,
             onDeleteTab: handleDeleteTab,
             onPlaceGuide: placeGuide,
-            onCancelGuide: () => setGuidePlacement(null),
+            onGuideDraftChange: drawing.setGuideDraft,
+            onCancelGuide: () => {
+                setGuidePlacement(null);
+                drawing.setGuideDraft(null);
+            },
             onCommitLoop: handleCommitLoop,
+            onPolygonSidesChange: drawing.setDrawSides,
+            onPolygonModeChange: drawing.setDrawPolygonMode,
             onTrimAt: handleTrimAt,
             onTrimStroke: handleTrimStroke,
             onCommitText: (at) => setTextAnchor(snapToGuides(at, guides)),

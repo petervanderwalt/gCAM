@@ -33,7 +33,7 @@ interface ToolbarActions {
     applyOffset: () => void;
     applyBoolean: (operation: BooleanOperation) => void;
     applyNest: () => void;
-    addGuide: (axis: 'x' | 'y') => void;
+    addGuide: () => void;
     deleteGuide: (id: string) => void;
     duplicate: () => void;
     deleteSelected: () => void;
@@ -107,6 +107,10 @@ export function createToolbarProps({
     setBooleanPreview,
     actions,
 }: ToolbarOptions): ComponentProps<typeof CanvasToolbar> {
+    const clearGuidePlacement = () => {
+        drawing.setGuidePlacement(null);
+        drawing.setGuideDraft(null);
+    };
     return {
         units,
         activeTool:
@@ -116,17 +120,22 @@ export function createToolbarProps({
                   ? 'trim'
                   : 'select',
         onSelectMode: () => {
+            clearGuidePlacement();
             drawing.setActiveTool('select');
             arrange.setCornerTool(null);
         },
         drawTool: drawing.drawTool,
         onDrawTool: (tool) => {
+            clearGuidePlacement();
             drawing.setDrawTool(tool);
             drawing.setActiveTool('draw');
             transforms.setTransformMode(null);
         },
         transformMode: transforms.transformMode,
-        onTransformMode: transforms.setTransformMode,
+        onTransformMode: (mode) => {
+            clearGuidePlacement();
+            transforms.setTransformMode(mode);
+        },
         moveX: transforms.moveX,
         moveY: transforms.moveY,
         onMoveX: transforms.setMoveX,
@@ -198,6 +207,7 @@ export function createToolbarProps({
         onZoomOut: () =>
             setViewportCommand({ type: 'zoomOut', token: Date.now() }),
         onTrim: () => {
+            clearGuidePlacement();
             drawing.setActiveTool('trim');
             transforms.setTransformMode(null);
         },

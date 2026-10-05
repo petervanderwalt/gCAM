@@ -2,6 +2,7 @@
  * Purpose: Implementation module for import in the lib domain.
  */
 import { dxfUnitScaleToMm, parseDxf } from '../engine/dxf.js';
+import { cxfTextStrokes, parseCxf } from '../engine/cxf.js';
 import { parseSvg } from '../engine/svg.js';
 import { buildLoops } from '../geometry/loops.js';
 import { mergeBounds } from '../geometry/bounds.js';
@@ -108,13 +109,16 @@ export async function importVectorFile(file: File): Promise<ImportResult> {
             ? 'unknown'
             : 'dxf-metadata'
         : (svgUnits?.source ?? 'unknown');
-    const entities = isDxf
+    let entities = isDxf
         ? parseDxf(text)
         : name.endsWith('.svg')
           ? parseSvg(text)
           : (() => {
                 throw new Error('Unsupported file — import .dxf or .svg');
-            })();
+              })();
+    if (isDxf && entities.some((entity) => entity.type === 'CAD_TEXT')) {
+        entities = await convertDxfTextToStrokes(entities);
+    }
     const loops = buildLoops(entities);
     const bounds = mergeBounds(loops.map((l) => l.bounds).filter(Boolean));
     return {
@@ -125,6 +129,31 @@ export async function importVectorFile(file: File): Promise<ImportResult> {
         unitScaleToMm,
         unitSource,
     };
+}
+
+let courierCadFontPromise: Promise<ReturnType<typeof parseCxf>> | null = null;
+
+async function convertDxfTextToStrokes(entities: ReturnType<typeof parseDxf>) {
+    courierCadFontPromise ??= (async () => {
+        const baseUrl = import.meta.env.BASE_URL || '/';
+        const response = await fetch(`${baseUrl}assets/fonts/CourierCad.cxf`);
+        if (!response.ok) throw new Error('Could not load the CourierCad font.');
+        return parseCxf(await response.text());
+    })();
+    const font = await courierCadFontPromise;
+
+    return entities.map((entity) => {
+        if (entity.type !== 'CAD_TEXT') return entity;
+        const strokes = cxfTextStrokes(String(entity.text || ''), font, {
+            x: entity.x,
+            y: entity.y,
+            height: entity.height || 1,
+            rotationDeg: entity.rotationDeg || 0,
+            lineSpacingFactor: entity.lineSpacingFactor || 1,
+            attachmentPoint: entity.attachmentPoint || 1,
+        });
+        return { ...entity, strokes, __cadTextMode: 'stroke' };
+    });
 }
 
 /** Apply the source-to-mm conversion to all imported vector coordinates. */

@@ -4,6 +4,7 @@
 import {
     arcPoints3,
     cubicBezierPoints,
+    defaultArcBulgePoint,
     draftPoints,
 } from '../../draw/geometry';
 import { snapDrawPoint } from '../selectionGeometry';
@@ -28,6 +29,23 @@ function snapped(
         view.loops,
         view.hidden,
         worldAtEvent(event, canvas, deps.cameraRef.current),
+        deps.cameraRef.current.scale,
+        view.grid,
+        view.guides,
+    );
+}
+
+function snappedScreenPoint(
+    client: Point,
+    deps: CanvasPointerControllerProps,
+): Point | null {
+    const canvas = deps.canvasRef.current;
+    if (!canvas) return null;
+    const view = deps.viewRef.current;
+    return snapDrawPoint(
+        view.loops,
+        view.hidden,
+        worldAtEvent({ clientX: client.x, clientY: client.y } as CanvasMouseEvent, canvas, deps.cameraRef.current),
         deps.cameraRef.current.scale,
         view.grid,
         view.guides,
@@ -92,13 +110,9 @@ export function finishDraw(
     marquee: unknown,
 ): boolean {
     const tool = deps.viewRef.current.drawTool;
-    if (
-        !tool ||
-        !down ||
-        marquee ||
-        Math.hypot(event.clientX - down.x, event.clientY - down.y) >= 4
-    )
+    if (!tool || !down || marquee)
         return false;
+    const dragged = Math.hypot(event.clientX - down.x, event.clientY - down.y) >= 4;
     if (tool === 'text') {
         const point = snapped(event, deps);
         if (point) deps.onCommitText(point);
@@ -111,10 +125,13 @@ export function finishDraw(
             const chain = [...deps.clicksRef.current, point];
             deps.clicksRef.current = chain;
             if (tool === 'arc' && chain.length >= 3) {
-                const arc = arcPoints3(chain[0], chain[1], chain[2]);
+                const arc = arcPoints3(chain[0], chain[2], chain[1]);
                 deps.clicksRef.current = [];
+                deps.cursorRef.current = null;
                 if (arc) deps.onCommitLoop(arc);
             }
+            if (tool === 'arc' && chain.length === 2)
+                deps.cursorRef.current = defaultArcBulgePoint(chain[0], chain[1]);
             if (tool === 'bezier' && chain.length >= 4) {
                 deps.clicksRef.current = [];
                 deps.onCommitLoop(
@@ -126,6 +143,31 @@ export function finishDraw(
         return true;
     }
     if (!CLICK_TO_DRAW.has(tool)) return false;
+    if (dragged) {
+        const start = snappedScreenPoint(down, deps);
+        const end = snapped(event, deps);
+        if (!start || !end) return false;
+        const view = deps.viewRef.current;
+        const points = draftPoints(
+            tool,
+            { ax: start.x, ay: start.y, bx: end.x, by: end.y },
+            view.drawSides,
+            view.grid.snap ? view.grid.spacingMm : null,
+            view.polygonMode,
+        );
+        deps.pendingAnchorRef.current = null;
+        deps.draftRef.current = null;
+        if (points && points.length >= 2) {
+            const radius = Math.hypot(end.x - start.x, end.y - start.y);
+            deps.onCommitLoop(points, {
+                sourceType: tool,
+                ...(tool === 'circle' ? { radius } : {}),
+                ...(tool === 'polygon' ? { radius, sides: Math.round(view.drawSides), polygonMode: view.polygonMode } : {}),
+            });
+        }
+        deps.forceTick();
+        return true;
+    }
     const point = snapped(event, deps);
     if (point) {
         const anchor = deps.pendingAnchorRef.current;

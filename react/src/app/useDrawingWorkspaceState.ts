@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { BitmapImportChoice } from '../document/useBitmapCommands';
 import type { DrawTool } from '../draw/geometry';
 import type { ViewLoop } from '../canvas/types';
+import type { GuideDraft } from '../lib/guides';
 
 /** UI-only state for drawing, bitmap import and canvas mode selection. */
 export function useDrawingWorkspaceState() {
@@ -31,9 +32,8 @@ export function useDrawingWorkspaceState() {
         y: number;
     } | null>(null);
     const [treeOpen, setTreeOpen] = useState(false);
-    const [guidePlacement, setGuidePlacement] = useState<'x' | 'y' | null>(
-        null,
-    );
+    const [guidePlacement, setGuidePlacement] = useState<'edge' | null>(null);
+    const [guideDraft, setGuideDraft] = useState<GuideDraft | null>(null);
 
     return {
         activeTool,
@@ -66,5 +66,7 @@ export function useDrawingWorkspaceState() {
         setTreeOpen,
         guidePlacement,
         setGuidePlacement,
+        guideDraft,
+        setGuideDraft,
     };
 }

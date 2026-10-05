@@ -44,25 +44,35 @@ function polygonPoints(
 ) {
     if (!(patch.sides && patch.sides >= 3)) return loop.points;
     const count = Math.round(patch.sides);
-    const maxX = minX + width;
-    const maxY = minY + height;
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    const radius =
+    const centerX = minX + width / 2;
+    const centerY = minY + height / 2;
+    const apothemOrRadius = patch.radius && patch.radius > 0
+        ? patch.radius
+        : Math.min(width, height) / 2;
+    const vertexRadius =
         patch.polygonMode === 'circumscribed'
-            ? Math.min(width, height) / 2 / Math.cos(Math.PI / count)
-            : Math.min(width, height) / 2;
+            ? apothemOrRadius / Math.cos(Math.PI / count)
+            : apothemOrRadius;
     const start = Math.atan2(
         loop.points[0].y - centerY,
         loop.points[0].x - centerX,
     );
-    return Array.from({ length: count + 1 }, (_, index) => {
+    const points = Array.from({ length: count }, (_, index) => {
         const angle = start + (index / count) * Math.PI * 2;
         return {
-            x: centerX + Math.cos(angle) * radius,
-            y: centerY + Math.sin(angle) * radius,
+            x: centerX + Math.cos(angle) * vertexRadius,
+            y: centerY + Math.sin(angle) * vertexRadius,
         };
     });
+    const nextMinX = Math.min(...points.map((point) => point.x));
+    const nextMinY = Math.min(...points.map((point) => point.y));
+    const shiftX = patch.x - nextMinX;
+    const shiftY = patch.y - nextMinY;
+    const placed = points.map((point) => ({
+        x: point.x + shiftX,
+        y: point.y + shiftY,
+    }));
+    return [...placed, { ...placed[0] }];
 }
 
 /** Derive inspector preview/final geometry without mutating document state. */
@@ -80,41 +90,43 @@ export function inspectorGeometry(
     const isCircle =
         loop.sourceType === 'circle' || loop.exportGeometry?.type === 'circle';
     const isPolygon = loop.sourceType === 'polygon';
-    const targetWidth =
-        (isCircle || isPolygon) && patch.radius && patch.radius > 0
-            ? patch.radius * 2
-            : patch.w;
-    const targetHeight =
-        (isCircle || isPolygon) && patch.radius && patch.radius > 0
-            ? patch.radius * 2
-            : patch.h;
+    const targetWidth = isCircle && patch.radius && patch.radius > 0
+        ? patch.radius * 2
+        : patch.w;
+    const targetHeight = isCircle && patch.radius && patch.radius > 0
+        ? patch.radius * 2
+        : patch.h;
     if (!(targetWidth > 0) || !(targetHeight > 0)) return null;
     const base = isPolygon
         ? polygonPoints(loop, patch, minX, minY, width, height)
         : loop.points;
-    const moved = base.map((point) => ({
+    const moved = isPolygon ? base : base.map((point) => ({
         x: point.x + (patch.x - minX),
         y: point.y + (patch.y - minY),
     }));
     const scaled =
-        width > 0 && height > 0
+        !isPolygon && width > 0 && height > 0
             ? scalePointsXY(moved, targetWidth / width, targetHeight / height, {
                   x: patch.x,
                   y: patch.y,
               })
             : moved;
     const delta = patch.angle - currentAngle;
+    const scaledMinX = Math.min(...scaled.map((point) => point.x));
+    const scaledMaxX = Math.max(...scaled.map((point) => point.x));
+    const scaledMinY = Math.min(...scaled.map((point) => point.y));
+    const scaledMaxY = Math.max(...scaled.map((point) => point.y));
     return {
         points:
             Math.abs(delta) > 1e-9
                 ? rotatePoints(scaled, delta, {
-                      x: patch.x + targetWidth / 2,
-                      y: patch.y + targetHeight / 2,
+                      x: (scaledMinX + scaledMaxX) / 2,
+                      y: (scaledMinY + scaledMaxY) / 2,
                   })
                 : scaled,
         isCircle,
         isPolygon,
-        targetWidth,
-        targetHeight,
+        targetWidth: isPolygon ? scaledMaxX - scaledMinX : targetWidth,
+        targetHeight: isPolygon ? scaledMaxY - scaledMinY : targetHeight,
     };
 }
