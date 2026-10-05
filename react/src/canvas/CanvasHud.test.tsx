@@ -101,7 +101,12 @@ test('renders editable shape dimensions in the selected units', () => {
                 y: 30,
                 fields: [
                     { key: 'width', label: 'Width', value: 2, unit: 'length' },
-                    { key: 'height', label: 'Height', value: 3, unit: 'length' },
+                    {
+                        key: 'height',
+                        label: 'Height',
+                        value: 3,
+                        unit: 'length',
+                    },
                 ],
             }}
             onDraftDimensionChange={onDraftDimensionChange}
@@ -141,8 +146,18 @@ test('keeps polyline angle readable at one decimal place', () => {
                 x: 20,
                 y: 30,
                 fields: [
-                    { key: 'length', label: 'Length', value: 222.036, unit: 'length' },
-                    { key: 'angle', label: 'Angle', value: -7.765, unit: 'angle' },
+                    {
+                        key: 'length',
+                        label: 'Length',
+                        value: 222.036,
+                        unit: 'length',
+                    },
+                    {
+                        key: 'angle',
+                        label: 'Angle',
+                        value: -7.765,
+                        unit: 'angle',
+                    },
                 ],
             }}
             onDraftDimensionChange={jest.fn()}
@@ -155,8 +170,12 @@ test('keeps polyline angle readable at one decimal place', () => {
             onFit={() => {}}
         />,
     );
-    expect(screen.getByRole('spinbutton', { name: 'Shape length' })).toHaveValue(222.04);
-    expect(screen.getByRole('spinbutton', { name: 'Shape angle' })).toHaveValue(-7.8);
+    expect(
+        screen.getByRole('spinbutton', { name: 'Shape length' }),
+    ).toHaveValue(222.04);
+    expect(screen.getByRole('spinbutton', { name: 'Shape angle' })).toHaveValue(
+        -7.8,
+    );
     expect(screen.getByText('deg')).toBeInTheDocument();
 });
 
@@ -179,7 +198,14 @@ test('exposes polygon sides and radius mode in the floating draft controls', () 
             draftDimension={{
                 x: 20,
                 y: 30,
-                fields: [{ key: 'radius', label: 'Radius', value: 40, unit: 'length' }],
+                fields: [
+                    {
+                        key: 'radius',
+                        label: 'Radius',
+                        value: 40,
+                        unit: 'length',
+                    },
+                ],
                 polygon: { sides: 6, mode: 'inscribed' },
             }}
             onDraftDimensionChange={jest.fn()}
@@ -192,9 +218,12 @@ test('exposes polygon sides and radius mode in the floating draft controls', () 
             onFit={() => {}}
         />,
     );
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Polygon sides' }), {
-        target: { value: '8' },
-    });
+    fireEvent.change(
+        screen.getByRole('spinbutton', { name: 'Polygon sides' }),
+        {
+            target: { value: '8' },
+        },
+    );
     expect(onPolygonSidesChange).toHaveBeenCalledWith(8);
     const circumscribed = screen.getByRole('button', { name: 'circumscribed' });
     expect(circumscribed).toHaveAttribute('aria-pressed', 'false');

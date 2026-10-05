@@ -25,7 +25,10 @@ export interface DraftPoint {
 }
 
 /** Default arc control point offset to the left of the start-to-end chord. */
-export function defaultArcBulgePoint(start: DraftPoint, end: DraftPoint): DraftPoint {
+export function defaultArcBulgePoint(
+    start: DraftPoint,
+    end: DraftPoint,
+): DraftPoint {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const length = Math.hypot(dx, dy);
@@ -48,7 +51,10 @@ export function arcBulgeDistance(
     const chord = Math.hypot(dx, dy);
     if (chord < 1e-8) return 0;
     const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-    return Math.abs(dx * (bulge.y - midpoint.y) - dy * (bulge.x - midpoint.x)) / chord;
+    return (
+        Math.abs(dx * (bulge.y - midpoint.y) - dy * (bulge.x - midpoint.x)) /
+        chord
+    );
 }
 
 /** Included angle in degrees represented by chord and sagitta. */
@@ -59,7 +65,12 @@ export function arcSweepDegrees(
 ): number {
     const chord = Math.hypot(end.x - start.x, end.y - start.y);
     if (chord < 1e-8) return 0;
-    return (4 * Math.atan((2 * arcBulgeDistance(start, end, bulge)) / chord) * 180) / Math.PI;
+    return (
+        (4 *
+            Math.atan((2 * arcBulgeDistance(start, end, bulge)) / chord) *
+            180) /
+        Math.PI
+    );
 }
 
 /** Shape points for a click-click draft, snapped to grid (or 0.1mm).

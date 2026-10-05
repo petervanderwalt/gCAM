@@ -13,11 +13,23 @@ import type { Camera } from './types';
 import type { GuideDraft } from '../lib/guides';
 
 type Point = { x: number; y: number };
-export type DraftDimensionField = 'width' | 'height' | 'radius' | 'length' | 'angle' | 'bulge' | 'sweep';
+export type DraftDimensionField =
+    | 'width'
+    | 'height'
+    | 'radius'
+    | 'length'
+    | 'angle'
+    | 'bulge'
+    | 'sweep';
 export type DraftDimension = {
     x: number;
     y: number;
-    fields: { key: DraftDimensionField; label: string; value: number; unit: 'length' | 'angle' }[];
+    fields: {
+        key: DraftDimensionField;
+        label: string;
+        value: number;
+        unit: 'length' | 'angle';
+    }[];
     polygon?: { sides: number; mode: 'inscribed' | 'circumscribed' };
 };
 
@@ -162,16 +174,29 @@ export function CanvasHud({
                     }}
                 >
                     {draftDimension.fields.map((field) => (
-                        <label key={field.key} className="flex items-center gap-1 whitespace-nowrap">
+                        <label
+                            key={field.key}
+                            className="flex items-center gap-1 whitespace-nowrap"
+                        >
                             <span>{field.label}</span>
                             <input
                                 aria-label={`Shape ${field.label.toLowerCase()}`}
                                 type="number"
                                 step={field.unit === 'angle' ? '0.1' : '0.01'}
-                                value={Number(field.value.toFixed(field.unit === 'angle' ? 1 : 2))}
+                                value={Number(
+                                    field.value.toFixed(
+                                        field.unit === 'angle' ? 1 : 2,
+                                    ),
+                                )}
                                 onChange={(event) => {
-                                    const numeric = Number(event.currentTarget.value);
-                                    if (Number.isFinite(numeric)) onDraftDimensionChange(field.key, numeric);
+                                    const numeric = Number(
+                                        event.currentTarget.value,
+                                    );
+                                    if (Number.isFinite(numeric))
+                                        onDraftDimensionChange(
+                                            field.key,
+                                            numeric,
+                                        );
                                 }}
                                 onKeyDown={(event) => {
                                     if (event.key === 'Enter') {
@@ -184,23 +209,34 @@ export function CanvasHud({
                                 }}
                                 className={`w-16 appearance-none border-0 bg-transparent text-right tabular-nums outline-none ${darkMode ? 'text-white' : 'text-slate-900'}`}
                             />
-                            <span>{field.unit === 'angle' ? 'deg' : lengthUnit(units)}</span>
+                            <span>
+                                {field.unit === 'angle'
+                                    ? 'deg'
+                                    : lengthUnit(units)}
+                            </span>
                         </label>
                     ))}
                     {draftDimension.polygon && (
                         <>
                             <div className="mx-0.5 h-5 border-l border-slate-300 dark:border-slate-600" />
-                            {(['inscribed', 'circumscribed'] as const).map((mode) => (
-                                <button
-                                    key={mode}
-                                    type="button"
-                                    aria-pressed={draftDimension.polygon?.mode === mode}
-                                    onClick={() => onPolygonModeChange(mode)}
-                                    className={`rounded px-1.5 py-1 text-[10px] capitalize ${draftDimension.polygon?.mode === mode ? 'bg-blue-100 font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
-                                >
-                                    {mode}
-                                </button>
-                            ))}
+                            {(['inscribed', 'circumscribed'] as const).map(
+                                (mode) => (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        aria-pressed={
+                                            draftDimension.polygon?.mode ===
+                                            mode
+                                        }
+                                        onClick={() =>
+                                            onPolygonModeChange(mode)
+                                        }
+                                        className={`rounded px-1.5 py-1 text-[10px] capitalize ${draftDimension.polygon?.mode === mode ? 'bg-blue-100 font-semibold text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'}`}
+                                    >
+                                        {mode}
+                                    </button>
+                                ),
+                            )}
                             <label className="ml-1 flex items-center gap-1 whitespace-nowrap">
                                 <span>Sides</span>
                                 <input
@@ -211,12 +247,31 @@ export function CanvasHud({
                                     step={1}
                                     value={draftDimension.polygon.sides}
                                     onChange={(event) => {
-                                        const sides = Number(event.currentTarget.value);
-                                        if (Number.isFinite(sides) && sides > 0) onPolygonSidesChange(Math.min(128, Math.round(sides)));
+                                        const sides = Number(
+                                            event.currentTarget.value,
+                                        );
+                                        if (Number.isFinite(sides) && sides > 0)
+                                            onPolygonSidesChange(
+                                                Math.min(
+                                                    128,
+                                                    Math.round(sides),
+                                                ),
+                                            );
                                     }}
                                     onBlur={(event) => {
-                                        const sides = Number(event.currentTarget.value);
-                                        if (Number.isFinite(sides)) onPolygonSidesChange(Math.min(128, Math.max(3, Math.round(sides))));
+                                        const sides = Number(
+                                            event.currentTarget.value,
+                                        );
+                                        if (Number.isFinite(sides))
+                                            onPolygonSidesChange(
+                                                Math.min(
+                                                    128,
+                                                    Math.max(
+                                                        3,
+                                                        Math.round(sides),
+                                                    ),
+                                                ),
+                                            );
                                     }}
                                     onKeyDown={(event) => {
                                         if (event.key === 'Enter') {
@@ -300,9 +355,12 @@ function GuideOffsetInput({
         x: draft.source.x + normal.x * draft.offset,
         y: draft.source.y + normal.y * draft.offset,
     };
-    const left = (camera.tx + (draft.source.x + anchor.x) * camera.scale / 2) + 12;
-    const top = (camera.ty - (draft.source.y + anchor.y) * camera.scale / 2) - 14;
-    const value = units === 'imperial' ? draft.offset / MM_PER_INCH : draft.offset;
+    const left =
+        camera.tx + ((draft.source.x + anchor.x) * camera.scale) / 2 + 12;
+    const top =
+        camera.ty - ((draft.source.y + anchor.y) * camera.scale) / 2 - 14;
+    const value =
+        units === 'imperial' ? draft.offset / MM_PER_INCH : draft.offset;
     return (
         <label
             className={`absolute z-20 flex items-center gap-1 rounded border px-1.5 py-1 text-xs shadow ${darkMode ? 'border-orange-400 bg-dark text-slate-100' : 'border-orange-500 bg-white text-slate-700'}`}
@@ -317,7 +375,9 @@ function GuideOffsetInput({
                 onChange={(event) => {
                     const numeric = Number(event.currentTarget.value);
                     if (Number.isFinite(numeric))
-                        onChange(numeric * (units === 'imperial' ? MM_PER_INCH : 1));
+                        onChange(
+                            numeric * (units === 'imperial' ? MM_PER_INCH : 1),
+                        );
                 }}
                 onKeyDown={(event) => {
                     if (event.key === 'Enter') {

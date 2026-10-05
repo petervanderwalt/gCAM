@@ -33,7 +33,11 @@ import {
 import { toolbarButton, toolbarButtonActive } from './styles';
 import type { CanvasToolbarProps, ToolbarAction } from './types';
 
-const drawTools: { value: NonNullable<DrawTool>; label: string; icon: ReactNode }[] = [
+const drawTools: {
+    value: NonNullable<DrawTool>;
+    label: string;
+    icon: ReactNode;
+}[] = [
     { value: 'line', label: 'Line', icon: <ArrowLeftRight size={16} /> },
     { value: 'rectangle', label: 'Rectangle', icon: <Square size={16} /> },
     { value: 'polygon', label: 'Polygon', icon: <Hexagon size={16} /> },

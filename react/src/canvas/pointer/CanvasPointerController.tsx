@@ -130,7 +130,8 @@ export function CanvasPointerController(props: CanvasPointerControllerProps) {
                 if (
                     event.relatedTarget instanceof Node &&
                     viewport?.contains(event.relatedTarget)
-                ) return;
+                )
+                    return;
                 props.onViewportLeave();
             }}
             onContextMenu={(event) => event.preventDefault()}

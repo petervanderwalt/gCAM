@@ -45,7 +45,10 @@ test('grid snapping preserves a mathematically circular perimeter', () => {
     );
     expect(pts).toHaveLength(73);
     for (const point of pts ?? []) {
-        expect(Math.hypot(point.x - center.x, point.y - center.y)).toBeCloseTo(radius, 8);
+        expect(Math.hypot(point.x - center.x, point.y - center.y)).toBeCloseTo(
+            radius,
+            8,
+        );
     }
 });
 
@@ -121,7 +124,9 @@ test('arc chord bulge controls calculate distance and major sweep', () => {
     const majorBulge = { x: 100, y: 128 };
     expect(arcSweepDegrees(start, end, majorBulge)).toBeCloseTo(208, 0);
     const arc = arcPoints3(start, majorBulge, end);
-    expect(Math.max(...(arc ?? []).map((point) => point.y))).toBeGreaterThan(100);
+    expect(Math.max(...(arc ?? []).map((point) => point.y))).toBeGreaterThan(
+        100,
+    );
 });
 test('cubic bezier starts/ends on its anchors', () => {
     const pts = cubicBezierPoints(

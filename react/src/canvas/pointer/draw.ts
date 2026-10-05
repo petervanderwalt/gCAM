@@ -45,7 +45,11 @@ function snappedScreenPoint(
     return snapDrawPoint(
         view.loops,
         view.hidden,
-        worldAtEvent({ clientX: client.x, clientY: client.y } as CanvasMouseEvent, canvas, deps.cameraRef.current),
+        worldAtEvent(
+            { clientX: client.x, clientY: client.y } as CanvasMouseEvent,
+            canvas,
+            deps.cameraRef.current,
+        ),
         deps.cameraRef.current.scale,
         view.grid,
         view.guides,
@@ -110,9 +114,9 @@ export function finishDraw(
     marquee: unknown,
 ): boolean {
     const tool = deps.viewRef.current.drawTool;
-    if (!tool || !down || marquee)
-        return false;
-    const dragged = Math.hypot(event.clientX - down.x, event.clientY - down.y) >= 4;
+    if (!tool || !down || marquee) return false;
+    const dragged =
+        Math.hypot(event.clientX - down.x, event.clientY - down.y) >= 4;
     if (tool === 'text') {
         const point = snapped(event, deps);
         if (point) deps.onCommitText(point);
@@ -131,7 +135,10 @@ export function finishDraw(
                 if (arc) deps.onCommitLoop(arc);
             }
             if (tool === 'arc' && chain.length === 2)
-                deps.cursorRef.current = defaultArcBulgePoint(chain[0], chain[1]);
+                deps.cursorRef.current = defaultArcBulgePoint(
+                    chain[0],
+                    chain[1],
+                );
             if (tool === 'bezier' && chain.length >= 4) {
                 deps.clicksRef.current = [];
                 deps.onCommitLoop(
@@ -162,7 +169,13 @@ export function finishDraw(
             deps.onCommitLoop(points, {
                 sourceType: tool,
                 ...(tool === 'circle' ? { radius } : {}),
-                ...(tool === 'polygon' ? { radius, sides: Math.round(view.drawSides), polygonMode: view.polygonMode } : {}),
+                ...(tool === 'polygon'
+                    ? {
+                          radius,
+                          sides: Math.round(view.drawSides),
+                          polygonMode: view.polygonMode,
+                      }
+                    : {}),
             });
         }
         deps.forceTick();

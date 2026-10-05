@@ -131,7 +131,10 @@ export function CadInspector({
                         units={units}
                         stepMm={0.1}
                         valueMm={x}
-                        onChangeMm={(value) => { setDirty(true); setX(value); }}
+                        onChangeMm={(value) => {
+                            setDirty(true);
+                            setX(value);
+                        }}
                         className={numCls}
                     />
                 </label>
@@ -143,7 +146,10 @@ export function CadInspector({
                         units={units}
                         stepMm={0.1}
                         valueMm={y}
-                        onChangeMm={(value) => { setDirty(true); setY(value); }}
+                        onChangeMm={(value) => {
+                            setDirty(true);
+                            setY(value);
+                        }}
                         className={numCls}
                     />
                 </label>
@@ -158,7 +164,10 @@ export function CadInspector({
                                 stepMm={0.1}
                                 minMm={0.01}
                                 valueMm={width}
-                                onChangeMm={(value) => { setDirty(true); setWidth(value); }}
+                                onChangeMm={(value) => {
+                                    setDirty(true);
+                                    setWidth(value);
+                                }}
                                 className={numCls}
                             />
                         </label>
@@ -171,7 +180,10 @@ export function CadInspector({
                                 stepMm={0.1}
                                 minMm={0.01}
                                 valueMm={height}
-                                onChangeMm={(value) => { setDirty(true); setHeight(value); }}
+                                onChangeMm={(value) => {
+                                    setDirty(true);
+                                    setHeight(value);
+                                }}
                                 className={numCls}
                             />
                         </label>
@@ -185,7 +197,10 @@ export function CadInspector({
                         type="number"
                         step={0.1}
                         value={deg}
-                        onChange={(e) => { setDirty(true); setDeg(Number(e.target.value)); }}
+                        onChange={(e) => {
+                            setDirty(true);
+                            setDeg(Number(e.target.value));
+                        }}
                         className={numCls}
                     />
                 </label>
@@ -199,7 +214,10 @@ export function CadInspector({
                             stepMm={0.1}
                             minMm={0.01}
                             valueMm={radius}
-                            onChangeMm={(value) => { setDirty(true); setRadius(value); }}
+                            onChangeMm={(value) => {
+                                setDirty(true);
+                                setRadius(value);
+                            }}
                             className={numCls}
                         />
                     </label>
@@ -215,7 +233,10 @@ export function CadInspector({
                             min={3}
                             max={128}
                             value={sides}
-                            onChange={(e) => { setDirty(true); setSides(Number(e.target.value)); }}
+                            onChange={(e) => {
+                                setDirty(true);
+                                setSides(Number(e.target.value));
+                            }}
                             className={numCls}
                         />
                         <select
@@ -243,7 +264,10 @@ export function CadInspector({
                             </span>
                             <input
                                 value={text}
-                                onChange={(e) => { setDirty(true); setText(e.target.value); }}
+                                onChange={(e) => {
+                                    setDirty(true);
+                                    setText(e.target.value);
+                                }}
                                 className={numCls}
                             />
                         </label>
@@ -253,7 +277,10 @@ export function CadInspector({
                             </span>
                             <select
                                 value={fontId}
-                                onChange={(e) => { setDirty(true); setFontId(e.target.value); }}
+                                onChange={(e) => {
+                                    setDirty(true);
+                                    setFontId(e.target.value);
+                                }}
                                 className={numCls}
                             >
                                 {FONT_OPTIONS.map((font) => (
@@ -272,7 +299,10 @@ export function CadInspector({
                                 minMm={1}
                                 stepMm={0.1}
                                 valueMm={fontSize}
-                                onChangeMm={(value) => { setDirty(true); setFontSize(value); }}
+                                onChangeMm={(value) => {
+                                    setDirty(true);
+                                    setFontSize(value);
+                                }}
                                 className={numCls}
                             />
                         </label>

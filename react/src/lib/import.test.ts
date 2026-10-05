@@ -5,10 +5,16 @@ import { dxfUnitScaleToMm } from '../engine/dxf.js';
 import { jest } from '@jest/globals';
 
 const cxfTextStrokesMock = jest.fn(
-    (text: string, _font: unknown, options: { x: number; y: number; height: number }) => [[
-        { x: options.x, y: options.y },
-        { x: options.x + text.length * 6, y: options.y - options.height },
-    ]],
+    (
+        text: string,
+        _font: unknown,
+        options: { x: number; y: number; height: number },
+    ) => [
+        [
+            { x: options.x, y: options.y },
+            { x: options.x + text.length * 6, y: options.y - options.height },
+        ],
+    ],
 );
 const parseCxfMock = jest.fn(() => ({
     name: 'CourierCad',
@@ -21,7 +27,9 @@ await jest.unstable_mockModule('../engine/cxf.js', () => ({
     cxfTextStrokes: cxfTextStrokesMock,
     parseCxf: parseCxfMock,
 }));
-const { importVectorFile, scaleImportResult, svgUnitScaleToMm } = await import('./import');
+const { importVectorFile, scaleImportResult, svgUnitScaleToMm } = await import(
+    './import'
+);
 
 const SQUARE_DXF = [
     '0',
@@ -77,14 +85,33 @@ test('imports DXF MTEXT as mixed-case CourierCad strokes', async () => {
         text: async () => 'CXF test font',
     })) as unknown as typeof fetch;
     const dxf = [
-        '0', 'SECTION', '2', 'ENTITIES',
-        '0', 'MTEXT', '10', '10', '20', '20', '40', '10', '71', '1',
-        '1', 'Pocket the inner square',
-        '0', 'ENDSEC', '0', 'EOF', '',
+        '0',
+        'SECTION',
+        '2',
+        'ENTITIES',
+        '0',
+        'MTEXT',
+        '10',
+        '10',
+        '20',
+        '20',
+        '40',
+        '10',
+        '71',
+        '1',
+        '1',
+        'Pocket the inner square',
+        '0',
+        'ENDSEC',
+        '0',
+        'EOF',
+        '',
     ].join('\n');
     try {
         const result = await importVectorFile(new File([dxf], 'text.dxf'));
-        expect(globalThis.fetch).toHaveBeenCalledWith('/assets/fonts/CourierCad.cxf');
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            '/assets/fonts/CourierCad.cxf',
+        );
         expect(parseCxfMock).toHaveBeenCalledWith('CXF test font');
         expect(cxfTextStrokesMock).toHaveBeenCalledWith(
             'Pocket the inner square',
@@ -93,7 +120,9 @@ test('imports DXF MTEXT as mixed-case CourierCad strokes', async () => {
         );
         expect(result.entityCount).toBe(1);
         expect(result.loops.length).toBeGreaterThan(0);
-        expect((result.bounds?.maxX ?? 0) - (result.bounds?.minX ?? 0)).toBeGreaterThan(100);
+        expect(
+            (result.bounds?.maxX ?? 0) - (result.bounds?.minX ?? 0),
+        ).toBeGreaterThan(100);
     } finally {
         globalThis.fetch = originalFetch;
     }

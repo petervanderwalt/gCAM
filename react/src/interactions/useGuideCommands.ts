@@ -18,7 +18,9 @@ export function useGuideCommands(options: UseGuideCommandsOptions) {
     const startGuidePlacement = () => {
         options.setGuideDraft(null);
         options.setGuidePlacement('edge');
-        options.setStatus('Hover an edge or axis, click it, then move to set the parallel offset.');
+        options.setStatus(
+            'Hover an edge or axis, click it, then move to set the parallel offset.',
+        );
     };
 
     const placeGuide = (placement: GuidePlacement) => {

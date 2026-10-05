@@ -36,9 +36,25 @@ test('samples CXF arcs and lays out mixed-case, multi-line text with line spacin
     });
     expect(strokes.length).toBe(3);
     const arcPoints = [...strokes[0], ...strokes[1]];
-    expect(Math.min(...arcPoints.map((point: { x: number; y: number }) => point.y))).toBeCloseTo(21, 0);
-    expect(Math.max(...arcPoints.map((point: { x: number; y: number }) => point.y))).toBeCloseTo(30, 0);
+    expect(
+        Math.min(
+            ...arcPoints.map((point: { x: number; y: number }) => point.y),
+        ),
+    ).toBeCloseTo(21, 0);
+    expect(
+        Math.max(
+            ...arcPoints.map((point: { x: number; y: number }) => point.y),
+        ),
+    ).toBeCloseTo(30, 0);
     const descender = strokes[2];
-    expect(Math.min(...descender.map((point: { x: number; y: number }) => point.y))).toBeCloseTo(7.2, 0);
-    expect(Math.max(...descender.map((point: { x: number; y: number }) => point.y))).toBeCloseTo(16.2, 0);
+    expect(
+        Math.min(
+            ...descender.map((point: { x: number; y: number }) => point.y),
+        ),
+    ).toBeCloseTo(7.2, 0);
+    expect(
+        Math.max(
+            ...descender.map((point: { x: number; y: number }) => point.y),
+        ),
+    ).toBeCloseTo(16.2, 0);
 });

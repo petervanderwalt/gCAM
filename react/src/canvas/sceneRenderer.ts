@@ -132,7 +132,18 @@ export function drawCanvasScene(input: CanvasSceneInput): void {
         ctx.fillStyle = theme.emptyText;
         ctx.font = '12px system-ui';
         ctx.fillText('gCAM canvas — drop DXF/SVG here', 16, h - 16);
-        drawGuides(ctx, w, h, cam, guides, guidePlacement, guideDraft, guideCursor, loops, hidden);
+        drawGuides(
+            ctx,
+            w,
+            h,
+            cam,
+            guides,
+            guidePlacement,
+            guideDraft,
+            guideCursor,
+            loops,
+            hidden,
+        );
         return;
     }
     const toScreen = (x: number, y: number) => ({
@@ -176,7 +187,18 @@ export function drawCanvasScene(input: CanvasSceneInput): void {
         strokePoints(ctx, draft, toScreen);
         ctx.setLineDash([]);
     }
-    drawGuides(ctx, w, h, cam, guides, guidePlacement, guideDraft, guideCursor, loops, hidden);
+    drawGuides(
+        ctx,
+        w,
+        h,
+        cam,
+        guides,
+        guidePlacement,
+        guideDraft,
+        guideCursor,
+        loops,
+        hidden,
+    );
 }
 
 function drawGuides(
@@ -191,7 +213,13 @@ function drawGuides(
     loops: CanvasSceneInput['loops'],
     hidden: string[],
 ): void {
-    const line = (point: Point, direction: Point, color: string, width: number, dash: number[]) => {
+    const line = (
+        point: Point,
+        direction: Point,
+        color: string,
+        width: number,
+        dash: number[],
+    ) => {
         const length = Math.hypot(direction.x, direction.y) || 1;
         const dx = direction.x / length;
         const dy = direction.y / length;
@@ -200,20 +228,27 @@ function drawGuides(
         ctx.lineWidth = width;
         ctx.setLineDash(dash);
         ctx.beginPath();
-        ctx.moveTo(cam.tx + (point.x - dx * span) * cam.scale, cam.ty - (point.y - dy * span) * cam.scale);
-        ctx.lineTo(cam.tx + (point.x + dx * span) * cam.scale, cam.ty - (point.y + dy * span) * cam.scale);
+        ctx.moveTo(
+            cam.tx + (point.x - dx * span) * cam.scale,
+            cam.ty - (point.y - dy * span) * cam.scale,
+        );
+        ctx.lineTo(
+            cam.tx + (point.x + dx * span) * cam.scale,
+            cam.ty - (point.y + dy * span) * cam.scale,
+        );
         ctx.stroke();
     };
-        for (const guide of guides) {
-            if (
-                !guide.point ||
-                !guide.direction ||
-                !Number.isFinite(guide.point.x) ||
-                !Number.isFinite(guide.point.y) ||
-                !Number.isFinite(guide.direction.x) ||
-                !Number.isFinite(guide.direction.y)
-            ) continue;
-            line(guide.point, guide.direction, 'rgba(232,121,249,0.72)', 1, [8, 5]);
+    for (const guide of guides) {
+        if (
+            !guide.point ||
+            !guide.direction ||
+            !Number.isFinite(guide.point.x) ||
+            !Number.isFinite(guide.point.y) ||
+            !Number.isFinite(guide.direction.x) ||
+            !Number.isFinite(guide.direction.y)
+        )
+            continue;
+        line(guide.point, guide.direction, 'rgba(232,121,249,0.72)', 1, [8, 5]);
     }
     if (!placement) {
         ctx.setLineDash([]);
@@ -221,18 +256,33 @@ function drawGuides(
     }
     ctx.save();
     if (guideDraft) {
-        const normal = { x: -guideDraft.direction.y, y: guideDraft.direction.x };
+        const normal = {
+            x: -guideDraft.direction.y,
+            y: guideDraft.direction.x,
+        };
         const anchor = {
             x: guideDraft.source.x + normal.x * guideDraft.offset,
             y: guideDraft.source.y + normal.y * guideDraft.offset,
         };
-        line(anchor, guideDraft.direction, 'rgba(249,115,22,0.95)', 1.7, [7, 4]);
+        line(
+            anchor,
+            guideDraft.direction,
+            'rgba(249,115,22,0.95)',
+            1.7,
+            [7, 4],
+        );
         ctx.setLineDash([]);
         ctx.strokeStyle = 'rgba(249,115,22,0.9)';
         ctx.lineWidth = 1.3;
         ctx.beginPath();
-        ctx.moveTo(cam.tx + guideDraft.source.x * cam.scale, cam.ty - guideDraft.source.y * cam.scale);
-        ctx.lineTo(cam.tx + anchor.x * cam.scale, cam.ty - anchor.y * cam.scale);
+        ctx.moveTo(
+            cam.tx + guideDraft.source.x * cam.scale,
+            cam.ty - guideDraft.source.y * cam.scale,
+        );
+        ctx.lineTo(
+            cam.tx + anchor.x * cam.scale,
+            cam.ty - anchor.y * cam.scale,
+        );
         ctx.stroke();
         const sx = cam.tx + guideDraft.source.x * cam.scale;
         const sy = cam.ty - guideDraft.source.y * cam.scale;
@@ -264,7 +314,12 @@ function drawGuides(
             const labelX = x + 10;
             const labelY = y - 8;
             ctx.fillStyle = 'rgba(255,255,255,0.92)';
-            ctx.fillRect(labelX - 4, labelY - 13, ctx.measureText(label).width + 8, 18);
+            ctx.fillRect(
+                labelX - 4,
+                labelY - 13,
+                ctx.measureText(label).width + 8,
+                18,
+            );
             ctx.fillStyle = '#c2410c';
             ctx.fillText(label, labelX, labelY);
         }

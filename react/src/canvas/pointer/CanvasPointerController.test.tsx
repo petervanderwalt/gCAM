@@ -7,9 +7,13 @@ function renderPointerController(onViewportLeave: () => void) {
     return render(
         <div>
             <CanvasPointerController
-                {...({ onViewportLeave } as unknown as CanvasPointerControllerProps)}
+                {...({
+                    onViewportLeave,
+                } as unknown as CanvasPointerControllerProps)}
             />
-            <label data-testid="floating-pill">Radius <input /></label>
+            <label data-testid="floating-pill">
+                Radius <input />
+            </label>
         </div>,
     );
 }
@@ -32,7 +36,9 @@ test('clears pointer state when leaving the combined canvas and HUD region', () 
     const canvas = container.querySelector('canvas');
 
     expect(canvas).not.toBeNull();
-    fireEvent.mouseLeave(canvas as HTMLCanvasElement, { relatedTarget: document.body });
+    fireEvent.mouseLeave(canvas as HTMLCanvasElement, {
+        relatedTarget: document.body,
+    });
 
     expect(onViewportLeave).toHaveBeenCalledTimes(1);
 });

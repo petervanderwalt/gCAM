@@ -43,8 +43,16 @@ test('finds vector-edge and X/Y-axis guide sources by screen proximity', () => {
             ],
         },
     ];
-    expect(findGuideSource({ x: 30, y: 20.5 }, loops, [], 10)?.label).toBe('Edge');
-    expect(findGuideSource({ x: 30, y: 0.5 }, loops, [], 10)?.label).toBe('X Axis');
-    expect(findGuideSource({ x: 0.5, y: 30 }, loops, [], 10)?.label).toBe('Y Axis');
-    expect(findGuideSource({ x: 0, y: 30 }, loops, ['edge'], 10)?.label).toBe('Y Axis');
+    expect(findGuideSource({ x: 30, y: 20.5 }, loops, [], 10)?.label).toBe(
+        'Edge',
+    );
+    expect(findGuideSource({ x: 30, y: 0.5 }, loops, [], 10)?.label).toBe(
+        'X Axis',
+    );
+    expect(findGuideSource({ x: 0.5, y: 30 }, loops, [], 10)?.label).toBe(
+        'Y Axis',
+    );
+    expect(findGuideSource({ x: 0, y: 30 }, loops, ['edge'], 10)?.label).toBe(
+        'Y Axis',
+    );
 });

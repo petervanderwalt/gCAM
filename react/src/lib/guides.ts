@@ -51,14 +51,11 @@ export function findGuideSource(
     hitRadiusPx = 12,
 ): GuideSource | null {
     const candidates: GuideSource[] = [];
-    const add = (
-        point: GuidePoint,
-        direction: GuidePoint,
-        label: string,
-    ) => {
+    const add = (point: GuidePoint, direction: GuidePoint, label: string) => {
         const length = Math.hypot(direction.x, direction.y);
         if (length < 1e-9) return;
-        const distance = Math.hypot(point.x - world.x, point.y - world.y) * scale;
+        const distance =
+            Math.hypot(point.x - world.x, point.y - world.y) * scale;
         if (distance <= hitRadiusPx) {
             candidates.push({
                 point,
@@ -107,7 +104,8 @@ export function projectToGuide(point: GuidePoint, guide: Guide): GuidePoint {
     const length = Math.hypot(guide.direction.x, guide.direction.y) || 1;
     const dx = guide.direction.x / length;
     const dy = guide.direction.y / length;
-    const along = (point.x - guide.point.x) * dx + (point.y - guide.point.y) * dy;
+    const along =
+        (point.x - guide.point.x) * dx + (point.y - guide.point.y) * dy;
     return { x: guide.point.x + dx * along, y: guide.point.y + dy * along };
 }
 
@@ -122,7 +120,10 @@ export function snapToGuides(
     for (const guide of guides) {
         if (!hasGuideGeometry(guide)) continue;
         const projected = projectToGuide(point, guide);
-        const distance = Math.hypot(projected.x - point.x, projected.y - point.y);
+        const distance = Math.hypot(
+            projected.x - point.x,
+            projected.y - point.y,
+        );
         if (distance < bestDistance) {
             nearest = projected;
             bestDistance = distance;

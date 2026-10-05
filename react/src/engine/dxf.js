@@ -349,16 +349,20 @@ function buildEntity(type, data) {
 }
 
 function buildTextEntity(type, common, data, value, number) {
-    const rawText = type === 'MTEXT'
-        ? (data.arrays.get(3) || []).join('') + (value(1, '') || '')
-        : value(1, '');
+    const rawText =
+        type === 'MTEXT'
+            ? (data.arrays.get(3) || []).join('') + (value(1, '') || '')
+            : value(1, '');
     const text = normalizeDxfText(rawText);
     const baseHeight = Math.abs(number(40, 1)) || 1;
-    const leadingHeight = type === 'MTEXT'
-        ? rawText.match(/^\s*\{?\\H([+-]?(?:\d+\.?\d*|\.\d+))(x?);/i)
-        : null;
+    const leadingHeight =
+        type === 'MTEXT'
+            ? rawText.match(/^\s*\{?\\H([+-]?(?:\d+\.?\d*|\.\d+))(x?);/i)
+            : null;
     const height = leadingHeight
-        ? baseHeight * Number(leadingHeight[1]) * (leadingHeight[2] ? 1 : 1 / baseHeight)
+        ? baseHeight *
+          Number(leadingHeight[1]) *
+          (leadingHeight[2] ? 1 : 1 / baseHeight)
         : baseHeight;
     const insertion = { x: number(10), y: number(20) };
     return {

@@ -26,7 +26,9 @@ export function handleCanvasKeyDown(
         transformDragRef: { current: unknown };
         onDeleteTab: (entryId: string, tabIndex: number) => void;
         onCancelGuide: () => void;
-        onGuideDraftChange: (draft: import('../../lib/guides').GuideDraft | null) => void;
+        onGuideDraftChange: (
+            draft: import('../../lib/guides').GuideDraft | null,
+        ) => void;
         onTransformCommit: (commit: TransformCommit | null) => void;
         onCommitLoop: (points: Point[], meta?: LoopMeta) => void;
         forceTick: () => void;

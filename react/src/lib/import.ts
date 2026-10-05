@@ -115,7 +115,7 @@ export async function importVectorFile(file: File): Promise<ImportResult> {
           ? parseSvg(text)
           : (() => {
                 throw new Error('Unsupported file — import .dxf or .svg');
-              })();
+            })();
     if (isDxf && entities.some((entity) => entity.type === 'CAD_TEXT')) {
         entities = await convertDxfTextToStrokes(entities);
     }
@@ -137,7 +137,8 @@ async function convertDxfTextToStrokes(entities: ReturnType<typeof parseDxf>) {
     courierCadFontPromise ??= (async () => {
         const baseUrl = import.meta.env.BASE_URL || '/';
         const response = await fetch(`${baseUrl}assets/fonts/CourierCad.cxf`);
-        if (!response.ok) throw new Error('Could not load the CourierCad font.');
+        if (!response.ok)
+            throw new Error('Could not load the CourierCad font.');
         return parseCxf(await response.text());
     })();
     const font = await courierCadFontPromise;

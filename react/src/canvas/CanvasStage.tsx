@@ -34,7 +34,11 @@ import {
     paintSelectionFeedback,
 } from './paintInteractionOverlays';
 import { CanvasViewport } from './CanvasViewport';
-import { CanvasHud, type DraftDimension, type DraftDimensionField } from './CanvasHud';
+import {
+    CanvasHud,
+    type DraftDimension,
+    type DraftDimensionField,
+} from './CanvasHud';
 import { DARK_CANVAS_THEME, LIGHT_CANVAS_THEME } from './theme';
 import type { CanvasStageProps } from './CanvasStage.types';
 import type { CanvasViewState } from './stageViewState';
@@ -50,9 +54,7 @@ import type {
     ViewLoop,
 } from './types';
 import { trimNearestSegment } from '../lib/trim';
-import {
-    MM_PER_INCH,
-} from '../lib/units';
+import { MM_PER_INCH } from '../lib/units';
 
 /**
  * 2D canvas: fitted vector view with wheel-zoom, drag-pan (middle/right
@@ -512,73 +514,183 @@ export function CanvasStage({
               }
             : null;
     const draftDimension: DraftDimension | null = (() => {
-        const polylineAnchor = drawTool === 'polyline' ? clicksRef.current[clicksRef.current.length - 1] : null;
-        const polylineCursor = drawTool === 'polyline' ? cursorRef.current : null;
+        const polylineAnchor =
+            drawTool === 'polyline'
+                ? clicksRef.current[clicksRef.current.length - 1]
+                : null;
+        const polylineCursor =
+            drawTool === 'polyline' ? cursorRef.current : null;
         const arcStart = drawTool === 'arc' ? clicksRef.current[0] : null;
-        const arcEnd = drawTool === 'arc' && clicksRef.current.length >= 2 ? clicksRef.current[1] : null;
+        const arcEnd =
+            drawTool === 'arc' && clicksRef.current.length >= 2
+                ? clicksRef.current[1]
+                : null;
         const arcCursor = drawTool === 'arc' ? cursorRef.current : null;
-        const arcFirstPhase = drawTool === 'arc' && clicksRef.current.length === 1 && arcStart && arcCursor;
-        const arcBulgePhase = drawTool === 'arc' && arcStart && arcEnd && arcCursor;
-        const draft = draftRef.current ?? (arcFirstPhase
-            ? { ax: arcStart.x, ay: arcStart.y, bx: arcCursor.x, by: arcCursor.y }
-            : polylineAnchor && polylineCursor
-            ? { ax: polylineAnchor.x, ay: polylineAnchor.y, bx: polylineCursor.x, by: polylineCursor.y }
-            : null);
+        const arcFirstPhase =
+            drawTool === 'arc' &&
+            clicksRef.current.length === 1 &&
+            arcStart &&
+            arcCursor;
+        const arcBulgePhase =
+            drawTool === 'arc' && arcStart && arcEnd && arcCursor;
+        const draft =
+            draftRef.current ??
+            (arcFirstPhase
+                ? {
+                      ax: arcStart.x,
+                      ay: arcStart.y,
+                      bx: arcCursor.x,
+                      by: arcCursor.y,
+                  }
+                : polylineAnchor && polylineCursor
+                  ? {
+                        ax: polylineAnchor.x,
+                        ay: polylineAnchor.y,
+                        bx: polylineCursor.x,
+                        by: polylineCursor.y,
+                    }
+                  : null);
         if (arcBulgePhase && arcStart && arcEnd && arcCursor) {
             const fields: DraftDimension['fields'] = [
-                { key: 'bulge', label: 'Bulge', value: units === 'imperial' ? arcBulgeDistance(arcStart, arcEnd, arcCursor) / MM_PER_INCH : arcBulgeDistance(arcStart, arcEnd, arcCursor), unit: 'length' },
-                { key: 'sweep', label: 'Sweep', value: arcSweepDegrees(arcStart, arcEnd, arcCursor), unit: 'angle' },
+                {
+                    key: 'bulge',
+                    label: 'Bulge',
+                    value:
+                        units === 'imperial'
+                            ? arcBulgeDistance(arcStart, arcEnd, arcCursor) /
+                              MM_PER_INCH
+                            : arcBulgeDistance(arcStart, arcEnd, arcCursor),
+                    unit: 'length',
+                },
+                {
+                    key: 'sweep',
+                    label: 'Sweep',
+                    value: arcSweepDegrees(arcStart, arcEnd, arcCursor),
+                    unit: 'angle',
+                },
             ];
-            const x = camNow.tx + (arcStart.x + arcEnd.x) * camNow.scale / 2 + 12;
-            const y = camNow.ty - (arcStart.y + arcEnd.y) * camNow.scale / 2 - 36;
+            const x =
+                camNow.tx + ((arcStart.x + arcEnd.x) * camNow.scale) / 2 + 12;
+            const y =
+                camNow.ty - ((arcStart.y + arcEnd.y) * camNow.scale) / 2 - 36;
             return { fields, x, y };
         }
-        if (!draft || !drawTool || !['rectangle', 'circle', 'line', 'polygon', 'polyline', 'arc'].includes(drawTool)) return null;
+        if (
+            !draft ||
+            !drawTool ||
+            ![
+                'rectangle',
+                'circle',
+                'line',
+                'polygon',
+                'polyline',
+                'arc',
+            ].includes(drawTool)
+        )
+            return null;
         const dx = draft.bx - draft.ax;
         const dy = draft.by - draft.ay;
         const distance = Math.hypot(dx, dy);
         if (!(distance > 0.01)) return null;
         const length = units === 'imperial' ? distance / MM_PER_INCH : distance;
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-        const fields: DraftDimension['fields'] = drawTool === 'rectangle'
-            ? [
-                  { key: 'width', label: 'Width', value: units === 'imperial' ? Math.abs(dx) / MM_PER_INCH : Math.abs(dx), unit: 'length' },
-                  { key: 'height', label: 'Height', value: units === 'imperial' ? Math.abs(dy) / MM_PER_INCH : Math.abs(dy), unit: 'length' },
-              ]
-            : drawTool === 'circle' || drawTool === 'polygon'
-              ? [{ key: 'radius', label: drawTool === 'circle' ? 'Radius' : 'Radius', value: length, unit: 'length' }]
-              : [
-                    { key: 'length', label: 'Length', value: length, unit: 'length' },
-                    { key: 'angle', label: 'Angle', value: angle, unit: 'angle' },
-                ];
-        const x = camNow.tx + (draft.ax + draft.bx) * camNow.scale / 2 + 12;
+        const fields: DraftDimension['fields'] =
+            drawTool === 'rectangle'
+                ? [
+                      {
+                          key: 'width',
+                          label: 'Width',
+                          value:
+                              units === 'imperial'
+                                  ? Math.abs(dx) / MM_PER_INCH
+                                  : Math.abs(dx),
+                          unit: 'length',
+                      },
+                      {
+                          key: 'height',
+                          label: 'Height',
+                          value:
+                              units === 'imperial'
+                                  ? Math.abs(dy) / MM_PER_INCH
+                                  : Math.abs(dy),
+                          unit: 'length',
+                      },
+                  ]
+                : drawTool === 'circle' || drawTool === 'polygon'
+                  ? [
+                        {
+                            key: 'radius',
+                            label: drawTool === 'circle' ? 'Radius' : 'Radius',
+                            value: length,
+                            unit: 'length',
+                        },
+                    ]
+                  : [
+                        {
+                            key: 'length',
+                            label: 'Length',
+                            value: length,
+                            unit: 'length',
+                        },
+                        {
+                            key: 'angle',
+                            label: 'Angle',
+                            value: angle,
+                            unit: 'angle',
+                        },
+                    ];
+        const x = camNow.tx + ((draft.ax + draft.bx) * camNow.scale) / 2 + 12;
         const y = camNow.ty - Math.max(draft.ay, draft.by) * camNow.scale - 36;
         return {
             fields,
             x,
             y,
-            ...(drawTool === 'polygon' ? { polygon: { sides: drawSides, mode: polygonMode } } : {}),
+            ...(drawTool === 'polygon'
+                ? { polygon: { sides: drawSides, mode: polygonMode } }
+                : {}),
         };
     })();
 
-    const onDraftDimensionChange = (key: DraftDimensionField, value: number) => {
+    const onDraftDimensionChange = (
+        key: DraftDimensionField,
+        value: number,
+    ) => {
         const polyline = drawTool === 'polyline';
         const arc = drawTool === 'arc';
         const point = cursorRef.current;
-        const anchor = polyline ? clicksRef.current[clicksRef.current.length - 1] : null;
+        const anchor = polyline
+            ? clicksRef.current[clicksRef.current.length - 1]
+            : null;
         const arcStart = arc ? clicksRef.current[0] : null;
-        const arcEnd = arc && clicksRef.current.length >= 2 ? clicksRef.current[1] : null;
+        const arcEnd =
+            arc && clicksRef.current.length >= 2 ? clicksRef.current[1] : null;
         if (arc && arcStart && arcEnd && point) {
             const dx = arcEnd.x - arcStart.x;
             const dy = arcEnd.y - arcStart.y;
             const chord = Math.hypot(dx, dy);
             if (chord > 1e-8) {
-                const cross = dx * (point.y - arcStart.y) - dy * (point.x - arcStart.x);
+                const cross =
+                    dx * (point.y - arcStart.y) - dy * (point.x - arcStart.x);
                 const side = Math.sign(cross) || 1;
-                const height = key === 'bulge'
-                    ? Math.max(0.001, Math.abs(value * (units === 'imperial' ? MM_PER_INCH : 1)))
-                    : (chord / 2) * Math.tan((Math.min(359, Math.max(1, Math.abs(value))) * Math.PI) / 720);
-                const midpoint = { x: (arcStart.x + arcEnd.x) / 2, y: (arcStart.y + arcEnd.y) / 2 };
+                const height =
+                    key === 'bulge'
+                        ? Math.max(
+                              0.001,
+                              Math.abs(
+                                  value *
+                                      (units === 'imperial' ? MM_PER_INCH : 1),
+                              ),
+                          )
+                        : (chord / 2) *
+                          Math.tan(
+                              (Math.min(359, Math.max(1, Math.abs(value))) *
+                                  Math.PI) /
+                                  720,
+                          );
+                const midpoint = {
+                    x: (arcStart.x + arcEnd.x) / 2,
+                    y: (arcStart.y + arcEnd.y) / 2,
+                };
                 cursorRef.current = {
                     x: midpoint.x - (dy / chord) * side * height,
                     y: midpoint.y + (dx / chord) * side * height,
@@ -587,27 +699,44 @@ export function CanvasStage({
             }
             return;
         }
-        const current = draftRef.current ?? (arc && arcStart && point
-            ? { ax: arcStart.x, ay: arcStart.y, bx: point.x, by: point.y }
-            : anchor && point
-            ? { ax: anchor.x, ay: anchor.y, bx: point.x, by: point.y }
-            : null);
+        const current =
+            draftRef.current ??
+            (arc && arcStart && point
+                ? { ax: arcStart.x, ay: arcStart.y, bx: point.x, by: point.y }
+                : anchor && point
+                  ? { ax: anchor.x, ay: anchor.y, bx: point.x, by: point.y }
+                  : null);
         if (!current || !Number.isFinite(value)) return;
         const draft = { ...current };
         const scale = units === 'imperial' ? MM_PER_INCH : 1;
         if (drawTool === 'rectangle') {
-            const width = key === 'width' ? Math.abs(value * scale) : Math.abs(draft.bx - draft.ax);
-            const height = key === 'height' ? Math.abs(value * scale) : Math.abs(draft.by - draft.ay);
+            const width =
+                key === 'width'
+                    ? Math.abs(value * scale)
+                    : Math.abs(draft.bx - draft.ax);
+            const height =
+                key === 'height'
+                    ? Math.abs(value * scale)
+                    : Math.abs(draft.by - draft.ay);
             draft.bx = draft.ax + Math.sign(draft.bx - draft.ax || 1) * width;
             draft.by = draft.ay + Math.sign(draft.by - draft.ay || 1) * height;
         } else if (drawTool === 'circle' || drawTool === 'polygon') {
             const radius = Math.max(0, value * scale);
-            const direction = Math.atan2(draft.by - draft.ay, draft.bx - draft.ax);
+            const direction = Math.atan2(
+                draft.by - draft.ay,
+                draft.bx - draft.ax,
+            );
             draft.bx = draft.ax + Math.cos(direction) * radius;
             draft.by = draft.ay + Math.sin(direction) * radius;
         } else if (drawTool === 'line' || polyline || arc) {
-            const length = key === 'length' ? Math.max(0, value * scale) : Math.hypot(draft.bx - draft.ax, draft.by - draft.ay);
-            const angle = key === 'angle' ? (value * Math.PI) / 180 : Math.atan2(draft.by - draft.ay, draft.bx - draft.ax);
+            const length =
+                key === 'length'
+                    ? Math.max(0, value * scale)
+                    : Math.hypot(draft.bx - draft.ax, draft.by - draft.ay);
+            const angle =
+                key === 'angle'
+                    ? (value * Math.PI) / 180
+                    : Math.atan2(draft.by - draft.ay, draft.bx - draft.ax);
             draft.bx = draft.ax + Math.cos(angle) * length;
             draft.by = draft.ay + Math.sin(angle) * length;
         }
@@ -617,14 +746,29 @@ export function CanvasStage({
     };
 
     const onDraftDimensionCommit = () => {
-        if (drawTool === 'arc' && clicksRef.current.length === 1 && cursorRef.current) {
+        if (
+            drawTool === 'arc' &&
+            clicksRef.current.length === 1 &&
+            cursorRef.current
+        ) {
             clicksRef.current = [...clicksRef.current, cursorRef.current];
-            cursorRef.current = defaultArcBulgePoint(clicksRef.current[0], clicksRef.current[1]);
+            cursorRef.current = defaultArcBulgePoint(
+                clicksRef.current[0],
+                clicksRef.current[1],
+            );
             forceTick();
             return;
         }
-        if (drawTool === 'arc' && clicksRef.current.length >= 2 && cursorRef.current) {
-            const points = arcPoints3(clicksRef.current[0], cursorRef.current, clicksRef.current[1]);
+        if (
+            drawTool === 'arc' &&
+            clicksRef.current.length >= 2 &&
+            cursorRef.current
+        ) {
+            const points = arcPoints3(
+                clicksRef.current[0],
+                cursorRef.current,
+                clicksRef.current[1],
+            );
             clicksRef.current = [];
             cursorRef.current = null;
             if (points) onCommitLoop(points);
@@ -654,13 +798,28 @@ export function CanvasStage({
         pendingAnchorRef.current = null;
         draftRef.current = null;
         if (points && points.length >= 2) {
-            const snapStep = grid.snap && grid.spacingMm > 0 ? grid.spacingMm : 0.1;
-            const snap = (coordinate: number) => Math.round(coordinate / snapStep) * snapStep;
-            const radius = Math.hypot(snap(draft.bx) - snap(anchor.x), snap(draft.by) - snap(anchor.y));
+            const snapStep =
+                grid.snap && grid.spacingMm > 0 ? grid.spacingMm : 0.1;
+            const snap = (coordinate: number) =>
+                Math.round(coordinate / snapStep) * snapStep;
+            const radius = Math.hypot(
+                snap(draft.bx) - snap(anchor.x),
+                snap(draft.by) - snap(anchor.y),
+            );
             onCommitLoop(points, {
                 sourceType: drawTool,
-                ...(drawTool === 'circle' || drawTool === 'polygon' ? { radius } : {}),
-                ...(drawTool === 'polygon' ? { sides: Math.min(128, Math.max(3, Math.round(drawSides))), polygonMode } : {}),
+                ...(drawTool === 'circle' || drawTool === 'polygon'
+                    ? { radius }
+                    : {}),
+                ...(drawTool === 'polygon'
+                    ? {
+                          sides: Math.min(
+                              128,
+                              Math.max(3, Math.round(drawSides)),
+                          ),
+                          polygonMode,
+                      }
+                    : {}),
             });
         }
         forceTick();

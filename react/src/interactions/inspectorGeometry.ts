@@ -46,9 +46,10 @@ function polygonPoints(
     const count = Math.round(patch.sides);
     const centerX = minX + width / 2;
     const centerY = minY + height / 2;
-    const apothemOrRadius = patch.radius && patch.radius > 0
-        ? patch.radius
-        : Math.min(width, height) / 2;
+    const apothemOrRadius =
+        patch.radius && patch.radius > 0
+            ? patch.radius
+            : Math.min(width, height) / 2;
     const vertexRadius =
         patch.polygonMode === 'circumscribed'
             ? apothemOrRadius / Math.cos(Math.PI / count)
@@ -90,20 +91,24 @@ export function inspectorGeometry(
     const isCircle =
         loop.sourceType === 'circle' || loop.exportGeometry?.type === 'circle';
     const isPolygon = loop.sourceType === 'polygon';
-    const targetWidth = isCircle && patch.radius && patch.radius > 0
-        ? patch.radius * 2
-        : patch.w;
-    const targetHeight = isCircle && patch.radius && patch.radius > 0
-        ? patch.radius * 2
-        : patch.h;
+    const targetWidth =
+        isCircle && patch.radius && patch.radius > 0
+            ? patch.radius * 2
+            : patch.w;
+    const targetHeight =
+        isCircle && patch.radius && patch.radius > 0
+            ? patch.radius * 2
+            : patch.h;
     if (!(targetWidth > 0) || !(targetHeight > 0)) return null;
     const base = isPolygon
         ? polygonPoints(loop, patch, minX, minY, width, height)
         : loop.points;
-    const moved = isPolygon ? base : base.map((point) => ({
-        x: point.x + (patch.x - minX),
-        y: point.y + (patch.y - minY),
-    }));
+    const moved = isPolygon
+        ? base
+        : base.map((point) => ({
+              x: point.x + (patch.x - minX),
+              y: point.y + (patch.y - minY),
+          }));
     const scaled =
         !isPolygon && width > 0 && height > 0
             ? scalePointsXY(moved, targetWidth / width, targetHeight / height, {

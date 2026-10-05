@@ -1,7 +1,13 @@
 /**
  * Purpose: Implementation module for paintInteractionOverlays in the react domain.
  */
-import { arcPoints3, cubicBezierPoints, draftPoints, type DrawTool, type Draft } from '../draw/geometry';
+import {
+    arcPoints3,
+    cubicBezierPoints,
+    draftPoints,
+    type DrawTool,
+    type Draft,
+} from '../draw/geometry';
 import { dogboneCorner, filletCorner } from '../lib/corners';
 import type { TransformMode } from '../lib/transform';
 import type { Guide } from '../lib/guides';
@@ -76,9 +82,29 @@ export function paintDrawingFeedback(options: PaintInteractionOverlaysOptions) {
     paintSnapMarker(options);
 }
 
-function paintShapeDraft({ ctx, camera, darkMode, drawTool, draft, drawSides, polygonMode, grid }: PaintInteractionOverlaysOptions) {
-    if (!draft || !drawTool || !['line', 'rectangle', 'circle', 'polygon'].includes(drawTool)) return;
-    const points = draftPoints(drawTool, draft, drawSides, grid.snap ? grid.spacingMm : null, polygonMode);
+function paintShapeDraft({
+    ctx,
+    camera,
+    darkMode,
+    drawTool,
+    draft,
+    drawSides,
+    polygonMode,
+    grid,
+}: PaintInteractionOverlaysOptions) {
+    if (
+        !draft ||
+        !drawTool ||
+        !['line', 'rectangle', 'circle', 'polygon'].includes(drawTool)
+    )
+        return;
+    const points = draftPoints(
+        drawTool,
+        draft,
+        drawSides,
+        grid.snap ? grid.spacingMm : null,
+        polygonMode,
+    );
     if (!points || points.length < 2) return;
     const screen = points.map((point) => toScreen(camera, point));
     ctx.save();
