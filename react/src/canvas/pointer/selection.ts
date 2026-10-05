@@ -84,6 +84,7 @@ function selectMarquee(
     const hidden = new Set(deps.viewRef.current.hidden);
     const hits = deps.viewRef.current.loops.flatMap((loop) => {
         if (
+            loop.bitmapId ||
             hidden.has(loop.id) ||
             !Array.isArray(loop.points) ||
             loop.points.length < 2
@@ -108,7 +109,17 @@ function selectMarquee(
     });
     deps.onSelect(
         shift
-            ? Array.from(new Set([...deps.viewRef.current.selected, ...hits]))
+            ? Array.from(
+                  new Set([
+                      ...deps.viewRef.current.selected.filter((id) => {
+                          const loop = deps.viewRef.current.loops.find(
+                              (item) => item.id === id,
+                          );
+                          return loop && !loop.bitmapId;
+                      }),
+                      ...hits,
+                  ]),
+              )
             : hits,
     );
 }
@@ -155,9 +166,9 @@ function selectAt(
         const linkedId = loops.find((loop) => loop.bitmapId === bitmap.id)?.id;
         if (linkedId) {
             deps.onSelect(
-                selected.includes(linkedId)
-                    ? selected.filter((id) => id !== linkedId)
-                    : [...selected, linkedId],
+                selected.length === 1 && selected[0] === linkedId
+                    ? []
+                    : [linkedId],
             );
             return;
         }

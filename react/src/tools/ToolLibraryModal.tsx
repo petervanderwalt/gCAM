@@ -136,13 +136,13 @@ export function ToolLibraryModal({
             <div
                 ref={modalRef}
                 className={cx(
-                    'w-full max-w-3xl max-h-[90vh] overflow-auto',
+                    'w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden',
                     'rounded-lg bg-gray-100 dark:bg-dark border border-gray-300 dark:border-gray-700',
                     'animate-slide-up',
                 )}
                 onClick={(e) => e.stopPropagation()}
             >
-                <header className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-robin-900">
+                <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between px-5 py-4 border-b border-slate-200 bg-gray-100 dark:border-robin-900 dark:bg-dark">
                     <h2
                         id="tool-library-title"
                         className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2"
@@ -162,7 +162,7 @@ export function ToolLibraryModal({
                     </button>
                 </header>
 
-                <div className="p-4 space-y-3">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
                     {slots.map((slot) =>
                         editingSlot === slot.slot ? (
                             <ToolSlotEditor
@@ -186,7 +186,7 @@ export function ToolLibraryModal({
                     )}
                 </div>
 
-                <footer className="px-4 py-3 border-t border-slate-200 dark:border-robin-900 flex items-center gap-3">
+                <footer className="shrink-0 bg-gray-100 px-4 py-3 border-t border-slate-200 dark:border-robin-900 dark:bg-dark flex items-center gap-3">
                     {firstIssue && (
                         <span
                             role="alert"

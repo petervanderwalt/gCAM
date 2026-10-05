@@ -9,11 +9,13 @@ import { ToolSlotSelector } from './ToolSlotSelector';
 
 interface ToolSelectionFieldsProps {
     slots: ToolSlot[];
+    hasAnyConfiguredTool: boolean;
     slotNum: number;
     units: UnitSystem;
     libraryOpen: boolean;
     librarySlot: number | null;
     onOpenLibrary(): void;
+    onSetupTools(): void;
     onSelectSlot(slotNumber: number): void;
     onCloseLibrary(): void;
     onConfiguredSlot(slot: ToolSlot): void;
@@ -22,11 +24,13 @@ interface ToolSelectionFieldsProps {
 /** Tool rack selection and its editor modal, independent of operation fields. */
 export function ToolSelectionFields({
     slots,
+    hasAnyConfiguredTool,
     slotNum,
     units,
     libraryOpen,
     librarySlot,
     onOpenLibrary,
+    onSetupTools,
     onSelectSlot,
     onCloseLibrary,
     onConfiguredSlot,
@@ -35,9 +39,11 @@ export function ToolSelectionFields({
         <>
             <ToolSlotSelector
                 slots={slots}
+                hasAnyConfiguredTool={hasAnyConfiguredTool}
                 slotNum={slotNum}
                 units={units}
                 onOpenLibrary={onOpenLibrary}
+                onSetupTools={onSetupTools}
                 onSelect={onSelectSlot}
             />
             <ToolLibraryModal

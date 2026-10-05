@@ -1,7 +1,7 @@
 /**
  * Purpose: Implementation module for registry in the cam domain.
  */
-import { OPERATION_LABELS } from './contract.js';
+import { defineOperation, OPERATION_LABELS } from './contract.js';
 import {
     engraveOperation,
     chamferOperation,
@@ -17,6 +17,20 @@ import {
 import { textureFillOperation } from './texture.js';
 import { vcarveOperation } from './vcarve.js';
 
+const countersinkOperation = defineOperation({
+    id: 'countersink',
+    validate(config) {
+        if (!(config.toolDiameter > 0) || !(config.cutDepth > 0))
+            throw new Error(
+                'Countersink requires a configured V-bit and positive head diameter.',
+            );
+    },
+    createPreview() {
+        return [];
+    },
+    emission: 'countersink',
+});
+
 const operations = [
     profileOutsideOperation,
     profileInsideOperation,
@@ -24,6 +38,7 @@ const operations = [
     engraveOperation,
     chamferOperation,
     vcarveOperation,
+    countersinkOperation,
     textureFillOperation,
     laserCutOperation,
     laserRasterOperation,

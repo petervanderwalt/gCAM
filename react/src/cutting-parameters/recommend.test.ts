@@ -12,6 +12,9 @@ const machine = {
     maxZFeedMmMin: 1000,
     spindleMinRpm: 10000,
     spindleMaxRpm: 24000,
+    maxXTravelMm: 1000,
+    maxYTravelMm: 1000,
+    maxZTravelMm: 200,
 };
 const cutter = {
     toolType: 'flat' as const,

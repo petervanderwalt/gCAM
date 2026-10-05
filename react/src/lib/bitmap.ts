@@ -37,6 +37,13 @@ export function placeBitmap(
 const BITMAP_RE = /\.(png|jpe?g|webp|bmp|gif)$/i;
 
 export function isBitmapFile(file: File): boolean {
+    // SVG is an image MIME type, but in this app it is an editable vector
+    // drawing and must go through the SVG parser and physical-units workflow.
+    if (
+        file.type.toLowerCase() === 'image/svg+xml' ||
+        /\.svg$/i.test(file.name)
+    )
+        return false;
     return file.type.startsWith('image/') || BITMAP_RE.test(file.name);
 }
 

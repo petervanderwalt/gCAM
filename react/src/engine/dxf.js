@@ -1,6 +1,71 @@
 /**
  * Purpose: Implementation module for dxf in the engine domain.
  */
+const DXF_INSUNITS_TO_MM = {
+    1: 25.4, // Inches
+    2: 304.8, // Feet
+    3: 1609344, // Miles
+    4: 1, // Millimetres
+    5: 10, // Centimetres
+    6: 1000, // Metres
+    7: 1000000, // Kilometres
+    8: 0.0000254, // Microinches
+    9: 0.0254, // Mils
+    10: 914.4, // Yards
+    11: 1e-7, // Angstroms
+    12: 1e-6, // Nanometres
+    13: 0.001, // Microns
+    14: 100, // Decimetres
+    15: 10000, // Decametres
+    16: 100000, // Hectometres
+    17: 1e12, // Gigametres
+    18: 149597870700000, // Astronomical units
+    19: 9.4607304725808e18, // Light years
+    20: 3.08567758149137e19, // Parsecs
+};
+
+/** Read the DXF header's $INSUNITS scale as millimetres per drawing unit. */
+export function dxfUnitScaleToMm(text) {
+    const lines = text.replace(/\r/g, '').split('\n');
+    const pairs = [];
+    for (let index = 0; index + 1 < lines.length; index += 2) {
+        const code = Number.parseInt(lines[index].trim(), 10);
+        if (!Number.isNaN(code))
+            pairs.push({ code, value: lines[index + 1].trim() });
+    }
+    let inHeader = false;
+    for (let index = 0; index < pairs.length; index += 1) {
+        const pair = pairs[index];
+        if (pair.code === 0 && pair.value === 'SECTION') {
+            inHeader =
+                pairs[index + 1]?.code === 2 &&
+                pairs[index + 1]?.value === 'HEADER';
+            continue;
+        }
+        if (pair.code === 0 && pair.value === 'ENDSEC') {
+            inHeader = false;
+            continue;
+        }
+        if (inHeader && pair.code === 9 && pair.value === '$INSUNITS') {
+            for (
+                let next = index + 1;
+                next < pairs.length && pairs[next].code !== 9;
+                next += 1
+            ) {
+                if (pairs[next].code === 70) {
+                    return (
+                        DXF_INSUNITS_TO_MM[
+                            Number.parseInt(pairs[next].value, 10)
+                        ] ?? null
+                    );
+                }
+            }
+            return null;
+        }
+    }
+    return null;
+}
+
 export function parseDxf(text) {
     const rawLines = text.replace(/\r/g, '').split('\n');
     const pairs = [];

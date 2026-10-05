@@ -4,6 +4,7 @@
 import type { DrawTool } from '../draw/geometry';
 import type { TransformMode } from '../lib/transform';
 import type { UnitSystem } from '../lib/units';
+import type { JobStock } from '../job/stock';
 import type {
     PreviewLoop,
     TabHoverCandidate,
@@ -39,6 +40,7 @@ export interface CanvasViewState {
         snap: boolean;
         style: 'lines' | 'dots';
     };
+    stock: JobStock;
     guides: { id: string; axis: 'x' | 'y'; pos: number }[];
     guidePlacement: 'x' | 'y' | null;
     transformMode: TransformMode | null;

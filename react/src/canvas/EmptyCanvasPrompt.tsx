@@ -32,11 +32,12 @@ export function EmptyCanvasPrompt({
                         onClick={onImport}
                         className="rounded bg-green-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-800"
                     >
-                        Open DXF/SVG/Bitmap
+                        Open drawing or model
                     </button>
                 </div>
                 <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    or drag DXF/SVG/Bitmap here
+                    Download a DXF/SVG drawing or STL/OBJ model first, then
+                    choose it here or drag it onto the canvas.
                 </p>
                 <button
                     onClick={onLoadSample}

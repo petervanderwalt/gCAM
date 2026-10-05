@@ -39,8 +39,49 @@ export interface MachineProfile {
     maxZFeedMmMin: number;
     spindleMinRpm: number;
     spindleMaxRpm: number;
+    /** grblHAL $130-$132 travel distances in mm (firmware stores machine bounds as negative coordinates). */
+    maxXTravelMm: number;
+    maxYTravelMm: number;
+    maxZTravelMm: number;
     /** A router dial can expose discrete speeds instead of arbitrary RPM. */
     availableRpm?: number[];
+}
+
+/** Travel envelope used by CAM validation: XY extents from job zero and negative Z from stock top. */
+export interface MachineTravelLimits {
+    maxXTravelMm: number | null;
+    maxYTravelMm: number | null;
+    minZTravelMm: number | null;
+    maxZTravelMm: number | null;
+}
+
+export const EMPTY_MACHINE_TRAVEL_LIMITS: MachineTravelLimits = {
+    maxXTravelMm: null,
+    maxYTravelMm: null,
+    minZTravelMm: null,
+    maxZTravelMm: null,
+};
+
+export function normalizeMachineTravelLimits(
+    value: unknown,
+): MachineTravelLimits {
+    const raw =
+        value && typeof value === 'object'
+            ? (value as Partial<MachineTravelLimits>)
+            : {};
+    const limit = (candidate: unknown, direction: 'positive' | 'negative') => {
+        if (typeof candidate !== 'number' || !Number.isFinite(candidate))
+            return null;
+        if (direction === 'positive' && candidate > 0) return candidate;
+        if (direction === 'negative' && candidate < 0) return candidate;
+        return null;
+    };
+    return {
+        maxXTravelMm: limit(raw.maxXTravelMm, 'positive'),
+        maxYTravelMm: limit(raw.maxYTravelMm, 'positive'),
+        minZTravelMm: limit(raw.minZTravelMm, 'negative'),
+        maxZTravelMm: limit(raw.maxZTravelMm, 'positive'),
+    };
 }
 
 export interface MaterialRecipe {

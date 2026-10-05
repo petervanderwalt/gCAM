@@ -12,6 +12,7 @@ import type {
     ViewLoop,
 } from './types';
 import type { UnitSystem } from '../lib/units';
+import type { JobStock } from '../job/stock';
 
 export type Point = { x: number; y: number };
 
@@ -27,6 +28,7 @@ export type CanvasStageProps = {
     selected: string[];
     hidden: string[];
     onSelect: (ids: string[]) => void;
+    onAdjustStock?: () => void;
     tabMode: boolean;
     tabMarkers: TabMarker[];
     onPlaceTab: (entryId: string, contourIndex: number, along: number) => void;
@@ -41,6 +43,7 @@ export type CanvasStageProps = {
         snap: boolean;
         style: 'lines' | 'dots';
     };
+    stock: JobStock;
     guides: { id: string; axis: 'x' | 'y'; pos: number }[];
     guidePlacement?: 'x' | 'y' | null;
     onPlaceGuide?: (axis: 'x' | 'y', position: number) => void;

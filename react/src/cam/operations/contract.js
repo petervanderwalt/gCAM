@@ -30,9 +30,13 @@ export const OPERATION_LABELS = {
     engrave: 'Engrave',
     chamfer: 'Chamfer',
     vcarve: 'V-Carve',
+    countersink: 'V-Bit Countersink',
     'texture-fill': 'Texture Fill',
     'laser-cut': 'Laser Cut',
     'laser-raster': 'Laser Raster',
     'wavy-raster': 'Wavy',
     halftone: 'Halftone',
+    'surface-clear': '3D Surface Clearing',
+    'surface-finish': '3D Surface Finishing',
+    'surface-waterline': '3D Waterline Finishing',
 };

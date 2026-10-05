@@ -16,6 +16,8 @@ interface CanvasHudProps {
     draftProgress: { percent: number; label: string } | null | undefined;
     progressPosition: Point | null;
     draftDimension: { label: string; x: number; y: number } | null;
+    jobExceedsStock: boolean;
+    onAdjustStock?: () => void;
     onZoom(factor: number): void;
     onFit(): void;
 }
@@ -30,6 +32,8 @@ export function CanvasHud({
     draftProgress,
     progressPosition,
     draftDimension,
+    jobExceedsStock,
+    onAdjustStock,
     onZoom,
     onFit,
 }: CanvasHudProps) {
@@ -46,7 +50,7 @@ export function CanvasHud({
             >
                 {loopCount
                     ? `${loopCount} vector${loopCount === 1 ? '' : 's'}`
-                    : 'Drop DXF/SVG here or use Import'}
+                    : 'Drop DXF/SVG, STL/OBJ, or an image here — or use File > Import File'}
             </div>
             <CursorReadout
                 cursorRef={cursorRef}
@@ -54,6 +58,23 @@ export function CanvasHud({
                 guidePlacement={guidePlacement}
                 units={units}
             />
+            {jobExceedsStock && (
+                <div
+                    role="alert"
+                    className="absolute top-11 left-2 flex items-center gap-2 rounded border border-amber-500/70 bg-amber-100/95 px-2 py-1 text-xs font-medium text-amber-950 shadow dark:bg-amber-950/90 dark:text-amber-100"
+                >
+                    <span>Job geometry exceeds the configured stock.</span>
+                    {onAdjustStock && (
+                        <button
+                            type="button"
+                            onClick={onAdjustStock}
+                            className="rounded border border-amber-700/50 bg-white/70 px-1.5 py-0.5 font-semibold underline underline-offset-2 hover:bg-white dark:border-amber-300/50 dark:bg-amber-900/50 dark:hover:bg-amber-900"
+                        >
+                            Edit job stock
+                        </button>
+                    )}
+                </div>
+            )}
             {draftProgress &&
                 createPortal(
                     <div

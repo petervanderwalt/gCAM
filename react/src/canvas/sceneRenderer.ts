@@ -77,6 +77,7 @@ export interface CanvasSceneInput {
         snap: boolean;
         style: 'lines' | 'dots';
     };
+    stockBounds: { minX: number; minY: number; maxX: number; maxY: number };
     bitmaps: {
         id: string;
         x: number;
@@ -114,6 +115,7 @@ export function drawCanvasScene(input: CanvasSceneInput): void {
         marquee,
         draft,
         grid,
+        stockBounds,
         bitmaps,
         guides,
         guidePlacement,
@@ -122,7 +124,7 @@ export function drawCanvasScene(input: CanvasSceneInput): void {
     ctx.fillStyle = theme.bg;
     ctx.fillRect(0, 0, w, h);
     drawGuides(ctx, w, h, cam, guides, guidePlacement, guideCursor);
-    drawGrid(ctx, w, h, cam, grid, theme);
+    drawGrid(ctx, w, h, cam, grid, theme, stockBounds);
     drawOriginGuides(ctx, w, h, cam, theme);
     if (!loops.length || !hasBounds) {
         ctx.fillStyle = theme.emptyText;
@@ -229,34 +231,47 @@ function drawGrid(
     cam: CanvasCamera,
     grid: CanvasSceneInput['grid'],
     theme: CanvasSceneTheme,
+    stockBounds: CanvasSceneInput['stockBounds'],
 ): void {
     if (!grid.visible) return;
+    const left = cam.tx + stockBounds.minX * cam.scale;
+    const right = cam.tx + stockBounds.maxX * cam.scale;
+    const top = cam.ty - stockBounds.maxY * cam.scale;
+    const bottom = cam.ty - stockBounds.minY * cam.scale;
     const step = Math.max(4, grid.spacingMm * cam.scale);
-    const ox = ((cam.tx % step) + step) % step;
-    const oy = ((cam.ty % step) + step) % step;
+    const firstX = left + ((step - (left % step)) % step);
+    const firstY = top + ((step - (top % step)) % step);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(left, top, right - left, bottom - top);
+    ctx.clip();
     if (grid.style === 'dots') {
         ctx.fillStyle = theme.grid;
         ctx.beginPath();
-        for (let x = ox; x < w; x += step)
-            for (let y = oy; y < h; y += step) {
+        for (let x = firstX; x <= right; x += step)
+            for (let y = firstY; y <= bottom; y += step) {
                 ctx.moveTo(x + 1.1, y);
                 ctx.arc(x, y, 1.1, 0, Math.PI * 2);
             }
         ctx.fill();
-        return;
+    } else {
+        ctx.strokeStyle = theme.grid;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = firstX + 0.5; x <= right; x += step) {
+            ctx.moveTo(x, top);
+            ctx.lineTo(x, bottom);
+        }
+        for (let y = firstY + 0.5; y <= bottom; y += step) {
+            ctx.moveTo(left, y);
+            ctx.lineTo(right, y);
+        }
+        ctx.stroke();
     }
+    ctx.restore();
     ctx.strokeStyle = theme.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = ox + 0.5; x < w; x += step) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-    }
-    for (let y = oy + 0.5; y < h; y += step) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-    }
-    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(left + 0.5, top + 0.5, right - left, bottom - top);
 }
 
 function drawBitmaps(

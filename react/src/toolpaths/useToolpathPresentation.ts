@@ -105,7 +105,12 @@ export function useToolpathPresentation(options: ToolpathPresentationOptions) {
         [options.stack, options.fileName, options.emitArcs, options.units],
     );
     const previewToolpaths = useMemo(
-        () => options.stack.map((entry) => entry.toolpath),
+        () =>
+            options.stack.map((entry) => ({
+                ...entry.toolpath,
+                cutterType: entry.args.cutterType ?? 'flat',
+                cutterAngle: entry.args.cutterAngle,
+            })),
         [options.stack],
     );
 

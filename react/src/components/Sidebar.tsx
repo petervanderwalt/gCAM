@@ -1,11 +1,11 @@
 /**
  * Purpose: Implementation module for Sidebar in the components domain.
  */
-import { Box, FileCode2, Layers, Settings } from 'lucide-react';
+import { Box, Layers, Settings } from 'lucide-react';
 import cx from 'classnames';
 import toolpathsIconUrl from '../../assets/Toolpaths.svg';
 
-export type SideTab = 'toolpaths' | 'preview' | 'gcode' | 'config';
+export type SideTab = 'toolpaths' | 'preview' | 'config';
 
 interface SidebarProps {
     activeTab: SideTab;
@@ -14,8 +14,7 @@ interface SidebarProps {
 
 const tabs = [
     { id: 'toolpaths', label: 'Toolpaths', icon: Layers },
-    { id: 'preview', label: 'Preview', icon: Box },
-    { id: 'gcode', label: 'G-code', icon: FileCode2 },
+    { id: 'preview', label: 'Simulation', icon: Box },
     { id: 'config', label: 'Config', icon: Settings },
 ] as const;
 

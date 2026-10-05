@@ -67,7 +67,7 @@ interface ToolbarOptions {
     fileRef: RefObject<HTMLInputElement>;
     projectRef: RefObject<HTMLInputElement>;
     setGrid: Dispatch<SetStateAction<GridState>>;
-    setSideTab: (tab: 'toolpaths' | 'preview' | 'gcode' | 'config') => void;
+    setSideTab: (tab: 'toolpaths' | 'preview' | 'config') => void;
     setDarkMode: Dispatch<SetStateAction<boolean>>;
     setViewportCommand: Dispatch<
         SetStateAction<

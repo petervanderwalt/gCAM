@@ -45,6 +45,8 @@ export type ToolpathRequest = {
     passDepth?: number;
     trochoidEnabled?: boolean;
     trochoidEngagementPercent?: number;
+    helicalEntryEnabled?: boolean;
+    countersinkHeadDiameterMm?: number;
     overlapPercent?: number;
     tabWidth?: number;
     tabHeight?: number;
@@ -105,6 +107,8 @@ export function makeToolpathConfig(request: ToolpathRequest) {
         passDepth,
         trochoidEnabled = false,
         trochoidEngagementPercent = 10,
+        helicalEntryEnabled = false,
+        countersinkHeadDiameterMm = 8,
         overlapPercent = 40,
         tabWidth = 9,
         tabHeight = Math.min(9, cutDepth / 2),
@@ -123,6 +127,8 @@ export function makeToolpathConfig(request: ToolpathRequest) {
             ? Math.max(0, toolDiameter * (trochoidEngagementPercent / 100))
             : 0,
         trochoidEngagementPercent,
+        helicalEntryEnabled,
+        countersinkHeadDiameterMm,
         tabWidth,
         tabHeight,
         safeZ,

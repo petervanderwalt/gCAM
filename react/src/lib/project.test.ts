@@ -6,6 +6,7 @@ import {
     serializeProject,
     type ProjectSnapshot,
 } from './project';
+import { DEFAULT_JOB_STOCK } from '../job/stock';
 
 const SNAP: ProjectSnapshot = {
     loops: [{ points: [{ x: 0, y: 0 }], groupId: 'group-1' }],
@@ -23,6 +24,7 @@ const SNAP: ProjectSnapshot = {
     bitmaps: [],
     guides: [],
     fileName: 'demo',
+    stock: DEFAULT_JOB_STOCK,
 };
 
 test('project round-trips through the gcam envelope', () => {
@@ -55,6 +57,7 @@ test('v1 projects migrate to the current snapshot shape', () => {
         bitmaps: [],
         guides: [],
         fileName: 'legacy',
+        stock: DEFAULT_JOB_STOCK,
     });
 });
 

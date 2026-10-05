@@ -1,8 +1,18 @@
 /**
  * Purpose: React hook that owns the VectorImport workflow.
  */
+import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { importVectorFile } from '../lib/import';
+import {
+    importVectorFile,
+    scaleImportResult,
+    type ImportResult,
+} from '../lib/import';
+
+export interface VectorUnitImportChoice {
+    file: File;
+    result: ImportResult;
+}
 
 interface ImportLoop {
     id: string;
@@ -25,28 +35,45 @@ interface UseVectorImportOptions<TLoop extends ImportLoop, TStack> {
     >;
     pushHistory(): void;
     newLoopId(): string;
+    onFitView(): void;
 }
 
 /** Vector file import command; bitmap routing intentionally remains at the shell. */
 export function useVectorImport<TLoop extends ImportLoop, TStack>(
     options: UseVectorImportOptions<TLoop, TStack>,
 ) {
+    const [unitImportChoice, setUnitImportChoice] =
+        useState<VectorUnitImportChoice | null>(null);
+
+    const commitImport = (result: ImportResult, scale: number) => {
+        const scaled = scaleImportResult(result, scale);
+        options.pushHistory();
+        const loops = scaled.loops.map(
+            (loop) =>
+                ({ ...loop, id: loop.id ?? options.newLoopId() }) as TLoop,
+        );
+        options.setLoops(loops);
+        options.setBounds(scaled.bounds);
+        options.setSelected([]);
+        options.setStack([]);
+        options.setFileName(scaled.fileName);
+        options.setStatus(
+            `${scaled.fileName}: ${scaled.entityCount} entities → ${scaled.loops.length} vectors (${scale} mm per drawing unit)`,
+        );
+        options.onFitView();
+    };
+
     const importVector = async (file: File) => {
         try {
             const result = await importVectorFile(file);
-            options.pushHistory();
-            const loops = result.loops.map(
-                (loop) =>
-                    ({ ...loop, id: loop.id ?? options.newLoopId() }) as TLoop,
-            );
-            options.setLoops(loops);
-            options.setBounds(result.bounds);
-            options.setSelected([]);
-            options.setStack([]);
-            options.setFileName(result.fileName);
-            options.setStatus(
-                `${result.fileName}: ${result.entityCount} entities → ${result.loops.length} vectors`,
-            );
+            if (
+                result.unitScaleToMm === null ||
+                result.unitSource === 'svg-pixels'
+            ) {
+                setUnitImportChoice({ file, result });
+                return;
+            }
+            commitImport(result, result.unitScaleToMm);
         } catch (error) {
             options.setStatus(
                 error instanceof Error ? error.message : 'Import failed',
@@ -54,5 +81,16 @@ export function useVectorImport<TLoop extends ImportLoop, TStack>(
         }
     };
 
-    return { importVector };
+    const resolveUnitImport = (scaleToMm: number) => {
+        if (!unitImportChoice) return;
+        commitImport(unitImportChoice.result, scaleToMm);
+        setUnitImportChoice(null);
+    };
+
+    return {
+        importVector,
+        unitImportChoice,
+        resolveUnitImport,
+        cancelUnitImport: () => setUnitImportChoice(null),
+    };
 }

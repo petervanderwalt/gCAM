@@ -6,6 +6,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ViewBounds, ViewLoop } from '../canvas/types';
 import { loopBounds } from '../lib/engine';
 import { createDocumentId } from '../lib/ids';
+import { cloneHistoryData } from '../lib/history';
 import type { Guide } from '../lib/guides';
 import type { ToolpathStackEntry } from '../toolpaths/useToolpathStack';
 import {
@@ -16,12 +17,15 @@ import {
 import { useDocumentPersistence } from './useDocumentPersistence';
 import { useDocumentState } from './useDocumentState';
 import { useVectorImport } from './useVectorImport';
+import type { JobStock } from '../job/stock';
 
 type PreviewPaths = { x: number; y: number }[][];
 
 interface DocumentWorkspaceOptions {
+    initialStock?: JobStock;
     setStatus: Dispatch<SetStateAction<string>>;
     setDraftPreview: Dispatch<SetStateAction<PreviewPaths>>;
+    onFitView(): void;
     setBitmapImportChoice: Dispatch<
         SetStateAction<BitmapImportChoice<ViewLoop> | null>
     >;
@@ -29,8 +33,10 @@ interface DocumentWorkspaceOptions {
 
 /** Persistent document model plus bitmap/vector import commands. */
 export function useDocumentWorkspace({
+    initialStock,
     setStatus,
     setDraftPreview,
+    onFitView,
     setBitmapImportChoice,
 }: DocumentWorkspaceOptions) {
     const [bounds, setBounds] = useState<ViewBounds | null>(null);
@@ -43,6 +49,7 @@ export function useDocumentWorkspace({
         PlacedBitmapRecord,
         Guide
     >({
+        initialStock,
         clone: (snapshot) => ({
             ...snapshot,
             loops: snapshot.loops.map((loop) => ({
@@ -51,11 +58,12 @@ export function useDocumentWorkspace({
             })),
             selected: [...snapshot.selected],
             hidden: [...snapshot.hidden],
-            stack: structuredClone(snapshot.stack),
+            stack: cloneHistoryData(snapshot.stack),
             bitmaps: snapshot.bitmaps.map(({ img, ...bitmap }) => ({
                 ...bitmap,
             })),
             guides: snapshot.guides.map((guide) => ({ ...guide })),
+            stock: { ...snapshot.stock },
         }),
         onRestore: (snapshot) => setBounds(loopBounds(snapshot.loops)),
     });
@@ -72,6 +80,8 @@ export function useDocumentWorkspace({
         setBitmaps,
         guides,
         setGuides,
+        stock,
+        setStock,
         push: pushHistory,
         restore,
         undo: undoDocument,
@@ -92,10 +102,12 @@ export function useDocumentWorkspace({
         stack,
         bitmaps,
         guides,
+        stock,
         fileName,
         restore,
         setBitmaps,
         setFileName,
+        setStock,
         setStatus,
     });
 
@@ -113,12 +125,18 @@ export function useDocumentWorkspace({
         setFileName,
         setStatus,
         setDraftPreview,
+        onFitView,
         pushHistory,
         newLoopId,
         withIds,
         refreshBounds,
     });
-    const { importVector } = useVectorImport<ViewLoop, ToolpathStackEntry>({
+    const {
+        importVector,
+        unitImportChoice,
+        resolveUnitImport,
+        cancelUnitImport,
+    } = useVectorImport<ViewLoop, ToolpathStackEntry>({
         setLoops,
         setSelected,
         setStack,
@@ -127,6 +145,7 @@ export function useDocumentWorkspace({
         setBounds,
         pushHistory,
         newLoopId,
+        onFitView,
     });
 
     return {
@@ -148,6 +167,8 @@ export function useDocumentWorkspace({
         setBitmaps,
         guides,
         setGuides,
+        stock,
+        setStock,
         pushHistory,
         restore,
         undoDocument,
@@ -158,6 +179,9 @@ export function useDocumentWorkspace({
         withIds,
         refreshBounds,
         importVector,
+        unitImportChoice,
+        resolveUnitImport,
+        cancelUnitImport,
         ...bitmapCommands,
     };
 }

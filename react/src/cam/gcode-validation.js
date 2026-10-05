@@ -22,9 +22,55 @@ export function validateToolpaths(toolpaths) {
                 `${invalidValue[0]} must be greater than zero for ${toolpath.label || 'each toolpath'}.`,
             );
         }
-        const requiresVBit = ['vcarve', 'texture-fill', 'chamfer'].includes(
-            toolpath.operation,
-        );
+        const requiresVBit = [
+            'vcarve',
+            'texture-fill',
+            'chamfer',
+            'countersink',
+        ].includes(toolpath.operation);
+        if (toolpath.operation === 'surface-clear') {
+            if (toolpath.cutterType !== 'flat')
+                throw new Error(
+                    `3D surface clearing requires a flat endmill for ${toolpath.label || 'each toolpath'}.`,
+                );
+            if (
+                !Number.isFinite(Number(toolpath.toolNumber)) ||
+                Number(toolpath.toolNumber) < 1
+            )
+                throw new Error(
+                    `Choose a configured flat endmill from the tool library for ${toolpath.label || 'each toolpath'}.`,
+                );
+            if (
+                typeof toolpath.libraryToolId !== 'string' ||
+                !toolpath.libraryToolId
+            )
+                throw new Error(
+                    `Choose a flat endmill from the tool library for ${toolpath.label || 'each toolpath'}.`,
+                );
+        }
+        if (
+            toolpath.operation === 'surface-finish' ||
+            toolpath.operation === 'surface-waterline'
+        ) {
+            if (!['ball', 'ballnose'].includes(toolpath.cutterType))
+                throw new Error(
+                    `3D surface finishing requires a ball-nose endmill for ${toolpath.label || 'each toolpath'}.`,
+                );
+            if (
+                !Number.isFinite(Number(toolpath.toolNumber)) ||
+                Number(toolpath.toolNumber) < 1
+            )
+                throw new Error(
+                    `Choose a configured ball-nose endmill from the tool library for ${toolpath.label || 'each toolpath'}.`,
+                );
+            if (
+                typeof toolpath.libraryToolId !== 'string' ||
+                !toolpath.libraryToolId
+            )
+                throw new Error(
+                    `Choose a ball endmill from the tool library for ${toolpath.label || 'each toolpath'}.`,
+                );
+        }
         if (
             requiresVBit &&
             (!Number.isFinite(Number(toolpath.cutterAngle)) ||
@@ -40,6 +86,9 @@ export function validateToolpaths(toolpaths) {
             'laser-raster',
             'laser-cut',
             'wavy-raster',
+            'surface-clear',
+            'surface-finish',
+            'surface-waterline',
         ].includes(toolpath.operation);
         if (isDepthless) continue;
         const passDepth = Number(toolpath.passDepth);
@@ -78,9 +127,11 @@ export function validateToolpaths(toolpaths) {
             }
         }
         if (toolpath.trochoidEnabled) {
-            const supported = ['profile-outside', 'profile-inside'].includes(
-                toolpath.operation,
-            );
+            const supported = [
+                'profile-outside',
+                'profile-inside',
+                'pocket',
+            ].includes(toolpath.operation);
             if (!supported) {
                 throw new Error(
                     `Trochoidal cutting is only supported for inside and outside profiles (${toolpath.label || 'each toolpath'}).`,

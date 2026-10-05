@@ -33,6 +33,7 @@ export function previewWorkerToolpaths(toolpaths) {
         trochoidRadius: Number(toolpath.trochoidRadius) || 0,
         operation: toolpath.operation || '',
         cutterAngle: Number(toolpath.cutterAngle) || 0,
+        cutterType: toolpath.cutterType || 'flat',
         tabHeight: Number(toolpath.tabHeight) || 0,
         tabWidth: Number(toolpath.tabWidth) || 0,
         cutDepth: Number(toolpath.cutDepth) || 0,

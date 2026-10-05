@@ -29,6 +29,7 @@ type DraftProgressSetter = Dispatch<
 interface ToolpathStackOptions {
     stack: ToolpathStackEntry[];
     setStack: Dispatch<SetStateAction<ToolpathStackEntry[]>>;
+    setSelected: Dispatch<SetStateAction<string[]>>;
     pushHistory: () => void;
     setStatus: Dispatch<SetStateAction<string>>;
     setDraftPreview: DraftPreviewSetter;
@@ -44,7 +45,10 @@ function withoutBitmap(args: ProfileArgs): ProfileArgs {
 }
 
 function previewFor(result: ToolpathResult) {
-    return result.previewContours.map((points) => ({
+    return [
+        ...result.previewContours,
+        ...(result.trochoidPreviewContours ?? []),
+    ].map((points) => ({
         points,
         intensity:
             Number(
@@ -97,6 +101,8 @@ export function useToolpathStack(options: ToolpathStackOptions) {
                     },
                 ];
             });
+            options.setSelected([]);
+            options.setEditingId(null);
             clearDraft();
             options.showToast(
                 'Toolpath added. Use Ctrl+Z to undo.',

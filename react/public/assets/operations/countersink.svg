@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 64" fill="none">
+  <!-- Isometric stock with a section removed to expose the countersunk hole. -->
+  <path d="M9 17 38 3l32 15-30 16L9 17Z" fill="#E8C99D" stroke="#334155" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M9 17v31l31 15V34L9 17Z" fill="#C79A67" stroke="#334155" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M40 34 70 18v30L40 63V34Z" fill="#A97649" stroke="#334155" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Open section through the top and front reveals the cone tapering into the bore. -->
+  <path d="M24 11 40 19l17-8-5 14-12 11-12-11-4-14Z" fill="#F7E7CD" stroke="#334155" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="m28 25 12 10 12-10M28 25v15l12 7 12-7V25" stroke="#334155" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M40 35v12" stroke="#475569" stroke-width="1.5" stroke-dasharray="2 2"/>
+  <path d="M24 11 28 25M57 11 52 25" stroke="#334155" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

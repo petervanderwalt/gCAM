@@ -38,3 +38,43 @@ test('keeps V-bit and tab constraints together with emission validation', () => 
         ]),
     ).toThrow('Tab width must be between 3 and 50 mm');
 });
+
+test('requires tool-library cutter types to match 3D surface strategy', () => {
+    const surface = {
+        ...valid,
+        operation: 'surface-clear',
+        toolNumber: 1,
+        libraryToolId: 'catalog:flat-6mm',
+    };
+    expect(() =>
+        validateToolpaths([{ ...surface, cutterType: 'ball' }]),
+    ).toThrow('flat endmill');
+    expect(() =>
+        validateToolpaths([{ ...surface, cutterType: 'flat' }]),
+    ).not.toThrow();
+    expect(() =>
+        validateToolpaths([
+            { ...surface, operation: 'surface-finish', cutterType: 'flat' },
+        ]),
+    ).toThrow('ball-nose endmill');
+    expect(() =>
+        validateToolpaths([
+            { ...surface, operation: 'surface-finish', cutterType: 'ballnose' },
+        ]),
+    ).not.toThrow();
+    expect(() =>
+        validateToolpaths([
+            { ...surface, operation: 'surface-waterline', cutterType: 'flat' },
+        ]),
+    ).toThrow('ball-nose endmill');
+    expect(() =>
+        validateToolpaths([
+            { ...surface, operation: 'surface-waterline', cutterType: 'ball' },
+        ]),
+    ).not.toThrow();
+    expect(() =>
+        validateToolpaths([
+            { ...surface, cutterType: 'flat', libraryToolId: null },
+        ]),
+    ).toThrow('from the tool library');
+});

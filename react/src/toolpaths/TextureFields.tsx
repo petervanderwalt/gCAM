@@ -9,21 +9,17 @@ export function TextureFields({
     textureType,
     textureSpacing,
     crosshatchAngle,
-    cutDepth,
     onTypeChange,
     onSpacingChange,
     onCrosshatchAngleChange,
-    onCutDepthChange,
 }: {
     units: UnitSystem;
     textureType: 'voronoi' | 'crosshatch';
     textureSpacing: number;
     crosshatchAngle: number;
-    cutDepth: number;
     onTypeChange: (type: 'voronoi' | 'crosshatch') => void;
     onSpacingChange: (spacing: number) => void;
     onCrosshatchAngleChange: (angle: number) => void;
-    onCutDepthChange: (depth: number) => void;
 }) {
     return (
         <div className="space-y-2">
@@ -43,22 +39,6 @@ export function TextureFields({
                     <option value="voronoi">Voronoi</option>
                     <option value="crosshatch">Crosshatch</option>
                 </select>
-            </label>
-            <label className="space-y-1 block">
-                <span className="text-slate-500 dark:text-slate-400">
-                    Texture depth ({lengthUnit(units)})
-                </span>
-                <UnitInput
-                    units={units}
-                    stepMm={0.1}
-                    minMm={0.01}
-                    valueMm={cutDepth}
-                    onChangeMm={onCutDepthChange}
-                    className="w-full rounded bg-slate-100 dark:bg-dark-lighter border border-slate-300 dark:border-robin-900 px-2 py-1 text-slate-900 dark:text-white"
-                />
-                <span className="block text-xs text-slate-500 dark:text-slate-400">
-                    Final V-bit engraving depth. Texture fill uses one pass.
-                </span>
             </label>
             {textureType === 'voronoi' ? (
                 <label className="space-y-1 block">

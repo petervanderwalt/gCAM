@@ -251,7 +251,7 @@ export class CutPreview3D {
         this.playPlayback();
     }
 
-    build(toolpaths) {
+    build(toolpaths, stock) {
         const version = ++this.version;
         this.pausePlayback();
         this.data = null;
@@ -270,6 +270,7 @@ export class CutPreview3D {
                 type: 'build',
                 version,
                 toolpaths: previewWorkerToolpaths(toolpaths),
+                stock,
             });
         } catch (error) {
             this.data = null;

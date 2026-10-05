@@ -8,6 +8,15 @@ import { loadGrid, saveGrid } from '../components/ConfigPanel';
 import type { SideTab } from '../components/Sidebar';
 import { useDarkMode } from '../hooks/useDarkMode';
 import type { UnitSystem } from '../lib/units';
+import {
+    EMPTY_MACHINE_TRAVEL_LIMITS,
+    normalizeMachineTravelLimits,
+    type MachineTravelLimits,
+} from '../cutting-parameters/types';
+import {
+    DEFAULT_MACHINE_PROFILE,
+    machineProfileById,
+} from '../cutting-parameters/machines';
 
 /** Persistent application-wide display and output preferences. */
 export function useAppPreferences() {
@@ -30,11 +39,44 @@ export function useAppPreferences() {
             : 'metric';
     });
     const [machineProfileId, setMachineProfileId] = useState(() => {
-        if (typeof window === 'undefined') return 'longmill-router';
+        if (typeof window === 'undefined') return DEFAULT_MACHINE_PROFILE.id;
         return (
-            localStorage.getItem('gcam.machineProfileId') ?? 'longmill-router'
+            localStorage.getItem('gcam.machineProfileId') ??
+            DEFAULT_MACHINE_PROFILE.id
         );
     });
+    const [machineSetupOpen, setMachineSetupOpen] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        const completed =
+            localStorage.getItem('gcam.machineSetupComplete') === 'true';
+        const hasExistingMachine =
+            localStorage.getItem('gcam.machineProfileId') !== null;
+        return !completed && !hasExistingMachine;
+    });
+    const [machineTravelLimits, setMachineTravelLimits] =
+        useState<MachineTravelLimits>(() => {
+            if (typeof window === 'undefined')
+                return EMPTY_MACHINE_TRAVEL_LIMITS;
+            try {
+                const profileId =
+                    localStorage.getItem('gcam.machineProfileId') ??
+                    DEFAULT_MACHINE_PROFILE.id;
+                const profile = machineProfileById(profileId);
+                if (profile)
+                    return {
+                        maxXTravelMm: profile.maxXTravelMm,
+                        maxYTravelMm: profile.maxYTravelMm,
+                        minZTravelMm: -profile.maxZTravelMm,
+                        maxZTravelMm: null,
+                    };
+                const saved = localStorage.getItem('gcam.machineTravelLimits');
+                if (saved)
+                    return normalizeMachineTravelLimits(JSON.parse(saved));
+                return EMPTY_MACHINE_TRAVEL_LIMITS;
+            } catch {
+                return EMPTY_MACHINE_TRAVEL_LIMITS;
+            }
+        });
 
     useEffect(() => saveGrid(grid), [grid]);
     useEffect(
@@ -42,9 +84,23 @@ export function useAppPreferences() {
         [emitArcs],
     );
     useEffect(() => localStorage.setItem('gcam.units', units), [units]);
+    useEffect(() => {
+        if (!machineSetupOpen) {
+            localStorage.setItem('gcam.machineProfileId', machineProfileId);
+        }
+    }, [machineProfileId, machineSetupOpen]);
+    useEffect(() => {
+        if (!machineSetupOpen) {
+            localStorage.setItem('gcam.machineSetupComplete', 'true');
+        }
+    }, [machineSetupOpen]);
     useEffect(
-        () => localStorage.setItem('gcam.machineProfileId', machineProfileId),
-        [machineProfileId],
+        () =>
+            localStorage.setItem(
+                'gcam.machineTravelLimits',
+                JSON.stringify(machineTravelLimits),
+            ),
+        [machineTravelLimits],
     );
 
     return {
@@ -64,5 +120,9 @@ export function useAppPreferences() {
         setUnits,
         machineProfileId,
         setMachineProfileId,
+        machineSetupOpen,
+        setMachineSetupOpen,
+        machineTravelLimits,
+        setMachineTravelLimits,
     };
 }

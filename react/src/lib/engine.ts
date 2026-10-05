@@ -20,6 +20,7 @@ import {
     makeToolpathConfig,
     prepareRasterInput,
 } from '../toolpaths/toolpathRequest';
+import type { ToolType } from '../tools/library';
 
 export type Operation =
     | 'profile-outside'
@@ -28,11 +29,15 @@ export type Operation =
     | 'engrave'
     | 'chamfer'
     | 'vcarve'
+    | 'countersink'
     | 'texture-fill'
     | 'laser-cut'
     | 'laser-raster'
     | 'wavy-raster'
-    | 'halftone';
+    | 'halftone'
+    | 'surface-clear'
+    | 'surface-finish'
+    | 'surface-waterline';
 
 export interface PlacedTab {
     contourIndex: number;
@@ -63,6 +68,9 @@ export interface ProfileArgs {
     crosshatchAngle?: number;
     /** Material and machine used to calculate this toolpath's saved recipe. */
     material?: string;
+    /** Job-stock thickness at generation time, used for replay/export context. */
+    stockThicknessMm?: number;
+    cutterType?: ToolType;
     machineProfileId?: string;
     /** Emit G2/G3 arcs for circles (default) or G1-only polylines. */
     arcs?: boolean;
@@ -73,19 +81,88 @@ export interface ProfileArgs {
     passDepth?: number;
     trochoidEnabled?: boolean;
     trochoidEngagementPercent?: number;
+    helicalEntryEnabled?: boolean;
     overlapPercent?: number;
     tabWidth?: number;
     tabHeight?: number;
     toolNumber?: number;
     tabs?: PlacedTab[];
     fileName?: string;
+    libraryToolId?: string;
+    surfaceBitmapId?: string;
+    surfaceResolutionMm?: number;
+    surfaceStepoverMm?: number;
+    surfaceStepdownMm?: number;
+    surfaceStockToLeaveMm?: number;
+    surfaceBoundaryMm?: number;
+    countersinkHeadDiameterMm?: number;
 }
 
 export interface ToolpathResult {
     gcode: string;
     previewContours: { x: number; y: number }[][];
+    trochoidPreviewContours?: { x: number; y: number }[][];
     label: string;
     toolpath: Record<string, unknown>;
+}
+
+/** Package WebGPU-generated XYZ paths for the shared preview and GRBL pipeline. */
+export function buildSurfaceToolpathResult(options: {
+    operation: 'surface-clear' | 'surface-finish' | 'surface-waterline';
+    paths: { x: number; y: number; z: number }[][];
+    toolDiameter: number;
+    cutterType: ToolType;
+    libraryToolId?: string;
+    toolNumber: number;
+    feedRate: number;
+    plungeRate: number;
+    spindle: number;
+    safeZ: number;
+    stepdown: number;
+    stockToLeave: number;
+    surfaceBitmapId: string;
+    fileName?: string;
+}): ToolpathResult {
+    const clearing = options.operation === 'surface-clear';
+    const label = clearing
+        ? '3D Surface Clearing'
+        : options.operation === 'surface-waterline'
+          ? '3D Waterline Finishing'
+          : '3D Surface Finishing';
+    const motionPaths = options.paths.map((points) => ({
+        points: points.map((point) => ({ ...point })),
+    }));
+    const previewContours = motionPaths.map(({ points }) =>
+        points.map(({ x, y }) => ({ x, y })),
+    );
+    const toolpath = {
+        operation: options.operation,
+        surfaceTip: options.operation !== 'surface-clear',
+        operationLabel: label,
+        emission: 'vcarve',
+        label,
+        cutterType: options.cutterType,
+        libraryToolId: options.libraryToolId,
+        toolDiameter: options.toolDiameter,
+        toolNumber: options.toolNumber,
+        feedRate: options.feedRate,
+        plungeRate: options.plungeRate,
+        spindle: options.spindle,
+        safeZ: options.safeZ,
+        cutDepth: options.stepdown,
+        passDepth: options.stepdown,
+        passDepths: [],
+        stockToLeaveMm: options.stockToLeave,
+        surfaceBitmapId: options.surfaceBitmapId,
+        motionPaths,
+        previewContours,
+    };
+    const gcode = buildRealGcode({
+        toolpaths: [toolpath],
+        fileName: options.fileName || 'gcam-surface',
+        forcePolylineArcs: true,
+    });
+    return { gcode, previewContours, label, toolpath };
 }
 
 /**
@@ -135,6 +212,8 @@ function makeBase(
         passDepth?: number;
         trochoidEnabled?: boolean;
         trochoidEngagementPercent?: number;
+        helicalEntryEnabled?: boolean;
+        countersinkHeadDiameterMm?: number;
         overlapPercent?: number;
         tabWidth?: number;
         tabHeight?: number;
@@ -168,6 +247,8 @@ function makeBase(
         passDepth,
         trochoidEnabled = false,
         trochoidEngagementPercent = 10,
+        helicalEntryEnabled = false,
+        countersinkHeadDiameterMm = 8,
         overlapPercent = 40,
         tabWidth = 9,
         tabHeight = Math.min(9, cutDepth / 2),
@@ -186,6 +267,8 @@ function makeBase(
             ? Math.max(0, toolDiameter * (trochoidEngagementPercent / 100))
             : 0,
         trochoidEngagementPercent,
+        helicalEntryEnabled,
+        countersinkHeadDiameterMm,
         tabWidth,
         tabHeight,
         safeZ,
@@ -242,6 +325,8 @@ export function buildToolpathGcode({
     fileName,
     trochoidEnabled = false,
     trochoidEngagementPercent = 10,
+    helicalEntryEnabled = false,
+    countersinkHeadDiameterMm = 8,
     feedRate = 1800,
     plungeRate = 600,
     spindle = 18000,
@@ -303,6 +388,8 @@ export function buildToolpathGcode({
         passDepth,
         trochoidEnabled,
         trochoidEngagementPercent,
+        helicalEntryEnabled,
+        countersinkHeadDiameterMm,
         overlapPercent,
         tabWidth,
         tabHeight,
@@ -345,6 +432,7 @@ function finishToolpath(
     fileName: string | undefined,
     toolpath: {
         previewContours: { x: number; y: number }[][];
+        trochoidPreviewContours?: { x: number; y: number }[][];
         label: string;
     },
     arcs = true,
@@ -357,6 +445,7 @@ function finishToolpath(
     return {
         gcode,
         previewContours: toolpath.previewContours,
+        trochoidPreviewContours: toolpath.trochoidPreviewContours ?? [],
         label: toolpath.label,
         toolpath: toolpath as unknown as Record<string, unknown>,
     };
@@ -471,6 +560,7 @@ export async function buildToolpathGcodeAsync(
     return {
         gcode,
         previewContours: toolpath.previewContours,
+        trochoidPreviewContours: toolpath.trochoidPreviewContours ?? [],
         label: toolpath.label,
         toolpath: toolpath as unknown as Record<string, unknown>,
     };

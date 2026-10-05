@@ -18,6 +18,7 @@ export interface SerializedCamToolpath {
     label: string;
     operation: string;
     previewContours: { x: number; y: number }[][];
+    trochoidPreviewContours?: { x: number; y: number }[][];
     motionPaths: {
         safeToClose: boolean;
         points: { x: number; y: number; z: number }[];

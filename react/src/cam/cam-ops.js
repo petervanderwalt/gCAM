@@ -38,6 +38,7 @@ import { getOperation, getOperationLabel } from './operations/registry.js';
 import {
     compositePocketSeedPaths,
     offsetCompositePolygons,
+    polygonCentroid,
 } from './geometry/polygons.js';
 export {
     booleanPolygons,
@@ -91,6 +92,8 @@ export async function createToolpathFromLoopsAsync(
 function createToolpathSkeleton(selectedLoops, config, options = {}) {
     const reportProgress = options.onProgress || (() => {});
     const previewContours = [];
+    const trochoidPreviewContours = [];
+    const motionPaths = [];
     const operation = getOperation(config.operation);
     const bitmapEntity = (options.sourceEntities || []).find(
         (entity) => entity?.type === 'BITMAP' && entity._imageData,
@@ -345,13 +348,24 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
         );
     }
 
-    // Match CAMCANVAS's trochoidal preview: sample orbit centers along the
+    if (config.operation === 'pocket') {
+        previewContours.push(
+            ...operation.createPreview({
+                config,
+                compositeSelection,
+                services: operationServices,
+            }),
+        );
+    }
+
+    // Sample orbit centers along the
     // contour, orient each orbit to the local tangent, and use the same
     // radius-based pitch as the emitted motion.
     if (
         trochoidRadius > 0 &&
         (config.operation === 'profile-outside' ||
-            config.operation === 'profile-inside')
+            config.operation === 'profile-inside' ||
+            config.operation === 'pocket')
     ) {
         const sourceContours = previewContours.slice();
         for (const contour of sourceContours) {
@@ -392,19 +406,9 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
                                 trochoidRadius,
                     });
                 }
-                previewContours.push(circle);
+                trochoidPreviewContours.push(circle);
             }
         }
-    }
-
-    if (config.operation === 'pocket') {
-        previewContours.push(
-            ...operation.createPreview({
-                config,
-                compositeSelection,
-                services: operationServices,
-            }),
-        );
     }
 
     if (config.operation === 'texture-fill') {
@@ -423,6 +427,56 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
 
     const operationLabel = getOperationLabel(config.operation);
 
+    if (config.operation === 'countersink') {
+        const headDiameter = Number(config.countersinkHeadDiameterMm);
+        const tolerance = Math.max(0.15, headDiameter * 0.03);
+        for (const loop of selectedLoops) {
+            if (!Array.isArray(loop.points) || loop.points.length < 13)
+                throw new Error('V-bit countersink requires selected circles.');
+            const center = polygonCentroid(loop.points || []);
+            const radii = (loop.points || [])
+                .slice(0, -1)
+                .map((point) =>
+                    Math.hypot(point.x - center.x, point.y - center.y),
+                );
+            if (radii.length < 12 || !radii.length)
+                throw new Error('V-bit countersink requires selected circles.');
+            const holeRadius =
+                radii.reduce((sum, radius) => sum + radius, 0) / radii.length;
+            if (
+                radii.some(
+                    (radius) => Math.abs(radius - holeRadius) > tolerance,
+                )
+            )
+                throw new Error(
+                    'V-bit countersink only accepts circular hole geometry.',
+                );
+            if (headDiameter < holeRadius * 2 - tolerance)
+                throw new Error(
+                    'Screw head diameter must be at least as large as each selected hole.',
+                );
+            motionPaths.push({
+                points: [
+                    { x: center.x, y: center.y, z: 0 },
+                    { x: center.x, y: center.y, z: -cutDepth },
+                ],
+            });
+            const preview = [];
+            for (let index = 0; index <= 48; index += 1) {
+                const angle = (index / 48) * Math.PI * 2;
+                preview.push({
+                    x: center.x + (Math.cos(angle) * headDiameter) / 2,
+                    y: center.y + (Math.sin(angle) * headDiameter) / 2,
+                });
+            }
+            previewContours.push(preview);
+        }
+        if (!motionPaths.length)
+            throw new Error(
+                'Select one or more circular holes for countersinking.',
+            );
+    }
+
     const label =
         options.label ||
         `${operationLabel} (${selectedLoops.length} vector${selectedLoops.length === 1 ? '' : 's'})`;
@@ -433,7 +487,8 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
     const trochoidMeta =
         config.trochoidEnabled &&
         (config.operation === 'profile-outside' ||
-            config.operation === 'profile-inside')
+            config.operation === 'profile-inside' ||
+            config.operation === 'pocket')
             ? ` - trochoid ${formatNumber(trochoidEngagementPercent)}% engagement`
             : '';
     const cardMeta =
@@ -493,6 +548,9 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
         trochoidEnabled: Boolean(config.trochoidEnabled),
         trochoidRadius,
         trochoidEngagementPercent,
+        helicalEntryEnabled: Boolean(config.helicalEntryEnabled),
+        countersinkHeadDiameterMm:
+            Number(config.countersinkHeadDiameterMm) || 0,
         tabWidth: config.tabWidth,
         tabHeight: config.tabHeight,
         safeZ: config.safeZ,
@@ -507,7 +565,8 @@ function createToolpathSkeleton(selectedLoops, config, options = {}) {
         libraryToolUrl: config.libraryToolUrl || '',
         libraryToolDescription: config.libraryToolDescription || '',
         previewContours,
-        motionPaths: [],
+        trochoidPreviewContours,
+        motionPaths,
         sourceLoops,
         tabs: [],
         ...extra,

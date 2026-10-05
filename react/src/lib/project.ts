@@ -1,6 +1,9 @@
 /**
  * Purpose: Implementation module for project in the lib domain.
  */
+import { normalizeJobStock, type JobStock } from '../job/stock';
+import type { StoredSurfaceMesh } from '../engine/surface-model';
+
 export interface ProjectSnapshot {
     loops: {
         id?: string;
@@ -13,6 +16,7 @@ export interface ProjectSnapshot {
     bitmaps: BitmapLike[];
     guides: GuideLike[];
     fileName: string;
+    stock?: JobStock;
 }
 
 export interface StackEntryLike {
@@ -32,6 +36,7 @@ export interface BitmapLike {
     dataUrl: string;
     /** Browser-local cache key. Exports retain dataUrl for portability. */
     assetId?: string;
+    surfaceMesh?: StoredSurfaceMesh;
 }
 
 export interface GuideLike {
@@ -103,5 +108,6 @@ export function deserializeProject(raw: string): ProjectSnapshot {
             ? (snap as { guides: GuideLike[] }).guides
             : [],
         fileName: doc.fileName || snap.fileName || '',
+        stock: normalizeJobStock((snap as { stock?: unknown }).stock),
     };
 }

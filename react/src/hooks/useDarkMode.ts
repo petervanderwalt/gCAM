@@ -9,9 +9,8 @@ export function useDarkMode() {
     const [enabled, setEnabled] = useState<boolean>(() => {
         if (typeof window === 'undefined') return true;
         const stored = localStorage.getItem(DARK_MODE_KEY);
-        // gCAM ships a dark theme (gSender default); fall back to dark.
         if (stored !== null) return JSON.parse(stored);
-        return true;
+        return false;
     });
 
     useEffect(() => {

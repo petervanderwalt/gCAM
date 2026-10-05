@@ -47,7 +47,8 @@ gCAM/
     │   ├── logo.svg                    Source logo asset
     │   └── Toolpaths.svg               Source toolpath artwork asset
     ├── docs/
-    │   └── architecture.md             Boundary rules and architecture decisions
+    │   ├── architecture.md             Boundary rules and architecture decisions
+    │   └── adaptive-cutting-parameters.md Engineering proposal for simple, safe cutting recommendations
     ├── public/                         Files copied unchanged into the built site
     │   ├── assets/
     │   │   ├── fonts/                  Bundled text fonts and their OFL licence files
@@ -333,3 +334,5 @@ gCAM/
 
 See [`react/docs/architecture.md`](react/docs/architecture.md) for the concise
 boundary rules used during implementation and review.
+See [`react/docs/adaptive-cutting-parameters.md`](react/docs/adaptive-cutting-parameters.md)
+for the proposed machine, material, and cutter based cutting-parameter system.

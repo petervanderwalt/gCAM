@@ -1,7 +1,26 @@
 /**
  * Tests: wide image caps at 80mm preserving aspect; tall image caps at 120mm height; placement centers on the given view center.
  */
-import { placeBitmap } from './bitmap';
+import { isBitmapFile, placeBitmap } from './bitmap';
+
+test('routes SVG files to vector import even when the browser reports an image MIME type', () => {
+    expect(
+        isBitmapFile(
+            new File(['<svg />'], 'drawing.svg', { type: 'image/svg+xml' }),
+        ),
+    ).toBe(false);
+    expect(
+        isBitmapFile(
+            new File(['<svg />'], 'drawing', { type: 'image/svg+xml' }),
+        ),
+    ).toBe(false);
+});
+
+test('keeps raster images in the bitmap import route', () => {
+    expect(
+        isBitmapFile(new File(['pixels'], 'photo.png', { type: 'image/png' })),
+    ).toBe(true);
+});
 
 test('wide image caps at 80mm preserving aspect', () => {
     const p = placeBitmap(200, 100);

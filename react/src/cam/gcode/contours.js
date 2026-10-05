@@ -97,6 +97,37 @@ function emitContourMoves(
     }
 }
 
+/** Ramp down by repeating the compensated contour; XY never leaves the cut path. */
+export function emitHelicalContourEntry(
+    lines,
+    contour,
+    startDepth,
+    targetDepth,
+    feed,
+) {
+    if (contour.length < 3 || !(startDepth > targetDepth)) return false;
+    const total = polylineLength(contour);
+    if (!(total > 0)) return false;
+    const drop = startDepth - targetDepth;
+    const maxDropPerLap = total * Math.tan((5 * Math.PI) / 180);
+    const laps = Math.max(1, Math.ceil(drop / Math.max(0.05, maxDropPerLap)));
+    if (laps > 1000) return false;
+    for (let lap = 0; lap < laps; lap += 1) {
+        let walked = 0;
+        for (let index = 1; index < contour.length; index += 1) {
+            const previous = contour[index - 1];
+            const point = contour[index];
+            walked += dist(previous, point);
+            const progress = (lap + walked / total) / laps;
+            const z = startDepth - drop * progress;
+            lines.push(
+                `G1 X${formatNumber(point.x)} Y${formatNumber(point.y)} Z${formatNumber(z)} F${formatNumber(feed)}`,
+            );
+        }
+    }
+    return true;
+}
+
 export function emitProfileContourMoves(
     lines,
     contour,
