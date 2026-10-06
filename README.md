@@ -365,3 +365,90 @@ See [`react/docs/architecture.md`](react/docs/architecture.md) for the concise
 boundary rules used during implementation and review.
 See [`react/docs/adaptive-cutting-parameters.md`](react/docs/adaptive-cutting-parameters.md)
 for the proposed machine, material, and cutter based cutting-parameter system.
+
+## Test coverage
+
+### Cypress browser workflows
+
+The four specs contain 44 tests. Each starts with isolated browser storage and
+uses UI controls, imported fixtures and downloaded project/G-code files to
+check results. Unexpected application exceptions fail the tests.
+
+#### Images and machining — `toolpaths.cy.js` (20 tests)
+
+| Test | What it checks |
+| --- | --- |
+| Bitmap tracing | Imports the contrast PNG, converts it to vectors, checks that the bitmap is replaced and traced paths are selected, then generates an Engrave toolpath. |
+| Laser Raster, Wavy, Halftone (one test each) | Retains the imported bitmap and generates and exports the chosen image operation. |
+| Outside, Inside, Pocket, Engrave, Chamfer, V-Carve, V-Bit Countersink, Texture Fill, Laser Cut (one test each) | Selects fixture geometry, creates the operation and downloads G-code. |
+| Crosshatch texture | Generates and exports the crosshatch variant of Texture Fill. |
+| STL / OBJ → 3D Surface Clear (one test per format) | Confirms millimetre units and retained mesh data, uses a rectangular machining boundary with margin, then generates and exports clearing paths. |
+| STL / OBJ → 3D Surface Finish (one test per format) | Fits a 10 mm relief into 5 mm stock using Z-only scaling; checks that XY size stays unchanged and Z scale becomes 0.5, then exports finishing paths. |
+| STL / OBJ → 3D Waterline Finish (one test per format) | Fits the relief into 5 mm stock using uniform XYZ scaling; checks the reduced XY size, then exports waterline paths. |
+
+Every machining test checks for a saved toolpath with a nonempty preview,
+G-code motion commands and program termination, and no `NaN`, `Infinity` or
+`undefined` values. Mesh tests also check cutting Z against the stock bottom
+and the expected top/finishing-allowance limit.
+
+#### Drawing and Config — `drawing-config.cy.js` (9 tests)
+
+| Test | What it checks |
+| --- | --- |
+| Rectangle grid snapping | Clicks near grid intersections and checks the exported rectangle corners land on the grid. |
+| Endpoint, midpoint and guide snapping | Adds a guide and draws lines near existing endpoints, edge midpoints and the guide; checks the resulting coordinates. |
+| Circle, Polygon, Arc, Bezier, Polyline (one test each) | Draws each shape through the canvas and checks that exported geometry exists with finite coordinates. |
+| Vector text | Places text through the drawing controls and checks that text geometry is present and selected. |
+| Configuration | Changes units, grid style, machine profile and toast duration; checks the exported Config file, then reloads and checks units, grid and machine persistence. |
+
+#### Editing and geometry — `editing.cy.js` (14 tests)
+
+| Test | What it checks |
+| --- | --- |
+| Selection | Plain clicks replace selection, Ctrl-clicks toggle membership, and clicking empty space clears selection. |
+| Group, ungroup and nest | Checks shared group identity and its removal, then nests selected parts within a 100 × 100 mm sheet without overlapping bounding boxes. |
+| Zoom, fit and history | Checks zoom-in/out scale changes, invokes Fit View, then checks object counts after clone, confirmed delete, undo and redo. |
+| Numeric position and size | Applies X, Y, width and height through shape properties and checks exported bounds. |
+| Drag move and marquee | Checks the translated shape position and the number of objects selected by a drag box. |
+| Union, difference, intersection, XOR (one test each) | Applies each Boolean to overlapping rectangles and checks the resulting total area. |
+| Trim | Removes the segment between crossing vectors and checks that the remaining horizontal segments have the expected total length. |
+| Offset | Applies a 2 mm outward offset and checks the resulting bounds. |
+| Fillet | Rounds a clicked corner and checks object count, added curve points and the resulting area. |
+| Chamfer | Applies a 2 mm chamfer and checks the rectangle's resulting area. |
+| Dogbone | Adds relief at a clicked corner and checks the added object and its geometry. |
+
+#### First-install tools — `tool-library.cy.js` (1 test)
+
+Starts with no configured cutters, follows **Set up your tools**, and creates
+flat, ball and 60-degree V-bit entries. Checks the saved tool types, reloads the
+app, and verifies that all three cutters remain available in the tool selector.
+
+Fixtures include a contrast PNG, SVG shapes/overlaps/crossing lines, and matching
+closed 20 × 20 × 10 mm STL and OBJ pyramid reliefs. See the
+[Cypress workflow guide](react/cypress/README.md) for fixture and runner details.
+Simulation is excluded; these checks do not validate stock-removal rendering or
+every machining parameter combination.
+
+### Jest unit and component tests
+
+Jest tests live beside the feature they check as `*.test.*` files. They provide
+more focused coverage than the browser workflows:
+
+| Area | Coverage |
+| --- | --- |
+| Imports and models | Vector/bitmap/model import helpers, parser behavior, tracing, units dialogs, surface-model placement and scaling. |
+| Drawing and canvas | Drawing/text geometry, selection geometry and pointer behavior, guides, rulers, tabs, toolbar commands/menus and canvas rendering helpers. |
+| Document editing | Transformations, trim, corners, grouping, nesting, undo/redo history, project defaults and unit conversion. |
+| CAM and G-code | Operation registry and geometry, Boolean regressions, texture fill, tabs, surface strategies/runners and G-code generation/validation. |
+| Job and tools | Job stock controls, tool-library data and selectors, operation availability, toolpath requests/stack/submission, and cutting recommendations based on cutter, material and machine. |
+| Application UI | Config and inspector components, machine setup, bitmap/vector import choices, theme behavior and shared callback behavior. |
+
+Use `yarn test --runInBand` for the suite, `yarn test:watch` during development,
+or pass a file path to run a focused test, for example:
+
+```sh
+yarn test --runInBand src/lib/trim.test.ts
+```
+
+Biome checks code style and lint rules; TypeScript checks types. These complement
+the behavioral tests above and run alongside them in the quality workflow.
