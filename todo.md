@@ -1,5 +1,22 @@
 # CAM backlog
 
+## Recent workflow and quality work
+
+- [x] Add rectangular machining boundaries and configurable margins for 3D operations.
+- [x] Align the model top with the stock top at Z0; stock extends below zero.
+- [x] Make stock-height problems actionable in the toolpath editor, with stock thickness editing and fit-to-stock options.
+- [x] Support uniform XYZ fitting and Z-only fitting that preserves XY dimensions.
+- [x] Stabilize toolpath editor callbacks to prevent repeated sidebar renders.
+- [x] Correct plain-click selection replacement; retain Ctrl-click selection toggling.
+- [x] Fix clipped left ruler labels and mention bitmap tracing/artistic operations in the empty-canvas prompt.
+- [x] Fix XOR Boolean results, imported-polyline midpoint snaps, numeric modifier inputs and clicked-corner fillet handling.
+- [x] Add Cypress alongside Biome and Jest, with an isolated Vite runner and GitHub Actions browser workflow.
+- [x] Add deterministic PNG/SVG/STL/OBJ fixtures and 44 browser tests covering image tracing/effects, vector and mesh machining, drawing/snaps, editing, grouping/nesting, Booleans/trim, Config and tool setup.
+- [x] Test a fresh empty tool library: configure flat, ball and V-bit cutters through the UI and verify reload persistence.
+- [x] Document test commands, workflow assertions, fixture scope and the current tracked project structure in README.
+- [x] Fix mixed committed line endings that failed Biome formatting; verify the GitHub Quality workflow passes.
+- [ ] Improve simulation performance before adding it to Cypress; simulation remains excluded from the browser workflow suite.
+- [ ] Add a browser regression using a realistic large relief such as Oldman-splash-final.STL; current committed mesh fixtures are small deterministic pyramids.
 ## First-use workflow audit
 
 - [x] Ask for machine selection on first use; default to AltMill MK2 4x4 and seed the canvas/stock from its travel.
