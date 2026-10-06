@@ -9,6 +9,8 @@ export function SurfaceCamFields({
     stepdown,
     allowance,
     boundary,
+    boundaryMode,
+    onBoundaryMode,
     onResolution,
     onStepover,
     onStepdown,
@@ -24,6 +26,8 @@ export function SurfaceCamFields({
     stepdown: number;
     allowance: number;
     boundary: number;
+    boundaryMode: 'model' | 'rectangle';
+    onBoundaryMode(value: 'model' | 'rectangle'): void;
     onResolution(value: number): void;
     onStepover(value: number): void;
     onStepdown(value: number): void;
@@ -142,10 +146,32 @@ export function SurfaceCamFields({
                     </span>
                 </label>
             )}
-            {!waterline && (
+            <label className="block space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                <span>Machining boundary</span>
+                <select
+                    aria-label="Machining boundary"
+                    value={boundaryMode}
+                    onChange={(event) =>
+                        onBoundaryMode(
+                            event.target.value as 'model' | 'rectangle',
+                        )
+                    }
+                    className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 dark:border-robin-900 dark:bg-dark"
+                >
+                    <option value="model">Follow model shape</option>
+                    <option value="rectangle">Square off to rectangle</option>
+                </select>
+                {boundaryMode === 'rectangle' && (
+                    <span className="block text-[11px] text-slate-500">
+                        Machines the surrounding rectangle down to the model
+                        base, leaving the model intact.
+                    </span>
+                )}
+            </label>
+            {(!waterline || boundaryMode === 'rectangle') && (
                 <label className="block space-y-1 text-xs text-slate-600 dark:text-slate-300">
                     <span>
-                        Boundary overrun ({units === 'imperial' ? 'in' : 'mm'})
+                        Boundary margin ({units === 'imperial' ? 'in' : 'mm'})
                     </span>
                     <UnitInput
                         units={units}
@@ -156,7 +182,9 @@ export function SurfaceCamFields({
                         className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 dark:border-robin-900 dark:bg-dark"
                     />
                     <span className="block text-[11px] text-slate-500 dark:text-slate-400">
-                        Extra distance the cutter travels past the model edge.
+                        {boundaryMode === 'rectangle'
+                            ? 'Extra machining area around the model rectangle.'
+                            : 'Extra distance the cutter travels past the model edge.'}
                         It must fit within the job stock.
                     </span>
                 </label>

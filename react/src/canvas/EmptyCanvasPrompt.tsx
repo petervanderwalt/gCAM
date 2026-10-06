@@ -36,8 +36,9 @@ export function EmptyCanvasPrompt({
                     </button>
                 </div>
                 <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Download a DXF/SVG drawing or STL/OBJ model first, then
-                    choose it here or drag it onto the canvas.
+                    Open a DXF/SVG drawing, STL/OBJ model, or bitmap image,
+                    or drag it onto the canvas. Trace a bitmap into vectors
+                    or use it directly for artistic effects.
                 </p>
                 <button
                     onClick={onLoadSample}

@@ -308,18 +308,19 @@ suppliedFixtureTest(
         const shiftX = margin - parsed.bounds.minX;
         const shiftY = margin - parsed.bounds.minY;
         const shiftZ = -parsed.bounds.maxZ;
+        const fitZ = 18 / (parsed.bounds.maxZ - parsed.bounds.minZ);
         const vertices = new Float32Array(parsed.vertices.length);
         for (let index = 0; index < vertices.length; index += 3) {
             vertices[index] = parsed.vertices[index] + shiftX;
             vertices[index + 1] = parsed.vertices[index + 1] + shiftY;
-            vertices[index + 2] = parsed.vertices[index + 2] + shiftZ;
+            vertices[index + 2] = (parsed.vertices[index + 2] + shiftZ) * fitZ;
         }
         const mesh: SurfaceMesh = {
             vertices,
             bounds: {
                 minX: margin,
                 minY: margin,
-                minZ: parsed.bounds.minZ + shiftZ,
+                minZ: (parsed.bounds.minZ + shiftZ) * fitZ,
                 maxX: parsed.bounds.maxX + shiftX,
                 maxY: parsed.bounds.maxY + shiftY,
                 maxZ: 0,
@@ -329,57 +330,95 @@ suppliedFixtureTest(
         const stock = {
             widthMm: mesh.bounds.maxX + margin,
             heightMm: mesh.bounds.maxY + margin,
-            thicknessMm: Math.max(1, -mesh.bounds.minZ + 1),
+            thicknessMm: 18,
         };
-        for (const [strategy, cutter] of [
-            ['surface-clear', 'flat'],
-            ['surface-finish', 'ball'],
-            ['surface-waterline', 'ball'],
-        ] as const) {
-            const result = await generateSurfaceCamPaths(mesh, {
-                strategy,
-                cutter,
-                toolDiameterMm: 2,
-                stepoverMm: 1,
-                stepdownMm: 2,
-                stockToLeaveMm: strategy === 'surface-clear' ? 0.25 : 0,
-                safeZMm: 5,
-                stockTopZMm: 0,
-                stock,
-                resolutionMm: 0.5,
-            });
-            expect(result.paths.length).toBeGreaterThan(0);
-            expect(result.coveredCells).toBeGreaterThan(0);
-            if (strategy !== 'surface-clear') {
+        for (const boundaryMode of ['model', 'rectangle'] as const) {
+            for (const [strategy, cutter] of [
+                ['surface-clear', 'flat'],
+                ['surface-finish', 'ball'],
+                ['surface-waterline', 'ball'],
+            ] as const) {
+                const result = await generateSurfaceCamPaths(mesh, {
+                    strategy,
+                    cutter,
+                    toolDiameterMm: 2,
+                    stepoverMm: 1,
+                    stepdownMm: 2,
+                    stockToLeaveMm: strategy === 'surface-clear' ? 0.25 : 0,
+                    safeZMm: 5,
+                    stockTopZMm: 0,
+                    stock,
+                    resolutionMm: 0.5,
+                    boundaryMode,
+                    boundaryMm: 1,
+                });
+                expect(result.paths.length).toBeGreaterThan(0);
+                expect(result.coveredCells).toBeGreaterThan(0);
                 expect(
-                    result.paths.some((path) => {
-                        const first = path[0];
-                        const last = path[path.length - 1];
-                        return (
-                            Math.hypot(first.x - last.x, first.y - last.y) <
-                            1e-9
-                        );
-                    }),
+                    result.paths.flat().every((point) => point.z >= -18),
                 ).toBe(true);
+                if (strategy !== 'surface-clear') {
+                    expect(
+                        result.paths.some((path) => {
+                            const first = path[0];
+                            const last = path[path.length - 1];
+                            return (
+                                Math.hypot(first.x - last.x, first.y - last.y) <
+                                1e-9
+                            );
+                        }),
+                    ).toBe(true);
+                }
+                const program = buildSurfaceToolpathResult({
+                    operation: strategy,
+                    paths: result.paths,
+                    toolDiameter: 2,
+                    cutterType: cutter === 'flat' ? 'flat' : 'ballnose',
+                    libraryToolId: `fixture:${cutter}`,
+                    toolNumber: 1,
+                    feedRate: 800,
+                    plungeRate: 200,
+                    spindle: 18000,
+                    safeZ: 5,
+                    stepdown: 2,
+                    stockToLeave: strategy === 'surface-clear' ? 0.25 : 0,
+                    surfaceBitmapId: 'supplied-fixture',
+                });
+                expect(program.gcode).toContain('G1 X');
+                expect(program.gcode).toContain('Z-');
+                expect(program.gcode.trim().endsWith('M30')).toBe(true);
             }
-            const program = buildSurfaceToolpathResult({
-                operation: strategy,
-                paths: result.paths,
-                toolDiameter: 2,
-                cutterType: cutter === 'flat' ? 'flat' : 'ballnose',
-                libraryToolId: `fixture:${cutter}`,
-                toolNumber: 1,
-                feedRate: 800,
-                plungeRate: 200,
-                spindle: 18000,
-                safeZ: 5,
-                stepdown: 2,
-                stockToLeave: strategy === 'surface-clear' ? 0.25 : 0,
-                surfaceBitmapId: 'supplied-fixture',
-            });
-            expect(program.gcode).toContain('G1 X');
-            expect(program.gcode).toContain('Z-');
-            expect(program.gcode.trim().endsWith('M30')).toBe(true);
         }
+    },
+    120_000,
+);
+
+test.each(['surface-clear', 'surface-finish', 'surface-waterline'] as const)(
+    'rectangular %s with a fractional margin machines the surrounding base and preserves model top',
+    async (strategy) => {
+        const mesh: SurfaceMesh = {
+            vertices: new Float32Array([4, 4, -2, 6, 4, -2, 5, 6, 0]),
+            bounds: { minX: 4, minY: 4, minZ: -2, maxX: 6, maxY: 6, maxZ: 0 },
+            sourceName: 'triangle.stl',
+        };
+        const result = await generateSurfaceCamPaths(mesh, {
+            strategy,
+            cutter: strategy === 'surface-clear' ? 'flat' : 'ball',
+            toolDiameterMm: 0.2,
+            stepoverMm: 0.2,
+            stepdownMm: 0.5,
+            resolutionMm: 0.1,
+            boundaryMode: 'rectangle',
+            boundaryMm: 0.35,
+            safeZMm: 5,
+            stockTopZMm: 0,
+            stock: { widthMm: 10, heightMm: 10, thicknessMm: 4 },
+        });
+        const points = result.paths.flat();
+        expect(points.length).toBeGreaterThan(0);
+        expect(points.some(({ x, z }) => x < 4 && z < -1.5)).toBe(true);
+        expect(points.some(({ z }) => z > -0.2)).toBe(true);
+        expect(points.every(({ z }) => z >= -2.0001)).toBe(true);
+        expect(mesh.vertices).toHaveLength(9);
     },
 );

@@ -48,6 +48,32 @@ export interface SurfaceCamResult {
     rasterBackend: 'webgpu' | 'cpu';
 }
 
+/** Add a model-base floor across the requested rectangular machining area. */
+export function rectangularSurfaceMesh(
+    mesh: SurfaceMesh,
+    marginMm = 0,
+): SurfaceMesh {
+    if (!Number.isFinite(marginMm) || marginMm < 0)
+        throw new Error(
+            'Machining margin must be a finite, non-negative distance.',
+        );
+    const bounds = {
+        ...mesh.bounds,
+        minX: mesh.bounds.minX - marginMm,
+        minY: mesh.bounds.minY - marginMm,
+        maxX: mesh.bounds.maxX + marginMm,
+        maxY: mesh.bounds.maxY + marginMm,
+    };
+    const { minX: x0, minY: y0, maxX: x1, maxY: y1, minZ: z } = bounds;
+    const vertices = new Float32Array(mesh.vertices.length + 18);
+    vertices.set(mesh.vertices);
+    vertices.set(
+        [x0, y0, z, x1, y0, z, x1, y1, z, x0, y0, z, x1, y1, z, x0, y1, z],
+        mesh.vertices.length,
+    );
+    return { ...mesh, bounds, vertices };
+}
+
 /** Validate the generated cutter-center path against the physical job stock. */
 export function validateSurfacePathsForStock(
     paths: SurfacePathPoint[][],
@@ -335,13 +361,24 @@ export async function generateSurfaceCamPaths(
         );
     if (!(request.stepdownMm > 0) || !Number.isFinite(request.stepdownMm))
         throw new Error('Stepdown must be a positive finite value.');
+    if (
+        !Number.isFinite(request.boundaryMm ?? 0) ||
+        (request.boundaryMm ?? 0) < 0
+    )
+        throw new Error(
+            'Machining margin must be a finite, non-negative distance.',
+        );
+    const areaMargin =
+        request.boundaryMode === 'rectangle' ? (request.boundaryMm ?? 0) : 0;
     const columns =
         Math.ceil(
-            (mesh.bounds.maxX - mesh.bounds.minX) / request.resolutionMm,
+            (mesh.bounds.maxX - mesh.bounds.minX + 2 * areaMargin) /
+                request.resolutionMm,
         ) + 1;
     const rows =
         Math.ceil(
-            (mesh.bounds.maxY - mesh.bounds.minY) / request.resolutionMm,
+            (mesh.bounds.maxY - mesh.bounds.minY + 2 * areaMargin) /
+                request.resolutionMm,
         ) + 1;
     if (columns * rows > 16_000_000)
         throw new Error(
@@ -406,12 +443,17 @@ export async function generateSurfaceCamPaths(
         throw new Error(
             'STL, cutter, and boundary overrun do not fit inside job stock with the required edge clearance.',
         );
-    if (mesh.bounds.minZ < request.stockTopZMm - request.stock.thicknessMm)
+    if (
+        mesh.bounds.minZ <
+        request.stockTopZMm - request.stock.thicknessMm - 1e-5
+    )
         throw new Error(
             'STL extends below the job stock bottom. Increase stock thickness or resize the model.',
         );
     const raster = await rasterizeSurface(
-        mesh,
+        request.boundaryMode === 'rectangle'
+            ? rectangularSurfaceMesh(mesh, request.boundaryMm ?? 0)
+            : mesh,
         request.resolutionMm,
         onProgress,
         signal,
@@ -452,10 +494,21 @@ export async function generateSurfaceCamPaths(
                     onProgress,
                     contact.sampleRows,
                 );
-    const paths =
-        request.strategy === 'surface-waterline'
+    const boundaryPaths =
+        request.strategy === 'surface-waterline' ||
+        request.boundaryMode === 'rectangle'
             ? generatedPaths
             : applySurfaceBoundaryOverrun(generatedPaths, request.boundaryMm);
+    // A ball tip can sit below a supported edge to touch it with its side.
+    // Keep that compensation inside the physical stock; raising the tip leaves
+    // material at the edge instead of cutting through the board. The input
+    // mesh has already been validated against this same bottom plane.
+    const bottomZ = request.stockTopZMm - request.stock.thicknessMm;
+    const paths = boundaryPaths.map((path) =>
+        path.map((point) =>
+            point.z < bottomZ ? { ...point, z: bottomZ } : point,
+        ),
+    );
     validateSurfacePathsForStock(paths, request);
     return {
         strategy: request.strategy,

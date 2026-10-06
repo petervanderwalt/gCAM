@@ -1,7 +1,7 @@
 /**
  * Purpose: Implementation module for ToolpathPanel in the react domain.
  */
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
     DEFAULT_MACHINE_PROFILE,
     machineProfileById,
@@ -123,7 +123,7 @@ function surfaceFootprintLoops(bitmap: {
     return loops;
 }
 
-export function ToolpathPanel({
+export const ToolpathPanel = memo(function ToolpathPanel({
     loops,
     selected,
     bitmaps,
@@ -139,6 +139,8 @@ export function ToolpathPanel({
     machineProfileId = 'longmill-router',
     machineTravelLimits,
     stock,
+    onStockThickness,
+    onFitSurface,
 }: {
     loops: ViewLoop[];
     selected: string[];
@@ -170,6 +172,8 @@ export function ToolpathPanel({
     machineProfileId?: string;
     machineTravelLimits: MachineTravelLimits;
     stock: JobStock;
+    onStockThickness?: (value: number) => void;
+    onFitSurface?: (id: string, mode: 'uniform' | 'z') => void;
 }) {
     const [operation, setOperation] = useState<Operation>('profile-outside');
     const [toolDiameter, setToolDiameter] = useState(6);
@@ -211,6 +215,9 @@ export function ToolpathPanel({
     const [surfaceStepdown, setSurfaceStepdown] = useState(1.5);
     const [surfaceAllowance, setSurfaceAllowance] = useState(0.35);
     const [surfaceBoundary, setSurfaceBoundary] = useState(0);
+    const [surfaceBoundaryMode, setSurfaceBoundaryMode] = useState<
+        'model' | 'rectangle'
+    >('model');
     const [autoTabHeight, setAutoTabHeight] = useState(true);
     const [laserSMin, setLaserSMin] = useState(0);
     const [laserSMax, setLaserSMax] = useState(1000);
@@ -307,6 +314,29 @@ export function ToolpathPanel({
         : selectedLoops.length === 1
           ? selectedSurfaceModel
           : undefined;
+    const placedSurfaceMesh = useMemo(
+        () =>
+            selectedSurfaceBitmap
+                ? transformStoredSurfaceMesh(selectedSurfaceBitmap)
+                : null,
+        [selectedSurfaceBitmap],
+    );
+    const surfaceHeight = placedSurfaceMesh
+        ? -placedSurfaceMesh.bounds.minZ
+        : 0;
+    useEffect(() => {
+        if (selectedSurfaceBitmap && !busy)
+            setStatus(
+                '3D setup updated. Add a toolpath to calculate cutter compensation.',
+            );
+        // Clear obsolete generation errors when the model or stock changes.
+        // Busy changes alone must retain the current build status.
+    }, [
+        selectedSurfaceBitmap,
+        stock.thicknessMm,
+        stock.widthMm,
+        stock.heightMm,
+    ]);
     // Mixed marquee selections operate on the vector geometry only. A 3D
     // model is machined individually, never combined with selected vectors.
     const active = editEntry
@@ -372,6 +402,7 @@ export function ToolpathPanel({
         setSurfaceStepdown(num(a.surfaceStepdownMm, 1.5));
         setSurfaceAllowance(num(a.surfaceStockToLeaveMm, 0.35));
         setSurfaceBoundary(num(a.surfaceBoundaryMm, 0));
+        setSurfaceBoundaryMode(a.surfaceBoundaryMode ?? 'model');
         const slot = slots.find(
             (s) => s.slot === Math.max(1, Math.round(num(a.toolNumber, 1))),
         );
@@ -446,6 +477,8 @@ export function ToolpathPanel({
         surfaceStepdown,
         surfaceAllowance,
         surfaceBoundary,
+        surfaceBoundaryMode,
+        selectedSurfaceBitmap,
         safeZ,
         stock.widthMm,
         stock.heightMm,
@@ -572,6 +605,7 @@ export function ToolpathPanel({
             surfaceStepdownMm: surfaceStepdown,
             surfaceStockToLeaveMm: surfaceAllowance,
             surfaceBoundaryMm: surfaceBoundary,
+            surfaceBoundaryMode,
             arcs: defaultArcs,
             overlapPercent: overlap,
             tabWidth,
@@ -659,7 +693,7 @@ export function ToolpathPanel({
                 setBusy(false);
                 return;
             }
-            if (mesh.bounds.minZ < -stock.thicknessMm) {
+            if (mesh.bounds.minZ < -stock.thicknessMm - 1e-5) {
                 setStatus(
                     'The 3D model extends below the job stock thickness. Increase stock thickness or resize the model.',
                 );
@@ -702,7 +736,11 @@ export function ToolpathPanel({
                     stockToLeaveMm:
                         operation === 'surface-clear' ? surfaceAllowance : 0,
                     boundaryMm:
-                        operation === 'surface-waterline' ? 0 : surfaceBoundary,
+                        operation === 'surface-waterline' &&
+                        surfaceBoundaryMode === 'model'
+                            ? 0
+                            : surfaceBoundary,
+                    boundaryMode: surfaceBoundaryMode,
                     safeZMm: safeZ,
                     stockTopZMm: 0,
                     travelLimits: machineTravelLimits,
@@ -1148,6 +1186,78 @@ export function ToolpathPanel({
                     />
                 )}
                 {surfaceOperation && (
+                    <section
+                        className={`space-y-2 rounded-lg border p-3 ${surfaceHeight > stock.thicknessMm + 0.001 ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30' : 'border-slate-300 dark:border-robin-900'}`}
+                    >
+                        <h3 className="text-sm font-semibold">
+                            Model placement
+                        </h3>
+                        <p className="text-xs">
+                            Model height: {displayValue(surfaceHeight, units)}{' '}
+                            {units === 'imperial' ? 'in' : 'mm'}. Top aligned to
+                            stock top (Z=0); stock extends below zero.
+                        </p>
+                        {surfaceHeight > stock.thicknessMm + 0.001 && (
+                            <p
+                                role="alert"
+                                className="text-sm font-semibold text-amber-800 dark:text-amber-200"
+                            >
+                                Model is taller than the stock. Correct the
+                                stock thickness or fit the model before adding a
+                                toolpath.
+                            </p>
+                        )}
+                        <label className="block text-xs">
+                            Job stock thickness
+                            <UnitInput
+                                units={units}
+                                disabled={busy || !onStockThickness}
+                                minMm={0.1}
+                                valueMm={stock.thicknessMm}
+                                onChangeMm={(value) =>
+                                    onStockThickness?.(value)
+                                }
+                                className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 dark:bg-dark"
+                            />
+                        </label>
+                        {selectedSurfaceBitmap && onFitSurface && (
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    disabled={busy || !surfaceHeight}
+                                    onClick={() =>
+                                        onFitSurface(
+                                            selectedSurfaceBitmap.id,
+                                            'uniform',
+                                        )
+                                    }
+                                    className="rounded border border-slate-400 px-2 py-2 text-xs disabled:opacity-50"
+                                >
+                                    Fit to stock — scale XYZ together
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={busy || !surfaceHeight}
+                                    onClick={() =>
+                                        onFitSurface(
+                                            selectedSurfaceBitmap.id,
+                                            'z',
+                                        )
+                                    }
+                                    className="rounded border border-slate-400 px-2 py-2 text-xs disabled:opacity-50"
+                                >
+                                    Fit to stock — scale Z only
+                                </button>
+                                <p className="text-[11px] text-slate-500">
+                                    XYZ preserves proportions and changes the
+                                    footprint. Z only keeps the footprint and
+                                    changes the relief height.
+                                </p>
+                            </div>
+                        )}
+                    </section>
+                )}
+                {surfaceOperation && (
                     <SurfaceCamFields
                         operation={operation}
                         units={units}
@@ -1156,6 +1266,8 @@ export function ToolpathPanel({
                         stepdown={surfaceStepdown}
                         allowance={surfaceAllowance}
                         boundary={surfaceBoundary}
+                        boundaryMode={surfaceBoundaryMode}
+                        onBoundaryMode={setSurfaceBoundaryMode}
                         onResolution={setSurfaceResolution}
                         onStepover={setSurfaceStepover}
                         onStepdown={setSurfaceStepdown}
@@ -1212,7 +1324,11 @@ export function ToolpathPanel({
                 />
                 <ToolpathSubmitControls
                     busy={busy}
-                    hasActiveGeometry={active.length > 0}
+                    hasActiveGeometry={
+                        active.length > 0 &&
+                        (!surfaceOperation ||
+                            surfaceHeight <= stock.thicknessMm + 1e-5)
+                    }
                     editEntry={editEntry !== null}
                     submitLabel={submitLabel}
                     selectedCount={selected.length}
@@ -1228,4 +1344,4 @@ export function ToolpathPanel({
             </section>
         </div>
     );
-}
+});

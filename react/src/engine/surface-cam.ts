@@ -42,6 +42,7 @@ export interface SurfacePathOptions {
     stockToLeaveMm?: number;
     /** XY overrun beyond the rastered model footprint for rough/parallel finish passes. */
     boundaryMm?: number;
+    boundaryMode?: 'model' | 'rectangle';
     safeZMm: number;
     stockTopZMm: number;
     cutter: 'flat' | 'ball' | 'ballnose';

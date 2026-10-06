@@ -95,6 +95,7 @@ export interface ProfileArgs {
     surfaceStepdownMm?: number;
     surfaceStockToLeaveMm?: number;
     surfaceBoundaryMm?: number;
+    surfaceBoundaryMode?: 'model' | 'rectangle';
     countersinkHeadDiameterMm?: number;
 }
 

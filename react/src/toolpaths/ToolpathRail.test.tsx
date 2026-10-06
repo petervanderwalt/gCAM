@@ -1,10 +1,14 @@
-import type { ComponentProps } from 'react';
+import { memo, type ComponentProps } from 'react';
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ToolpathStackEntry } from './useToolpathStack';
 
+const panelRenders = jest.fn();
 await jest.unstable_mockModule('./ToolpathPanel', () => ({
-    ToolpathPanel: () => <div>Toolpath editor</div>,
+    ToolpathPanel: memo(() => {
+        panelRenders();
+        return <div>Toolpath editor</div>;
+    }),
 }));
 
 await jest.unstable_mockModule('../job/JobStockSetup', () => ({
@@ -200,4 +204,33 @@ test('shows only the edited toolpath and hides the created list while editing', 
     expect(
         screen.queryByRole('heading', { name: /Job toolpaths/ }),
     ).not.toBeInTheDocument();
+});
+
+test('keeps the sidebar editor stable when unrelated parent updates replace event handlers', () => {
+    panelRenders.mockClear();
+    const props = makeProps({
+        selected: ['shape'],
+        loops: [
+            {
+                id: 'shape',
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 10 },
+                ],
+            },
+        ],
+    });
+    const view = render(<ToolpathRail {...props} />);
+    expect(panelRenders).toHaveBeenCalledTimes(1);
+    for (let n = 0; n < 5; n++) {
+        view.rerender(
+            <ToolpathRail
+                {...props}
+                onResult={jest.fn()}
+                onUpdate={jest.fn()}
+                onStockThickness={jest.fn()}
+            />,
+        );
+    }
+    expect(panelRenders).toHaveBeenCalledTimes(1);
 });

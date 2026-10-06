@@ -13,6 +13,8 @@ export interface StoredSurfaceMesh {
     sourceUnitScaleMm: number;
     /** Source-space vector selected as the machine's +Z setup direction. */
     machineUp?: [number, number, number];
+    /** Independent height multiplier, applied after the canvas XY scale. */
+    zScale?: number;
 }
 
 export interface SetupAngles {
@@ -197,7 +199,49 @@ export function renderHeightmapDataUrl(mesh: StoredSurfaceMesh): {
     };
 }
 
-/** Apply the editable canvas bitmap transform to the retained CAM mesh. */
+/** Fit model height to stock, keeping the model top at zero and its XY center fixed. */
+export function fitSurfaceToStock<
+    T extends {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        rotation?: number;
+        surfaceMesh?: StoredSurfaceMesh;
+    },
+>(bitmap: T, thicknessMm: number, mode: 'uniform' | 'z'): T {
+    const mesh = transformStoredSurfaceMesh(bitmap);
+    const depth = mesh ? mesh.bounds.maxZ - mesh.bounds.minZ : 0;
+    if (
+        !bitmap.surfaceMesh ||
+        !(depth > 0) ||
+        !Number.isFinite(thicknessMm) ||
+        thicknessMm <= 0
+    )
+        throw new Error(
+            'A model with positive height and valid stock thickness is required.',
+        );
+    const ratio = thicknessMm / depth;
+    if (mode === 'z')
+        return {
+            ...bitmap,
+            surfaceMesh: {
+                ...bitmap.surfaceMesh,
+                zScale: (bitmap.surfaceMesh.zScale ?? 1) * ratio,
+            },
+        };
+    const w = bitmap.w * ratio;
+    const h = bitmap.h * ratio;
+    return {
+        ...bitmap,
+        w,
+        h,
+        x: bitmap.x + (bitmap.w - w) / 2,
+        y: bitmap.y + (bitmap.h - h) / 2,
+    };
+}
+
+/** Apply the editable canvas transform and independent Z scale to the retained mesh. */
 export function transformStoredSurfaceMesh(bitmap: {
     x: number;
     y: number;
@@ -218,7 +262,7 @@ export function transformStoredSurfaceMesh(bitmap: {
     const { bounds } = oriented;
     const scaleX = bitmap.w / (bounds.maxX - bounds.minX);
     const scaleY = bitmap.h / (bounds.maxY - bounds.minY);
-    const scaleZ = Math.sqrt(scaleX * scaleY);
+    const scaleZ = Math.sqrt(scaleX * scaleY) * (stored.zScale ?? 1);
     const radians = ((bitmap.rotation ?? 0) * Math.PI) / 180;
     const cosine = Math.cos(radians);
     const sine = Math.sin(radians);

@@ -166,6 +166,7 @@ function selectAt(
         const linkedId = loops.find((loop) => loop.bitmapId === bitmap.id)?.id;
         if (linkedId) {
             deps.onSelect(
+                (event.shiftKey || event.ctrlKey || event.metaKey) &&
                 selected.length === 1 && selected[0] === linkedId
                     ? []
                     : [linkedId],
@@ -195,7 +196,9 @@ function selectAt(
     });
     if (best !== null && bestDistance <= tolerance)
         deps.onSelect(
-            selected.includes(best)
+            !(event.shiftKey || event.ctrlKey || event.metaKey)
+                ? [best]
+                : selected.includes(best)
                 ? selected.filter((id) => id !== best)
                 : [...selected, best],
         );

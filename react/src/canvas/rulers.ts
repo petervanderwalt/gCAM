@@ -80,11 +80,20 @@ export function drawRulerTicks(
             ctx.lineTo(width - (major ? 11 : 5), screen);
         }
         ctx.stroke();
-        if (major)
-            ctx.fillText(
-                formatLabel(displayValue(snapped, units, 3)),
-                axis === 'x' ? screen : width - 13,
-                axis === 'x' ? 2 : screen,
-            );
+        if (major) {
+            const label = formatLabel(displayValue(snapped, units, 3));
+            if (axis === 'x') ctx.fillText(label, screen, 2);
+            else {
+                // Read along the ruler so multi-digit/negative labels fit
+                // within the narrow gutter rather than clipping on the left.
+                ctx.save();
+                ctx.translate(5, screen);
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, 0, 0);
+                ctx.restore();
+            }
+        }
     }
 }

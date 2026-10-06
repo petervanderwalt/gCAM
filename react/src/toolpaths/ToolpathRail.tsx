@@ -2,7 +2,8 @@
  * Purpose: Implementation module for ToolpathRail in the react domain.
  */
 import { Download, FileUp, Pencil, Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useStableCallback } from '../lib/useStableCallback';
 import type { Dispatch, SetStateAction } from 'react';
 import { ToolpathPanel } from './ToolpathPanel';
 import type { ToolpathStackEntry } from './useToolpathStack';
@@ -37,6 +38,8 @@ interface ToolpathRailProps {
     machineTravelLimits: MachineTravelLimits;
     stock: JobStock;
     setStock: Dispatch<SetStateAction<JobStock>>;
+    onFitSurface?: (id: string, mode: 'uniform' | 'z') => void;
+    onStockThickness?: (value: number) => void;
     editingId: string | null;
     editingEntry: ToolpathStackEntry | null;
     tabMode: boolean;
@@ -76,6 +79,8 @@ export function ToolpathRail({
     machineTravelLimits,
     stock,
     setStock,
+    onFitSurface,
+    onStockThickness,
     editingId,
     editingEntry,
     tabMode,
@@ -103,6 +108,51 @@ export function ToolpathRail({
         !stack.length &&
         !editing;
     const showJobStock = !showEditor;
+    const panelResult = useStableCallback(onResult);
+    const panelUpdate = useStableCallback(
+        (id: string, result: ToolpathResult, args: ProfileArgs) =>
+            onUpdate(id, result, args),
+    );
+    const panelFit = useStableCallback((id: string, mode: 'uniform' | 'z') =>
+        onFitSurface?.(id, mode),
+    );
+    const panelThickness = useStableCallback((value: number) => {
+        if (onStockThickness) onStockThickness(value);
+        else
+            setStock((current) =>
+                current.thicknessMm === value
+                    ? current
+                    : { ...current, thicknessMm: value },
+            );
+    });
+    const panelPreview = useStableCallback(
+        (contours: { x: number; y: number }[][] | null) => {
+            setDraftPreview(
+                (current) => contours ?? (current.length ? [] : current),
+            );
+        },
+    );
+    const panelCancel = useStableCallback(() => {
+        setEditingId(null);
+        setDraftPreview((current) => (current.length ? [] : current));
+        setDraftProgress(null);
+        setStatus('Edit cancelled.');
+    });
+    const panelEntry = useMemo(
+        () =>
+            editingEntry
+                ? {
+                      id: editingEntry.id,
+                      args: editingEntry.args,
+                      loops: editingEntry.args.loops.map((loop, index) => ({
+                          id: loop.id ?? `edit-${editingEntry.id}-${index}`,
+                          points: loop.points,
+                          bitmapId: (loop as { bitmapId?: string }).bitmapId,
+                      })),
+                  }
+                : null,
+        [editingEntry],
+    );
 
     useEffect(() => {
         if (!editing && selected.length === 0) {
@@ -147,46 +197,23 @@ export function ToolpathRail({
                 )}
                 {showEditor ? (
                     <ToolpathPanel
+                        onFitSurface={onFitSurface ? panelFit : undefined}
+                        onStockThickness={panelThickness}
                         loops={loops}
                         selected={selected}
                         bitmaps={bitmaps}
                         submitLabel="Add Toolpath"
-                        onResult={onResult}
+                        onResult={panelResult}
                         defaultArcs={emitArcs}
                         machineProfileId={machineProfileId}
                         machineTravelLimits={machineTravelLimits}
                         stock={stock}
                         units={units}
-                        onDraftPreview={(contours) =>
-                            setDraftPreview(contours ?? [])
-                        }
+                        onDraftPreview={panelPreview}
                         onDraftProgress={setDraftProgress}
-                        editEntry={
-                            editingEntry
-                                ? {
-                                      id: editingEntry.id,
-                                      args: editingEntry.args,
-                                      loops: editingEntry.args.loops.map(
-                                          (loop, index) => ({
-                                              id:
-                                                  loop.id ??
-                                                  `edit-${editingEntry.id}-${index}`,
-                                              points: loop.points,
-                                              bitmapId: (
-                                                  loop as { bitmapId?: string }
-                                              ).bitmapId,
-                                          }),
-                                      ),
-                                  }
-                                : null
-                        }
-                        onUpdate={onUpdate}
-                        onCancelEdit={() => {
-                            setEditingId(null);
-                            setDraftPreview([]);
-                            setDraftProgress(null);
-                            setStatus('Edit cancelled.');
-                        }}
+                        editEntry={panelEntry}
+                        onUpdate={panelUpdate}
+                        onCancelEdit={panelCancel}
                     />
                 ) : (
                     <>

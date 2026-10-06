@@ -1,5 +1,6 @@
 import {
     initialSurfacePlacement,
+    fitSurfaceToStock,
     machineUpToSetupAngles,
     readSurfaceMeshFile,
     renderHeightmapDataUrl,
@@ -130,4 +131,45 @@ test('preserves arbitrary machine-up orientation through the canvas transform', 
     expect(transformed?.bounds.minZ).toBeLessThan(0);
     expect(transformed?.bounds.maxX).toBeGreaterThan(bitmap.x);
     expect(transformed?.bounds.maxY).toBeGreaterThan(bitmap.y);
+});
+
+const tallBitmap = {
+    x: 20,
+    y: 30,
+    w: 10,
+    h: 20,
+    rotation: 25,
+    surfaceMesh: {
+        vertices: [0, 0, 5, 10, 0, 40, 10, 20, 5],
+        bounds: { minX: 0, minY: 0, minZ: 5, maxX: 10, maxY: 20, maxZ: 40 },
+        sourceName: '35mm.stl',
+        sourceUnitScaleMm: 1,
+    },
+};
+test.each(['uniform', 'z'] as const)(
+    'fits 35mm model into 18mm stock using %s and retains top zero',
+    (mode) => {
+        const fitted = fitSurfaceToStock(tallBitmap, 18, mode);
+        const mesh = transformStoredSurfaceMesh(fitted)!;
+        expect(mesh.bounds.maxZ).toBe(0);
+        expect(mesh.bounds.minZ).toBeCloseTo(-18);
+        expect(fitted.x + fitted.w / 2).toBeCloseTo(25);
+        expect(fitted.y + fitted.h / 2).toBeCloseTo(40);
+        expect(fitted.w).toBeCloseTo(mode === 'z' ? 10 : (10 * 18) / 35);
+        expect(fitted.h).toBeCloseTo(mode === 'z' ? 20 : (20 * 18) / 35);
+        expect(tallBitmap.surfaceMesh.vertices[2]).toBe(5);
+    },
+);
+test('a shorter model stays at stock top with remaining stock underneath', () => {
+    const mesh = transformStoredSurfaceMesh(tallBitmap)!;
+    expect(mesh.bounds.maxZ).toBe(0);
+    expect(mesh.bounds.minZ).toBe(-35);
+    expect(mesh.bounds.minZ).toBeGreaterThan(-50);
+});
+test('Z-only fitting survives subsequent XY resize and repeated fitting', () => {
+    const fitted = fitSurfaceToStock(tallBitmap, 18, 'z');
+    const resized = { ...fitted, w: fitted.w * 2, h: fitted.h * 2 };
+    const refitted = fitSurfaceToStock(resized, 18, 'z');
+    expect(transformStoredSurfaceMesh(refitted)!.bounds.minZ).toBeCloseTo(-18);
+    expect(refitted.w).toBe(20);
 });

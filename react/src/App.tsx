@@ -2,6 +2,7 @@
  * Purpose: Implementation module for App in the react domain.
  */
 import { useState } from 'react';
+import { fitSurfaceToStock } from './engine/surface-model';
 import type { ViewLoop } from './canvas/types';
 import { useConfirmation } from './components/ConfirmDialog';
 import { useToasts } from './components/Toasts';
@@ -502,6 +503,48 @@ export default function App() {
 
     const inspector = buildInspector(units);
     const toolpathRailProps = {
+        onStockThickness: (thicknessMm: number) => {
+            if (
+                !Number.isFinite(thicknessMm) ||
+                thicknessMm <= 0 ||
+                thicknessMm === stock.thicknessMm
+            )
+                return;
+            pushHistory();
+            setStock((current) => ({ ...current, thicknessMm }));
+        },
+        onFitSurface: (id: string, mode: 'uniform' | 'z') => {
+            const bitmap = bitmaps.find((item) => item.id === id);
+            if (!bitmap?.surfaceMesh) return;
+            const fitted = fitSurfaceToStock(bitmap, stock.thicknessMm, mode);
+            pushHistory();
+            setBitmaps((current) =>
+                current.map((item) => (item.id === id ? fitted : item)),
+            );
+            if (mode === 'uniform') {
+                const ratio = fitted.w / bitmap.w;
+                const cx = bitmap.x + bitmap.w / 2;
+                const cy = bitmap.y + bitmap.h / 2;
+                setLoops((current) =>
+                    current.map((loop) =>
+                        loop.bitmapId === id
+                            ? {
+                                  ...loop,
+                                  points: loop.points.map((point) => ({
+                                      x: cx + (point.x - cx) * ratio,
+                                      y: cy + (point.y - cy) * ratio,
+                                  })),
+                              }
+                            : loop,
+                    ),
+                );
+            }
+            setStatus(
+                mode === 'uniform'
+                    ? 'Model scaled in XYZ to fit stock thickness.'
+                    : 'Model height scaled to fit stock; XY size preserved.',
+            );
+        },
         loops,
         selected,
         bitmaps,
