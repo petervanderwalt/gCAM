@@ -14,13 +14,34 @@ yarn
 yarn dev
 ```
 
-Useful checks are `yarn test`, `yarn check-types`, `yarn lint`,
-`yarn format:check`, and `yarn build`. CI runs all of them for pull requests.
+### Checks and tests
 
-Run browser workflows with `yarn test:e2e`, or open the interactive runner with
-`yarn cy:open`. These start an isolated server on port 5180. See the
-[Cypress workflow guide](react/cypress/README.md) for coverage and fixtures.
-Simulation is excluded from these tests.
+Run these commands from `react`:
+
+| Tool | Purpose | Commands |
+| --- | --- | --- |
+| Biome | Linting and consistent code formatting | `yarn lint`, `yarn format:check` |
+| Jest | Unit and component tests in adjacent `*.test.*` files | `yarn test --runInBand`, `yarn test:watch` |
+| Cypress | Browser workflows using real UI interactions and imported fixtures | `yarn test:e2e`, `yarn cy:open` |
+| TypeScript / Vite | Type checking and production build | `yarn check-types`, `yarn build` |
+
+Use `yarn format` to apply formatting or `yarn lint:fix` to apply Biome's safe
+lint fixes and formatting. Review the changes before committing. Rules and
+exclusions live in `react/biome.json`; Jest configuration is in
+`react/jest.config.cjs`.
+
+Cypress starts an isolated server on port 5180 and stops it when the runner
+exits. It covers image tracing and effects, STL/OBJ machining, vector operations,
+drawing and snapping, editing, grouping/nesting, Config, and fresh tool-library
+setup. Fixtures are included. Simulation is excluded. See the
+[Cypress workflow guide](react/cypress/README.md) for details and individual-spec
+commands.
+
+GitHub Actions runs Jest, types, Biome and the build in
+[Quality](.github/workflows/quality.yml), and Cypress in
+[Browser tests](.github/workflows/browser-tests.yml), on pull requests and pushes
+to `main`. Browser tests can also be started manually; failed runs upload
+screenshots and any generated videos.
 
 ## Structure
 
@@ -31,6 +52,7 @@ gCAM/
 ├── .github/
 │   └── workflows/
 │       ├── quality.yml                 PR quality gate: test, types, lint, format, build
+│       ├── browser-tests.yml           Cypress browser workflow tests
 │       └── deploy-pages.yml            Builds and deploys the React app to GitHub Pages
 ├── .gitignore                          Ignores local/build files at repository level
 ├── README.md                           This repository map and development guide
