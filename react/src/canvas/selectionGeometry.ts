@@ -2,8 +2,7 @@
  * Purpose: Implementation module for selectionGeometry in the canvas domain.
  */
 import { nearestPointOnPolyline } from '../cam/cam-ops.js';
-import { snapToEndpoints } from '../draw/geometry';
-import { snapToGuides, type Guide } from '../lib/guides';
+import { findGuideIntersection, snapToGuides, type Guide } from '../lib/guides';
 import {
     rotatePoints,
     scalePoints,
@@ -15,6 +14,49 @@ export interface CanvasLoopGeometry {
     id: string;
     points: { x: number; y: number }[];
     bitmapId?: string;
+    sourceType?: string;
+    radius?: number;
+    exportGeometry?: {
+        type?: string;
+        cx?: number;
+        cy?: number;
+        radius?: number;
+        segments?: {
+            kind?: string;
+            start?: { x: number; y: number };
+            end?: { x: number; y: number };
+            cx?: number;
+            cy?: number;
+            radius?: number;
+            startAngle?: number;
+            endAngle?: number;
+            clockwise?: boolean;
+        }[];
+    };
+}
+
+export type DrawSnapKind =
+    | 'endpoint'
+    | 'midpoint'
+    | 'edge'
+    | 'origin'
+    | 'guide'
+    | 'guide-intersection'
+    | 'x-axis'
+    | 'y-axis'
+    | 'grid';
+
+export interface DrawSnapTarget {
+    point: { x: number; y: number };
+    kind: DrawSnapKind;
+    label: string;
+    distancePx: number;
+}
+
+export interface LoopHoverTarget {
+    loopId: string;
+    segmentIndex: number;
+    distance: number;
 }
 
 export interface SelectionFrame {
@@ -108,6 +150,254 @@ export function applyDragPreview(
     });
 }
 
+export function findDrawSnapTarget(
+    loops: CanvasLoopGeometry[],
+    hidden: string[],
+    world: { x: number; y: number },
+    scale: number,
+    grid: { snap: boolean; spacingMm: number } | null = null,
+    guides: Guide[] = [],
+): DrawSnapTarget | null {
+    const hiddenIds = new Set(hidden);
+    const safeScale = Math.max(scale, 0.01);
+    const tolerancePx = 12;
+    const visible = loops.filter(
+        (loop) =>
+            !hiddenIds.has(loop.id) && !loop.bitmapId && loop.points.length >= 2,
+    );
+    const bestPoint = (
+        points: { point: { x: number; y: number }; label: string }[],
+        kind: DrawSnapKind,
+    ): DrawSnapTarget | null => {
+        let best: DrawSnapTarget | null = null;
+        for (const candidate of points) {
+            const distancePx =
+                Math.hypot(candidate.point.x - world.x, candidate.point.y - world.y) *
+                safeScale;
+            if (
+                distancePx <= tolerancePx &&
+                (!best || distancePx < best.distancePx)
+            )
+                best = { ...candidate, kind, distancePx };
+        }
+        return best;
+    };
+
+    // Geometry landmarks outrank every continuous snap target.
+    const endpoints: { point: { x: number; y: number }; label: string }[] = [];
+    const midpoints: typeof endpoints = [];
+    for (const loop of visible) {
+        const circle = loop.exportGeometry?.type === 'circle' || loop.sourceType === 'circle';
+        if (circle) {
+            const cx = loop.exportGeometry?.cx;
+            const cy = loop.exportGeometry?.cy;
+            const radius = loop.exportGeometry?.radius ?? loop.radius;
+            if (Number.isFinite(cx) && Number.isFinite(cy) && Number.isFinite(radius)) {
+                for (const [x, y] of [
+                    [cx! + radius!, cy!],
+                    [cx!, cy! + radius!],
+                    [cx! - radius!, cy!],
+                    [cx!, cy! - radius!],
+                ]) endpoints.push({ point: { x, y }, label: 'Quadrant' });
+            }
+            continue;
+        }
+        const segments = loop.exportGeometry?.segments;
+        if (segments?.length) {
+            for (const segment of segments) {
+                if (segment.start) endpoints.push({ point: segment.start, label: 'Endpoint' });
+                if (segment.end) endpoints.push({ point: segment.end, label: 'Endpoint' });
+                if (segment.kind === 'line' && segment.start && segment.end) {
+                    midpoints.push({
+                        point: {
+                            x: (segment.start.x + segment.end.x) / 2,
+                            y: (segment.start.y + segment.end.y) / 2,
+                        },
+                        label: 'Midpoint',
+                    });
+                } else if (
+                    segment.kind === 'arc' &&
+                    Number.isFinite(segment.cx) &&
+                    Number.isFinite(segment.cy) &&
+                    Number.isFinite(segment.radius) &&
+                    Number.isFinite(segment.startAngle) &&
+                    Number.isFinite(segment.endAngle)
+                ) {
+                    const sweep = segment.clockwise
+                        ? segment.startAngle! - segment.endAngle!
+                        : segment.endAngle! - segment.startAngle!;
+                    const angle = segment.startAngle! + (sweep / 2) * (segment.clockwise ? -1 : 1);
+                    midpoints.push({
+                        point: {
+                            x: segment.cx! + Math.cos(angle) * segment.radius!,
+                            y: segment.cy! + Math.sin(angle) * segment.radius!,
+                        },
+                        label: 'Midpoint',
+                    });
+                }
+            }
+            continue;
+        }
+        const points = loop.points;
+        const isClosed =
+            points.length > 2 &&
+            Math.hypot(
+                points[0].x - points[points.length - 1].x,
+                points[0].y - points[points.length - 1].y,
+            ) < 1e-7;
+        const count = isClosed ? points.length - 1 : points.length;
+        for (let index = 0; index < count; index += 1) {
+            const point = points[index];
+            endpoints.push({ point, label: isClosed ? 'Vertex' : 'Endpoint' });
+            const next = points[(index + 1) % count];
+            if (next && loop.sourceType !== 'arc' && loop.sourceType !== 'bezier')
+                midpoints.push({
+                    point: { x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 },
+                    label: 'Midpoint',
+                });
+        }
+    }
+    const endpoint = bestPoint(endpoints, 'endpoint');
+    if (endpoint) return endpoint;
+    const midpoint = bestPoint(midpoints, 'midpoint');
+    if (midpoint) return midpoint;
+
+    // Snap to the nearest point on actual rendered vector edges. This is a
+    // screen-space hit test, so the acquisition width stays comfortable at any zoom.
+    let nearestEdge: DrawSnapTarget | null = null;
+    for (const loop of visible) {
+        const circle = loop.exportGeometry?.type === 'circle' || loop.sourceType === 'circle';
+        const cx = loop.exportGeometry?.cx;
+        const cy = loop.exportGeometry?.cy;
+        const radius = loop.exportGeometry?.radius ?? loop.radius;
+        if (
+            circle &&
+            Number.isFinite(cx) &&
+            Number.isFinite(cy) &&
+            Number.isFinite(radius)
+        ) {
+            const dx = world.x - cx!;
+            const dy = world.y - cy!;
+            const distance = Math.hypot(dx, dy) || 1;
+            const point = {
+                x: cx! + (dx / distance) * radius!,
+                y: cy! + (dy / distance) * radius!,
+            };
+            const distancePx = Math.abs(distance - radius!) * safeScale;
+            if (distancePx <= tolerancePx && (!nearestEdge || distancePx < nearestEdge.distancePx))
+                nearestEdge = { point, kind: 'edge', label: 'On vector', distancePx };
+            continue;
+        }
+        const points = loop.points;
+        for (let index = 0; index < points.length - 1; index += 1) {
+            const a = points[index];
+            const b = points[index + 1];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const lengthSquared = dx * dx + dy * dy;
+            if (lengthSquared < 1e-12) continue;
+            const t = Math.max(
+                0,
+                Math.min(1, ((world.x - a.x) * dx + (world.y - a.y) * dy) / lengthSquared),
+            );
+            const point = { x: a.x + dx * t, y: a.y + dy * t };
+            const distancePx = Math.hypot(point.x - world.x, point.y - world.y) * safeScale;
+            if (distancePx <= tolerancePx && (!nearestEdge || distancePx < nearestEdge.distancePx))
+                nearestEdge = { point, kind: 'edge', label: 'On vector', distancePx };
+        }
+    }
+    if (nearestEdge) return nearestEdge;
+
+    const tolerance = tolerancePx / safeScale;
+    const originDistance = Math.hypot(world.x, world.y) * safeScale;
+    if (originDistance <= tolerancePx)
+        return { point: { x: 0, y: 0 }, kind: 'origin', label: 'Origin', distancePx: originDistance };
+    const guideIntersection = findGuideIntersection(world, guides, safeScale, tolerancePx);
+    if (guideIntersection)
+        return {
+            ...guideIntersection,
+            kind: 'guide-intersection',
+            label: 'Guide intersection',
+        };
+    const guideSnap = snapToGuides(world, guides, tolerance);
+    if (guideSnap.x !== world.x || guideSnap.y !== world.y)
+        return {
+            point: guideSnap,
+            kind: 'guide',
+            label: 'Guide',
+            distancePx: Math.hypot(guideSnap.x - world.x, guideSnap.y - world.y) * safeScale,
+        };
+    const axisCandidates = [
+        { point: { x: world.x, y: 0 }, kind: 'x-axis' as const, label: 'X axis' },
+        { point: { x: 0, y: world.y }, kind: 'y-axis' as const, label: 'Y axis' },
+    ].map((candidate) => ({
+        ...candidate,
+        distancePx: Math.hypot(candidate.point.x - world.x, candidate.point.y - world.y) * safeScale,
+    })).filter((candidate) => candidate.distancePx <= tolerancePx)
+        .sort((a, b) => a.distancePx - b.distancePx);
+    if (axisCandidates[0]) return axisCandidates[0];
+    if (grid?.snap && grid.spacingMm > 0) {
+        const point = {
+            x: Math.round(world.x / grid.spacingMm) * grid.spacingMm,
+            y: Math.round(world.y / grid.spacingMm) * grid.spacingMm,
+        };
+        return { point, kind: 'grid', label: 'Grid', distancePx: Math.hypot(point.x - world.x, point.y - world.y) * safeScale };
+    }
+    return null;
+}
+
+export function findLoopAtPoint(
+    loops: CanvasLoopGeometry[],
+    hidden: string[],
+    world: { x: number; y: number },
+    scale: number,
+    hitRadiusPx = 10,
+): LoopHoverTarget | null {
+    const tolerance = hitRadiusPx / Math.max(scale, 0.01);
+    const hiddenIds = new Set(hidden);
+    let nearest: LoopHoverTarget | null = null;
+    for (const loop of loops) {
+        if (hiddenIds.has(loop.id) || loop.points.length < 2) continue;
+        let segmentIndex = -1;
+        let distance = Infinity;
+        for (let index = 0; index < loop.points.length - 1; index += 1) {
+            const start = loop.points[index];
+            const end = loop.points[index + 1];
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const lengthSquared = dx * dx + dy * dy;
+            if (lengthSquared < 1e-12) continue;
+            const t = Math.max(
+                0,
+                Math.min(
+                    1,
+                    ((world.x - start.x) * dx + (world.y - start.y) * dy) /
+                        lengthSquared,
+                ),
+            );
+            const nextDistance = Math.hypot(
+                start.x + dx * t - world.x,
+                start.y + dy * t - world.y,
+            );
+            if (nextDistance < distance) {
+                distance = nextDistance;
+                segmentIndex = index;
+            }
+        }
+        if (
+            segmentIndex >= 0 &&
+            distance <= tolerance &&
+            (!nearest || distance < nearest.distance)
+        )
+            nearest = {
+                loopId: loop.id,
+                segmentIndex,
+                distance,
+            };
+    }
+    return nearest;
+}
+
 export function snapDrawPoint(
     loops: CanvasLoopGeometry[],
     hidden: string[],
@@ -116,26 +406,23 @@ export function snapDrawPoint(
     grid: { snap: boolean; spacingMm: number } | null = null,
     guides: Guide[] = [],
 ): { x: number; y: number } {
-    const hiddenIds = new Set(hidden);
-    const endpoint = snapToEndpoints(
-        loops.filter(
-            (loop) => !hiddenIds.has(loop.id) && loop.points.length >= 2,
-        ),
-        world,
-        10 / scale,
-    );
-    if (endpoint !== world) return endpoint;
-    const tolerance = 12 / Math.max(scale, 0.01);
-    if (Math.hypot(world.x, world.y) <= tolerance) return { x: 0, y: 0 };
-    const guideSnap = snapToGuides(world, guides, tolerance);
-    if (guideSnap.x !== world.x || guideSnap.y !== world.y) return guideSnap;
-    if (grid?.snap && grid.spacingMm > 0) {
-        return {
-            x: Math.round(world.x / grid.spacingMm) * grid.spacingMm,
-            y: Math.round(world.y / grid.spacingMm) * grid.spacingMm,
-        };
-    }
-    return world;
+    return findDrawSnapTarget(loops, hidden, world, scale, grid, guides)?.point ?? world;
+}
+
+export function constrainDrawAngle(
+    point: { x: number; y: number },
+    anchor: { x: number; y: number },
+    incrementDegrees = 15,
+): { x: number; y: number } {
+    const dx = point.x - anchor.x;
+    const dy = point.y - anchor.y;
+    const distance = Math.hypot(dx, dy);
+    const increment = (incrementDegrees * Math.PI) / 180;
+    const angle = Math.round(Math.atan2(dy, dx) / increment) * increment;
+    return {
+        x: anchor.x + Math.cos(angle) * distance,
+        y: anchor.y + Math.sin(angle) * distance,
+    };
 }
 
 export function hitTransformTarget(

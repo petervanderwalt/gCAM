@@ -109,6 +109,61 @@ export function projectToGuide(point: GuidePoint, guide: Guide): GuidePoint {
     return { x: guide.point.x + dx * along, y: guide.point.y + dy * along };
 }
 
+/** Find the nearest intersection between two non-parallel infinite guides. */
+export function findGuideIntersection(
+    point: GuidePoint,
+    guides: Guide[],
+    scale: number,
+    hitRadiusPx = 12,
+): { point: GuidePoint; distancePx: number } | null {
+    const safeScale = Math.max(scale, 0.01);
+    let nearest: { point: GuidePoint; distancePx: number } | null = null;
+    for (let firstIndex = 0; firstIndex < guides.length; firstIndex += 1) {
+        const first = guides[firstIndex];
+        if (!hasGuideGeometry(first)) continue;
+        for (let secondIndex = firstIndex + 1; secondIndex < guides.length; secondIndex += 1) {
+            const second = guides[secondIndex];
+            if (!hasGuideGeometry(second)) continue;
+            const denominator = first.direction.x * second.direction.y - first.direction.y * second.direction.x;
+            if (Math.abs(denominator) < 1e-9) continue;
+            const betweenX = second.point.x - first.point.x;
+            const betweenY = second.point.y - first.point.y;
+            const alongFirst = (betweenX * second.direction.y - betweenY * second.direction.x) / denominator;
+            const intersection = {
+                x: first.point.x + alongFirst * first.direction.x,
+                y: first.point.y + alongFirst * first.direction.y,
+            };
+            const distancePx = Math.hypot(intersection.x - point.x, intersection.y - point.y) * safeScale;
+            if (distancePx <= hitRadiusPx && (!nearest || distancePx < nearest.distancePx)) {
+                nearest = { point: intersection, distancePx };
+            }
+        }
+    }
+    return nearest;
+}
+
+/** Find the nearest placed guide under a pointer using a screen-space hit target. */
+export function findGuideAtPoint(
+    point: GuidePoint,
+    guides: Guide[],
+    scale: number,
+    hitRadiusPx = 10,
+): Guide | null {
+    const safeScale = Math.max(scale, 0.01);
+    let nearest: Guide | null = null;
+    let bestDistance = hitRadiusPx;
+    for (const guide of guides) {
+        if (!hasGuideGeometry(guide)) continue;
+        const projected = projectToGuide(point, guide);
+        const distance = Math.hypot(projected.x - point.x, projected.y - point.y) * safeScale;
+        if (distance <= bestDistance) {
+            nearest = guide;
+            bestDistance = distance;
+        }
+    }
+    return nearest;
+}
+
 /** Snap to the closest guide within tolerance (millimetres). */
 export function snapToGuides(
     point: GuidePoint,

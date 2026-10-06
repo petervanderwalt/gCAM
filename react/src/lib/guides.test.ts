@@ -1,4 +1,4 @@
-import { findGuideSource, snapToGuides } from './guides';
+import { findGuideAtPoint, findGuideIntersection, findGuideSource, snapToGuides } from './guides';
 
 test('snaps to the nearest point on an arbitrary-angle guide', () => {
     const guides = [
@@ -19,6 +19,28 @@ test('leaves points outside guide snap tolerance unchanged', () => {
         { id: 'horizontal', point: { x: 0, y: 10 }, direction: { x: 1, y: 0 } },
     ];
     expect(snapToGuides({ x: 15, y: 15 }, guides, 2)).toEqual({ x: 15, y: 15 });
+});
+
+test('finds a nearby crossing guide intersection and ignores parallel guides', () => {
+    const guides = [
+        { id: 'horizontal', point: { x: 0, y: 5 }, direction: { x: 1, y: 0 } },
+        { id: 'vertical', point: { x: 10, y: 0 }, direction: { x: 0, y: 1 } },
+        { id: 'parallel', point: { x: 0, y: 20 }, direction: { x: 1, y: 0 } },
+    ];
+    expect(findGuideIntersection({ x: 10.2, y: 5.1 }, guides, 10)).toEqual({
+        point: { x: 10, y: 5 },
+        distancePx: expect.closeTo(Math.hypot(0.2, 0.1) * 10),
+    });
+    expect(findGuideIntersection({ x: 100, y: 100 }, guides, 10)).toBeNull();
+});
+
+test('selects the nearest guide within a zoom-independent screen hit radius', () => {
+    const guides = [
+        { id: 'near', point: { x: 0, y: 10 }, direction: { x: 1, y: 0 } },
+        { id: 'far', point: { x: 0, y: 20 }, direction: { x: 1, y: 0 } },
+    ];
+    expect(findGuideAtPoint({ x: 50, y: 10.4 }, guides, 20)?.id).toBe('near');
+    expect(findGuideAtPoint({ x: 50, y: 12 }, guides, 20)).toBeNull();
 });
 
 test('ignores unusable in-memory guide records', () => {

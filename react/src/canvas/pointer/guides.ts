@@ -1,5 +1,9 @@
 /** Pointer interaction for parallel construction-guide placement. */
-import { findGuideSource, type GuideDraft } from '../../lib/guides';
+import {
+    findGuideAtPoint,
+    findGuideSource,
+    type GuideDraft,
+} from '../../lib/guides';
 import { movedFrom, worldAtEvent } from './helpers';
 import type { CanvasMouseEvent, CanvasPointerControllerProps } from './types';
 
@@ -24,6 +28,27 @@ function offsetAtEvent(
         offset = Math.round(offset / grid.spacingMm) * grid.spacingMm;
     }
     return offset;
+}
+
+export function updateGuideHover(
+    event: CanvasMouseEvent,
+    deps: CanvasPointerControllerProps,
+): void {
+    const { viewRef, guideHoverRef, canvasRef, cameraRef } = deps;
+    if (
+        deps.activeTool !== 'select' ||
+        viewRef.current.drawTool ||
+        viewRef.current.guidePlacement
+    ) {
+        guideHoverRef.current = null;
+        return;
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const world = worldAtEvent(event, canvas, cameraRef.current);
+    guideHoverRef.current =
+        findGuideAtPoint(world, viewRef.current.guides, cameraRef.current.scale)
+            ?.id ?? null;
 }
 
 export function updateGuideInteraction(
@@ -75,18 +100,14 @@ export function placeGuide(
     }
 
     const finalDraft = draftAtOffset(draft, offsetAtEvent(event, deps, draft));
-    if (Math.abs(finalDraft.offset) > 1e-6) {
-        const normal = { x: -draft.direction.y, y: draft.direction.x };
-        deps.onPlaceGuide({
-            point: {
-                x: draft.source.x + normal.x * finalDraft.offset,
-                y: draft.source.y + normal.y * finalDraft.offset,
-            },
-            direction: draft.direction,
-        });
-    } else {
-        deps.onGuideDraftChange(finalDraft);
-    }
+    const normal = { x: -draft.direction.y, y: draft.direction.x };
+    deps.onPlaceGuide({
+        point: {
+            x: draft.source.x + normal.x * finalDraft.offset,
+            y: draft.source.y + normal.y * finalDraft.offset,
+        },
+        direction: draft.direction,
+    });
     deps.forceTick();
     return true;
 }
