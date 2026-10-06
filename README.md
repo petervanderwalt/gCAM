@@ -45,320 +45,382 @@ screenshots and any generated videos.
 
 ## Structure
 
-`*.test.*` files are the tests for their adjacent feature. 
+This map reflects tracked application and test files. Bundled fonts, tool catalogue assets, tracing internals and browser fixtures are grouped for readability. `*.test.*` files test their adjacent feature.
 
 ```text
 gCAM/
 ├── .github/
 │   └── workflows/
-│       ├── quality.yml                 PR quality gate: test, types, lint, format, build
-│       ├── browser-tests.yml           Cypress browser workflow tests
-│       └── deploy-pages.yml            Builds and deploys the React app to GitHub Pages
-├── .gitignore                          Ignores local/build files at repository level
-├── README.md                           This repository map and development guide
-└── react/                              The Vite + React application
-    ├── .gitignore                      Ignores React build/cache/dependency output
-    ├── babel.config.cjs                Babel configuration used by Jest
-    ├── biome.json                      Formatting/lint rules and vendor exclusions
-    ├── checkfile.js                    Small local file-check helper
-    ├── index.html                      Vite HTML entry document
-    ├── jest.config.cjs                 Jest test environment and transform setup
-    ├── jest.setup.cjs                  Shared Jest DOM matchers/setup
-    ├── package.json                    Scripts, runtime dependencies, and tool versions
-    ├── yarn.lock                       Locked dependency graph
-    ├── postcss.config.cjs              PostCSS/Tailwind processing configuration
-    ├── tailwind.config.ts              Tailwind theme/content configuration
-    ├── tsconfig.json                   Browser TypeScript compiler configuration
-    ├── tsconfig.node.json              Node/Vite TypeScript compiler configuration
-    ├── vite.config.ts                  Vite dev/build configuration and Pages base path
-    ├── porting.md                      Historical porting/reference notes
-    ├── assets/
-    │   ├── logo.svg                    Source logo asset
-    │   └── Toolpaths.svg               Source toolpath artwork asset
-    ├── docs/
-    │   ├── architecture.md             Boundary rules and architecture decisions
-    │   └── adaptive-cutting-parameters.md Engineering proposal for simple, safe cutting recommendations
-    ├── public/                         Files copied unchanged into the built site
-    │   ├── assets/
-    │   │   ├── fonts/                  Bundled text fonts and their OFL licence files
-    │   │   └── operations/             PNG operation icons
-    │   ├── library/
-    │   │   └── tools/
-    │   │       └── sienci/             Sienci tool catalogue JSON and product images
-    │   ├── samples/
-    │   │   └── Hockey Sticks Cut 1.dxf Sample DXF for import/testing
-    │   └── vendor/
-    │       └── cam-cpp/                Prebuilt CAM WebAssembly module and JavaScript loader
-    └── src/                            Authored application source
-        ├── main.tsx                    React bootstrap: mounts App into the Vite document
-        ├── App.tsx                     Thin application controller and domain composition root
-        ├── index.css                   Global styles, CSS variables, and Tailwind layers
-        ├── vite-env.d.ts               Vite TypeScript declarations
-        ├── engine.test.ts              End-to-end engine integration coverage
-        ├── zzparse.test.tsx            Parsing/render regression coverage
-        │
-        ├── app/                        Application composition, lifecycle, and modal boundary
-        │   ├── AppHeader.tsx           Header/menu presentation
-        │   ├── AppModalLayer.tsx       Chooses application-level modal content
-        │   ├── AppWorkspace.tsx        Places header, workspace, panels, and overlays
-        │   ├── createToolbarProps.ts   Builds toolbar props from workspace state
-        │   ├── createWorkspaceModel.ts Creates the typed model consumed by AppWorkspace
-        │   ├── EditorWorkspace.tsx     Main editor layout and panel composition
-        │   ├── ErrorBoundary.tsx       Recovers from a rendering exception
-        │   ├── ModalLayer.tsx          Reusable modal shell/portal layer
-        │   ├── useAppPreferences.ts    Persists UI preferences such as theme/units
-        │   ├── useArrangeWorkspaceState.ts  Wires arrange commands into the workspace
-        │   ├── useDocumentEditingCommands.ts Wires document edit commands into the workspace
-        │   ├── useDrawingWorkspaceState.ts  Wires drawing commands and state into the workspace
-        │   ├── useEditorLifecycle.ts   Coordinates startup, autosave, and cleanup
-        │   ├── usePreviewState.ts      Owns G-code/cut-preview visibility and state
-        │   └── useTransformWorkspaceState.ts Wires transform commands into the workspace
-        │
-        ├── document/                   Project state, files, import, history, and persistence
-        │   ├── BitmapImportModal.tsx   Selects raster import mode: bitmap or trace
-        │   ├── projectFile.ts          Versioned .gcam.json project serialization/migration
-        │   ├── useBitmapCommands.ts    Bitmap placement, tracing, and asset commands
-        │   ├── useDocumentPersistence.ts Handles local autosave and recovery
-        │   ├── useDocumentState.ts     Canonical document/history React state
-        │   ├── useDocumentWorkspace.ts Adapts document state for the editor workspace
-        │   ├── useFileLoading.ts       Loads DXF/SVG/bitmap/project files
-        │   ├── useNewCanvasCommand.ts  Creates/resets a new drawing document
-        │   ├── useProjectFileCommands.ts Imports and exports project files
-        │   └── useVectorImport.ts      Converts imported SVG/DXF into document geometry
-        │
-        ├── canvas/                     2D CAD scene, camera, painting, and pointer interactions
-        │   ├── CanvasStage.tsx          Canvas host and scene lifecycle
-        │   ├── CanvasStage.types.ts    CanvasStage public prop/type definitions
-        │   ├── CanvasViewport.tsx      Scroll/zoom viewport and camera coordination
-        │   ├── CanvasHud.tsx           Canvas-only heads-up UI
-        │   ├── CanvasToolbar.tsx       Toolbar placement on the canvas
-        │   ├── EmptyCanvasPrompt.tsx   Empty-document import/draw prompt
-        │   ├── camera.ts                Coordinate conversion, zoom, pan, and fit helpers
-        │   ├── primitives.ts            Canvas primitive drawing helpers
-        │   ├── sceneRenderer.ts         Draws document geometry and toolpath previews
-        │   ├── sceneRenderer.test.ts    Scene render regression coverage
-        │   ├── selectionGeometry.ts     Selection bounds/handles geometry
-        │   ├── selectionGeometry.test.ts Selection geometry coverage
-        │   ├── stageViewState.ts        Derived viewport/view state
-        │   ├── theme.ts                 Canvas colour/theme mapping
-        │   ├── rulers.ts                Ruler tick/label calculation
-        │   ├── pointerState.ts          Pointer gesture state machine
-        │   ├── pointerState.test.ts     Pointer state coverage
-        │   ├── tabInteraction.ts        Tab placement/removal interaction logic
-        │   ├── tabInteraction.test.ts   Tab interaction coverage
-        │   ├── transformInteraction.ts  Drag/resize/rotate interaction math
-        │   ├── transformOverlay.ts      Renders transform handles and guides
-        │   ├── paintInteractionOverlays.ts Paints transient selection/draw feedback
-        │   ├── types.ts                 Shared canvas types
-        │   ├── useCanvasViewportCommands.ts Exposes canvas viewport commands to React
-        │   ├── pointer/                 Focused input-mode handlers
-        │   │   ├── CanvasPointerController.tsx Routes pointer events to active handlers
-        │   │   ├── draw.ts              Draw gesture handling
-        │   │   ├── guides.ts            Guide drag/create handling
-        │   │   ├── helpers.ts           Shared pointer coordinate/gesture helpers
-        │   │   ├── keyboard.ts          Canvas keyboard shortcuts
-        │   │   ├── selection.ts         Select/marquee handling
-        │   │   ├── tabs.ts              Tab placement handling
-        │   │   ├── transform.ts         Move/scale/rotate handling
-        │   │   ├── trim.ts              Trim gesture handling
-        │   │   └── types.ts             Pointer controller contracts
-        │   └── toolbar/                 Canvas toolbar subcomponents
-        │       ├── ToolbarCommands.tsx  Command buttons
-        │       ├── ToolbarControls.tsx  Inline control widgets
-        │       ├── ToolbarForms.tsx     Draw/transform input forms
-        │       ├── ToolbarMenus.tsx     Toolbar menus
-        │       ├── styles.ts            Shared toolbar class/style helpers
-        │       └── types.ts             Toolbar contracts
-        │
-        ├── draw/                        New shape/text construction
-        │   ├── geometry.ts              Creates rectangles, circles, polygons, and lines
-        │   ├── geometry.test.ts         Shape geometry coverage
-        │   ├── textGeometry.ts          Converts text into stroke/vector geometry
-        │   ├── textGeometry.test.ts     Text geometry coverage
-        │   ├── TextPlacementModal.tsx   Text entry and placement UI
-        │   └── useDrawCommands.ts       React commands for all drawing tools
-        │
-        ├── interactions/                Selection, inspector, transform, trim, arrange commands
-        │   ├── inspectorGeometry.ts     Inspector dimension/position calculations
-        │   ├── inspectorGeometry.test.ts Inspector geometry coverage
-        │   ├── useAppKeyboardShortcuts.ts Global editor key bindings
-        │   ├── useArrangeCommands.ts    Align, distribute, order, and grouping commands
-        │   ├── useCadInspector.ts       Inspector state and edit commands
-        │   ├── useCornerCommands.ts     Corner rounding/chamfer commands
-        │   ├── useGuideCommands.ts      Guide creation/edit commands
-        │   ├── useInspectorCommands.ts  Object-property editing commands
-        │   ├── useSelectionCommands.ts  Selection and deletion commands
-        │   ├── useSelectionFrame.ts     Selection-frame state for the canvas
-        │   ├── useTransformCommands.ts  Move/scale/rotate/flip commands
-        │   ├── useTrimCommands.ts       Vector trimming commands
-        │   └── useVisibleSelection.ts   Derived visible selection state
-        │
-        ├── toolpaths/                   Toolpath form state, operation picker, and output UI
-        │   ├── ToolpathPanel.tsx        Main toolpath editor and preview coordinator
-        │   ├── ToolpathRail.tsx         Existing-operation navigation rail
-        │   ├── ToolpathOperationPicker.tsx Operation-type picker and icon grid
-        │   ├── ToolpathEmptyState.tsx   No-operation guidance
-        │   ├── ToolpathFormAlerts.tsx   Form validation/warnings
-        │   ├── ToolpathSubmitControls.tsx Create/update/cancel controls
-        │   ├── ToolSelectionFields.tsx  Tool picker and cutter details
-        │   ├── ToolSlotSelector.tsx     Tool slot selection UI
-        │   ├── CuttingFields.tsx        Common cutting depth/feed/plunge fields
-        │   ├── RasterLaserFields.tsx    Laser-raster and halftone settings
-        │   ├── VBitRasterFields.tsx     V-bit raster/heightmap settings
-        │   ├── TextureFields.tsx        Voronoi/crosshatch texture settings
-        │   ├── OutputWorkspace.tsx      G-code and 3D preview workspace
-        │   ├── operationCatalog.ts      UI metadata for each toolpath operation
-        │   ├── toolpathRequest.ts       Translates form data into CAM requests
-        │   ├── toolpathRequest.test.ts  Toolpath request coverage
-        │   ├── useToolpathPresentation.ts View/panel presentation state
-        │   └── useToolpathStack.ts      Operation list, draft, create, and update state
-        │
-        ├── tools/                       Cutter library model and management UI
-        │   ├── library.ts               Loads/normalises bundled and saved tool libraries
-        │   ├── library.test.ts          Tool library coverage
-        │   ├── toolCatalog.ts           Tool catalogue lookup/filter utilities
-        │   ├── ToolCatalogSelect.tsx    Tool catalogue selection control
-        │   ├── ToolLibraryModal.tsx     Add/edit/manage tool library modal
-        │   └── ToolSlotRow.tsx          One selectable tool-slot row
-        │
-        ├── cam/                         CAM operation generation and G-code emission
-        │   ├── cam-ops.js               CAM orchestration and public operation entry points
-        │   ├── cam-ops.test.ts          CAM orchestration coverage
-        │   ├── gcode-validation.js      Validates emitted G-code safety/structure
-        │   ├── gcode-validation.test.js G-code validation coverage
-        │   ├── tabs.js                  Adds/removes holding tabs from toolpaths
-        │   ├── tabs.test.js             Tab geometry coverage
-        │   ├── texture-fill.js          Voronoi/crosshatch texture path generation
-        │   ├── texture-fill.test.js     Texture path regression coverage
-        │   ├── texturePreview.js        Lightweight texture preview geometry
-        │   ├── gcode/                   G-code program building blocks
-        │   │   ├── contours.js          Contour-to-motion emission
-        │   │   ├── format.js            Numeric/word formatting helpers
-        │   │   └── program.js           Program headers, moves, and final assembly
-        │   ├── geometry/
-        │   │   └── polygons.js          CAM-specific polygon clipping/normalisation
-        │   └── operations/              One module per supported operation type
-        │       ├── contract.js          Shared operation input/output contract
-        │       ├── registry.js          Operation dispatch registry
-        │       ├── registry.test.js     Registry coverage
-        │       ├── engrave.js           Centreline engraving paths
-        │       ├── pocket.js            Interior clearing paths
-        │       ├── profile.js           Inside/outside/contour cut paths
-        │       ├── raster.js            Bitmap, laser, halftone, and V-bit raster paths
-        │       ├── texture.js           Texture-fill operation paths
-        │       └── vcarve.js            V-carve path generation
-        │
-        ├── geometry/                    Reusable, pure document geometry helpers
-        │   ├── bounds.js                Bounds/intersection utilities
-        │   ├── loops.js                 Closed-loop construction and traversal
-        │   ├── matrix.js                2D matrix operations
-        │   ├── primitives.js            Basic point/line/arc helpers
-        │   ├── segments.js              Segment splitting/intersection helpers
-        │   ├── splines.js               Spline evaluation/conversion helpers
-        │   └── transforms.js            Geometry transform utilities
-        │
-        ├── engine/                      Workers, render integrations, parsing, and low-level adapters
-        │   ├── constants.js             Engine-wide constants
-        │   ├── paths.js                 Path conversion/normalisation helpers
-        │   ├── svg.js                   SVG parsing/export helpers
-        │   ├── dxf.js                   DXF parsing/import adapter
-        │   ├── cad-font.js              CAD stroke-font loading adapter
-        │   ├── google-font-catalog.js   Bundled font catalogue metadata
-        │   ├── opentype.module.js       Vendored OpenType parser module
-        │   ├── clipper_unminified.js    Vendored polygon clipping implementation
-        │   ├── clipper-shim.js          Local compatibility wrapper for Clipper
-        │   ├── vcarve.js                V-carve calculation adapter
-        │   ├── vcarve-worker.js         Worker for V-carve calculation
-        │   ├── cam-worker-protocol.ts   Typed request/response worker contract
-        │   ├── cam-worker-client.ts     Main-thread CAM worker client
-        │   ├── cam-worker.ts            Background CAM worker entry point
-        │   ├── cut-preview-3d.js        Three.js cut preview controller
-        │   ├── cut-preview-3d-worker.js Background cut-preview mesh calculation
-        │   ├── gcode-viewer-3d.js       Three.js G-code viewer controller
-        │   ├── gcode-viewer-worker.js   Background G-code viewer calculation
-        │   ├── parse.test.ts            Import/parser integration coverage
-        │   ├── fonts/
-        │   │   └── stroke-glyphs.js     Stroke glyph data for CAD text
-        │   ├── gcode-viewer-3d/
-        │   │   └── sprites.js           G-code viewer sprite assets/helpers
-        │   ├── potrace-js/              Vendored bitmap tracing implementation
-        │   │   ├── Bitmap.js            Bitmap storage and pixel access
-        │   │   ├── bitmapToPathList.js  Bitmap-to-contour extraction
-        │   │   ├── Curve.js             Traced curve model
-        │   │   ├── getPaths.js          Trace path conversion
-        │   │   ├── getSVG.js            Trace SVG serialization
-        │   │   ├── index.js             Potrace public entry point
-        │   │   ├── Path.js              Trace path model
-        │   │   ├── Point.js             Trace point model
-        │   │   ├── processPath.js       Trace curve processing
-        │   │   ├── Quad.js              Quadratic curve helper
-        │   │   ├── Sum.js               Integral-image accumulator helper
-        │   │   └── utils.js             Shared Potrace utilities
-        │   └── preview-3d/              Internal pieces of the Three.js cut preview
-        │           ├── camera-controls.js Camera interaction controls
-        │           ├── math.js           Preview vector/math helpers
-        │           ├── origin-overlay.js Work-origin overlay
-        │           ├── playback-mesh.js  Animated toolpath mesh construction
-        │           ├── scene-projection.js 2D/3D projection helpers
-        │           ├── surface-texture.js  Cut-surface texture generation
-        │           └── worker-input.js   Preview worker payload construction
-        │
-        ├── components/                  Reusable presentational UI, not domain implementation
-        │   ├── AppToolbars.tsx          Application toolbar composition
-        │   ├── CadInspector.tsx         Selected-object inspector UI
-        │   ├── ConfigPanel.tsx          Job/machine configuration panel
-        │   ├── ConfirmDialog.tsx        Reusable confirmation dialog
-        │   ├── CutPreview3DView.tsx     React host for cut preview
-        │   ├── EditMenu.tsx             Edit command menu
-        │   ├── GcodePreview.tsx         G-code output panel
-        │   ├── GcodeViewer3DView.tsx    React host for 3D toolpath viewer
-        │   ├── ObjectTree.tsx           Document object tree
-        │   ├── Sidebar.tsx              Shared sidebar layout
-        │   ├── Toasts.tsx               Notification presentation
-        │   ├── TraceModal.tsx           Bitmap trace settings and confirmation UI
-        │   └── UnitInput.tsx            Unit-aware numeric input with editable drafts
-        │
-        ├── lib/                         Shared document utilities and pure feature algorithms
-        │   ├── assets.ts                IndexedDB bitmap asset cache
-        │   ├── autosave.ts              Local document autosave helpers
-        │   ├── bitmap.ts                Bitmap decode, sampling, and placement helpers
-        │   ├── bitmap.test.ts           Bitmap utility coverage
-        │   ├── corners.ts               Corner round/chamfer algorithms
-        │   ├── corners.test.ts          Corner algorithm coverage
-        │   ├── engine.ts                Engine adapter facade
-        │   ├── groups.ts                Group/ungroup operations
-        │   ├── groups.test.ts           Group operations coverage
-        │   ├── guides.ts                Construction guide model/helpers
-        │   ├── guides.test.ts           Guide helper coverage
-        │   ├── history.ts               Undo/redo history model
-        │   ├── history.test.ts          History coverage
-        │   ├── ids.ts                   Stable document ID generation
-        │   ├── import.ts                Import normalisation helpers
-        │   ├── import.test.ts           Import helper coverage
-        │   ├── library.ts               Legacy/public library data adapter
-        │   ├── library.test.ts          Library adapter coverage
-        │   ├── nest.ts                  Part nesting algorithm
-        │   ├── nest.test.ts             Nesting coverage
-        │   ├── project.ts               Project domain types/defaults
-        │   ├── project.test.ts          Project model coverage
-        │   ├── rulers.ts                Shared ruler calculations
-        │   ├── rulers.test.ts           Ruler coverage
-        │   ├── tabs.ts                  Document-level tab helpers
-        │   ├── tabs.test.ts             Tab helper coverage
-        │   ├── trace.ts                 Bitmap-to-vector tracing facade
-        │   ├── trace.test.ts            Trace coverage
-        │   ├── transform.ts             Document geometry transformations
-        │   ├── transform.test.ts        Transform coverage
-        │   ├── trim.ts                  Vector trim/split algorithms
-        │   ├── trim.test.ts             Trim coverage
-        │   ├── units.ts                 Canonical mm conversion and display-unit helpers
-        │   └── units.test.ts            Unit conversion coverage
-        │
-        ├── hooks/
-        │   └── useDarkMode.ts           Theme preference React hook
-        └── test-stubs/                  Browser/Three.js substitutions for Jest
-            ├── file.ts                 File API stub
-            └── orbit-controls.ts       Three.js OrbitControls stub
+│       ├── browser-tests.yml               Cypress browser workflow tests
+│       ├── deploy-pages.yml                Builds and deploys the React app to GitHub Pages
+│       └── quality.yml                     PR quality gate: test, types, lint, format, build
+├── react/                                  The Vite + React application
+│   ├── assets/
+│   │   ├── logo.svg                        Source logo asset
+│   │   └── Toolpaths.svg                   Source toolpath artwork asset
+│   ├── cypress/                            Browser regression workflows and deterministic fixtures
+│   │   ├── e2e/                            Browser workflow specifications
+│   │   │   ├── drawing-config.cy.js        Drawing, snaps and Config persistence workflows
+│   │   │   ├── editing.cy.js               Selection, transforms, grouping, nesting and geometry workflows
+│   │   │   ├── tool-library.cy.js          Fresh-install cutter setup and persistence workflow
+│   │   │   └── toolpaths.cy.js             Image, vector and STL/OBJ machining workflows
+│   │   ├── fixtures/                       PNG, SVG and closed STL/OBJ relief fixtures; reset page
+│   │   ├── support/                        Shared Cypress UI commands and export assertions
+│   │   │   └── e2e.js                      Isolated project setup, canvas actions and machining checks
+│   │   └── README.md                       Browser coverage, fixtures and runner guide
+│   ├── docs/
+│   │   ├── adaptive-cutting-parameters.md
+│   │   └── architecture.md                 Boundary rules and architecture decisions
+│   ├── public/                             Files copied unchanged into the built site
+│   │   ├── assets/
+│   │   │   ├── fonts/                      Bundled text fonts and their OFL licence files
+│   │   │   └── operations/                 Operation icons
+│   │   │       ├── chamfer.png
+│   │   │       ├── countersink.svg
+│   │   │       ├── engrave.png
+│   │   │       ├── inside.png
+│   │   │       ├── outside.png
+│   │   │       ├── pocket.png
+│   │   │       ├── surface-clear.svg
+│   │   │       ├── surface-finish.svg
+│   │   │       ├── surface-waterline.svg
+│   │   │       ├── texture-fill.png
+│   │   │       └── vcarve.png
+│   │   ├── library/
+│   │   │   └── tools/                      Bundled cutter catalogue assets
+│   │   │       └── sienci/                 Sienci tool catalogue JSON and product images
+│   │   ├── samples/
+│   │   │   └── TicTacToe.dxf               Sample drawing used by onboarding
+│   │   └── vendor/
+│   │       └── cam-cpp/                    Prebuilt CAM WebAssembly module and JavaScript loader
+│   │           ├── CREDITS.md
+│   │           ├── web-cam-cpp.js
+│   │           └── web-cam-cpp.wasm
+│   ├── scripts/                            Development and test runners
+│   │   └── e2e.mjs                         Starts isolated Vite server, runs Cypress and shuts down
+│   ├── src/                                Authored application source
+│   │   ├── app/                            Application composition, lifecycle, and modal boundary
+│   │   │   ├── AppHeader.tsx               Header/menu presentation
+│   │   │   ├── AppModalLayer.tsx           Chooses application-level modal content
+│   │   │   ├── AppWorkspace.tsx            Places header, workspace, panels, and overlays
+│   │   │   ├── createToolbarProps.ts       Builds toolbar props from workspace state
+│   │   │   ├── createWorkspaceModel.ts
+│   │   │   ├── EditorWorkspace.tsx         Main editor layout and panel composition
+│   │   │   ├── ErrorBoundary.tsx           Recovers from a rendering exception
+│   │   │   ├── MachineSetupModal.test.tsx  Adjacent feature regression tests
+│   │   │   ├── MachineSetupModal.tsx       First-run machine selection
+│   │   │   ├── ModalLayer.tsx              Reusable modal shell/portal layer
+│   │   │   ├── useAppPreferences.ts        Persists UI preferences such as theme/units
+│   │   │   ├── useArrangeWorkspaceState.ts  Wires arrange commands into the workspace
+│   │   │   ├── useDocumentEditingCommands.ts
+│   │   │   ├── useDrawingWorkspaceState.ts  Wires drawing commands and state into the workspace
+│   │   │   ├── useEditorLifecycle.ts       Coordinates startup, autosave, and cleanup
+│   │   │   ├── usePreviewState.ts          Owns G-code/cut-preview visibility and state
+│   │   │   └── useTransformWorkspaceState.ts
+│   │   ├── cam/                            CAM operation generation and G-code emission
+│   │   │   ├── gcode/                      G-code program building blocks
+│   │   │   │   ├── contours.js             Contour-to-motion emission
+│   │   │   │   ├── format.js               Numeric/word formatting helpers
+│   │   │   │   ├── program.js              Program headers, moves, and final assembly
+│   │   │   │   └── program.test.js         Adjacent feature regression tests
+│   │   │   ├── geometry/                   Reusable, pure document geometry helpers
+│   │   │   │   └── polygons.js             CAM-specific polygon clipping/normalisation
+│   │   │   ├── operations/                 Operation icons
+│   │   │   │   ├── contract.js             Shared operation input/output contract
+│   │   │   │   ├── engrave.js              Centreline engraving paths
+│   │   │   │   ├── pocket.js               Interior clearing paths
+│   │   │   │   ├── profile.js              Inside/outside/contour cut paths
+│   │   │   │   ├── raster.js               Bitmap, laser, halftone, and V-bit raster paths
+│   │   │   │   ├── registry.js             Operation dispatch registry
+│   │   │   │   ├── registry.test.js        Registry coverage
+│   │   │   │   ├── texture.js              Texture-fill operation paths
+│   │   │   │   └── vcarve.js               V-carve calculation adapter
+│   │   │   ├── cam-ops.js                  CAM orchestration and public operation entry points
+│   │   │   ├── cam-ops.test.ts             CAM orchestration coverage
+│   │   │   ├── gcode-validation.js         Validates emitted G-code safety/structure
+│   │   │   ├── gcode-validation.test.js    Adjacent feature regression tests
+│   │   │   ├── tabs.js                     Adds/removes holding tabs from toolpaths
+│   │   │   ├── tabs.test.js                Tab geometry coverage
+│   │   │   ├── texture-fill.js             Voronoi/crosshatch texture path generation
+│   │   │   ├── texture-fill.test.js        Texture path regression coverage
+│   │   │   └── texturePreview.js           Lightweight texture preview geometry
+│   │   ├── canvas/                         2D CAD scene, camera, painting, and pointer interactions
+│   │   │   ├── pointer/                    Focused input-mode handlers
+│   │   │   │   ├── CanvasPointerController.test.tsx  Adjacent feature regression tests
+│   │   │   │   ├── CanvasPointerController.tsx
+│   │   │   │   ├── draw.ts                 Draw gesture handling
+│   │   │   │   ├── guides.test.ts          Guide helper coverage
+│   │   │   │   ├── guides.ts               Construction guide model/helpers
+│   │   │   │   ├── helpers.ts              Shared pointer coordinate/gesture helpers
+│   │   │   │   ├── keyboard.ts             Canvas keyboard shortcuts
+│   │   │   │   ├── selection.test.ts       Adjacent feature regression tests
+│   │   │   │   ├── selection.ts            Select/marquee handling
+│   │   │   │   ├── tabs.ts                 Document-level tab helpers
+│   │   │   │   ├── transform.ts            Document geometry transformations
+│   │   │   │   ├── trim.ts                 Vector trim/split algorithms
+│   │   │   │   └── types.ts                Toolbar contracts
+│   │   │   ├── toolbar/                    Canvas toolbar subcomponents
+│   │   │   │   ├── styles.ts               Shared toolbar class/style helpers
+│   │   │   │   ├── ToolbarCommands.test.tsx  Adjacent feature regression tests
+│   │   │   │   ├── ToolbarCommands.tsx     Command buttons
+│   │   │   │   ├── ToolbarControls.tsx     Inline control widgets
+│   │   │   │   ├── ToolbarForms.tsx        Draw/transform input forms
+│   │   │   │   ├── ToolbarMenus.test.tsx   Adjacent feature regression tests
+│   │   │   │   ├── ToolbarMenus.tsx        Toolbar menus
+│   │   │   │   └── types.ts                Toolbar contracts
+│   │   │   ├── camera.ts                   Coordinate conversion, zoom, pan, and fit helpers
+│   │   │   ├── CanvasHud.test.tsx          Adjacent feature regression tests
+│   │   │   ├── CanvasHud.tsx               Canvas-only heads-up UI
+│   │   │   ├── CanvasStage.tsx             Canvas host and scene lifecycle
+│   │   │   ├── CanvasStage.types.ts        CanvasStage public prop/type definitions
+│   │   │   ├── CanvasToolbar.tsx           Toolbar placement on the canvas
+│   │   │   ├── CanvasViewport.tsx          Scroll/zoom viewport and camera coordination
+│   │   │   ├── EmptyCanvasPrompt.tsx       Empty-document import/draw prompt
+│   │   │   ├── paintInteractionOverlays.ts
+│   │   │   ├── pointerState.test.ts        Pointer state coverage
+│   │   │   ├── pointerState.ts             Pointer gesture state machine
+│   │   │   ├── primitives.ts               Canvas primitive drawing helpers
+│   │   │   ├── rulers.ts                   Shared ruler calculations
+│   │   │   ├── sceneRenderer.test.ts       Scene render regression coverage
+│   │   │   ├── sceneRenderer.ts            Draws document geometry and toolpath previews
+│   │   │   ├── selectionGeometry.test.ts   Adjacent feature regression tests
+│   │   │   ├── selectionGeometry.ts        Selection bounds/handles geometry
+│   │   │   ├── stageViewState.ts           Derived viewport/view state
+│   │   │   ├── tabInteraction.test.ts      Tab interaction coverage
+│   │   │   ├── tabInteraction.ts           Tab placement/removal interaction logic
+│   │   │   ├── theme.ts                    Canvas colour/theme mapping
+│   │   │   ├── transformInteraction.ts     Drag/resize/rotate interaction math
+│   │   │   ├── transformOverlay.ts         Renders transform handles and guides
+│   │   │   ├── types.ts                    Toolbar contracts
+│   │   │   └── useCanvasViewportCommands.ts
+│   │   ├── components/                     Reusable presentational UI, not domain implementation
+│   │   │   ├── AppToolbars.tsx             Application toolbar composition
+│   │   │   ├── CadInspector.test.tsx       Adjacent feature regression tests
+│   │   │   ├── CadInspector.tsx            Selected-object inspector UI
+│   │   │   ├── ConfigPanel.test.tsx        Adjacent feature regression tests
+│   │   │   ├── ConfigPanel.tsx             Job/machine configuration panel
+│   │   │   ├── ConfirmDialog.tsx           Reusable confirmation dialog
+│   │   │   ├── CutPreview3DView.tsx        React host for cut preview
+│   │   │   ├── EditMenu.tsx                Edit command menu
+│   │   │   ├── GcodePreview.tsx            G-code output panel
+│   │   │   ├── GcodeViewer3DView.tsx       React host for 3D toolpath viewer
+│   │   │   ├── ObjectTree.tsx              Document object tree
+│   │   │   ├── Sidebar.tsx                 Shared sidebar layout
+│   │   │   ├── Toasts.tsx                  Notification presentation
+│   │   │   ├── TraceModal.tsx              Bitmap trace settings and confirmation UI
+│   │   │   └── UnitInput.tsx               Unit-aware numeric input with editable drafts
+│   │   ├── cutting-parameters/             Machine, material and cutter based cutting recommendations
+│   │   │   ├── machines.test.ts            Adjacent feature regression tests
+│   │   │   ├── machines.ts                 Machine profiles and capability limits
+│   │   │   ├── recipes.ts                  Material cutting recipe data
+│   │   │   ├── recommend.test.ts           Adjacent feature regression tests
+│   │   │   ├── recommend.ts                Calculates cutting recommendations
+│   │   │   ├── types.test.ts               Adjacent feature regression tests
+│   │   │   └── types.ts                    Cutting recommendation contracts
+│   │   ├── document/                       Project state, files, import, history, and persistence
+│   │   │   ├── BitmapImportModal.test.tsx  Adjacent feature regression tests
+│   │   │   ├── BitmapImportModal.tsx       Selects raster import mode: bitmap or trace
+│   │   │   ├── projectFile.ts              Versioned .gcam.json project serialization/migration
+│   │   │   ├── SurfaceUnitsModal.test.tsx  Adjacent feature regression tests
+│   │   │   ├── SurfaceUnitsModal.tsx       STL/OBJ units and model placement setup
+│   │   │   ├── useBitmapCommands.ts        Bitmap placement, tracing, and asset commands
+│   │   │   ├── useDocumentPersistence.ts
+│   │   │   ├── useDocumentState.ts         Canonical document/history React state
+│   │   │   ├── useDocumentWorkspace.ts
+│   │   │   ├── useFileLoading.ts           Loads DXF/SVG/bitmap/project files
+│   │   │   ├── useNewCanvasCommand.ts      Creates/resets a new drawing document
+│   │   │   ├── useProjectFileCommands.ts
+│   │   │   ├── useVectorImport.ts          Converts imported SVG/DXF into document geometry
+│   │   │   ├── VectorUnitsModal.test.tsx   Adjacent feature regression tests
+│   │   │   └── VectorUnitsModal.tsx        Vector import units confirmation
+│   │   ├── draw/                           New shape/text construction
+│   │   │   ├── geometry.test.ts            Shape geometry coverage
+│   │   │   ├── geometry.ts                 Creates rectangles, circles, polygons, and lines
+│   │   │   ├── textGeometry.test.ts        Text geometry coverage
+│   │   │   ├── textGeometry.ts             Converts text into stroke/vector geometry
+│   │   │   ├── TextPlacementModal.tsx      Text entry and placement UI
+│   │   │   └── useDrawCommands.ts          React commands for all drawing tools
+│   │   ├── engine/                         Workers, render integrations, parsing, and low-level adapters
+│   │   │   ├── fonts/                      Bundled text fonts and their OFL licence files
+│   │   │   │   └── stroke-glyphs.js        Stroke glyph data for CAD text
+│   │   │   ├── gcode-viewer-3d/
+│   │   │   │   └── sprites.js              G-code viewer sprite assets/helpers
+│   │   │   ├── potrace-js/                 Vendored bitmap tracing implementation
+│   │   │   ├── preview-3d/                 Internal pieces of the Three.js cut preview
+│   │   │   │   ├── camera-controls.js
+│   │   │   │   ├── cutter-envelope.js      Cutter shape and envelope calculations
+│   │   │   │   ├── cutter-envelope.test.js  Adjacent feature regression tests
+│   │   │   │   ├── math.js                 Preview vector/math helpers
+│   │   │   │   ├── origin-overlay.js
+│   │   │   │   ├── playback-mesh.js        Animated toolpath mesh construction
+│   │   │   │   ├── sample-decimation.js    Preview sampling reduction
+│   │   │   │   ├── sample-decimation.test.js  Adjacent feature regression tests
+│   │   │   │   ├── scene-projection.js
+│   │   │   │   ├── surface-texture.js      Cut-surface texture generation
+│   │   │   │   └── worker-input.js         Preview worker payload construction
+│   │   │   ├── cad-font.js                 CAD stroke-font loading adapter
+│   │   │   ├── cam-worker-client.ts        Main-thread CAM worker client
+│   │   │   ├── cam-worker-protocol.ts      Typed request/response worker contract
+│   │   │   ├── cam-worker.ts               Background CAM worker entry point
+│   │   │   ├── clipper_unminified.js       Vendored polygon clipping implementation
+│   │   │   ├── clipper-shim.js             Local compatibility wrapper for Clipper
+│   │   │   ├── constants.js                Engine-wide constants
+│   │   │   ├── cut-preview-3d-worker.js
+│   │   │   ├── cut-preview-3d.js           Three.js cut preview controller
+│   │   │   ├── cxf.js                      CXF stroke-font parsing
+│   │   │   ├── cxf.test.ts                 Adjacent feature regression tests
+│   │   │   ├── dxf.js                      DXF parsing/import adapter
+│   │   │   ├── gcode-viewer-3d.js          Three.js G-code viewer controller
+│   │   │   ├── gcode-viewer-worker.js      Background G-code viewer calculation
+│   │   │   ├── google-font-catalog.js      Bundled font catalogue metadata
+│   │   │   ├── mesh-stock-simulator.ts     Mesh-based stock-removal simulation
+│   │   │   ├── opentype.module.js          Vendored OpenType parser module
+│   │   │   ├── parse.test.ts               Import/parser integration coverage
+│   │   │   ├── paths.js                    Path conversion/normalisation helpers
+│   │   │   ├── surface-cam-cancel.ts       Surface calculation cancellation helpers
+│   │   │   ├── surface-cam-gpu-utils.ts    Shared surface GPU utilities
+│   │   │   ├── surface-cam-runner.test.ts  Adjacent feature regression tests
+│   │   │   ├── surface-cam-runner.ts       Coordinates surface toolpath generation
+│   │   │   ├── surface-cam-webgpu.test.ts  Adjacent feature regression tests
+│   │   │   ├── surface-cam-webgpu.ts       WebGPU surface machining implementation
+│   │   │   ├── surface-cam-webgpu.worker.ts  WebGPU surface machining worker
+│   │   │   ├── surface-cam.test.ts         Adjacent feature regression tests
+│   │   │   ├── surface-cam.ts              3D surface machining strategies
+│   │   │   ├── surface-model.test.ts       Adjacent feature regression tests
+│   │   │   ├── surface-model.ts            Mesh placement, top alignment and stock-fit scaling
+│   │   │   ├── surface-raster-webgpu.test.ts  Adjacent feature regression tests
+│   │   │   ├── surface-raster-webgpu.worker.ts  WebGPU mesh raster worker
+│   │   │   ├── surface-raster.worker.ts    CPU mesh raster worker
+│   │   │   ├── svg.js                      SVG parsing/export helpers
+│   │   │   ├── vcarve-worker.js            Worker for V-carve calculation
+│   │   │   └── vcarve.js                   V-carve calculation adapter
+│   │   ├── geometry/                       Reusable, pure document geometry helpers
+│   │   │   ├── bounds.js                   Bounds/intersection utilities
+│   │   │   ├── loops.js                    Closed-loop construction and traversal
+│   │   │   ├── matrix.js                   2D matrix operations
+│   │   │   ├── primitives.js               Basic point/line/arc helpers
+│   │   │   ├── segments.js                 Segment splitting/intersection helpers
+│   │   │   ├── splines.js                  Spline evaluation/conversion helpers
+│   │   │   └── transforms.js               Geometry transform utilities
+│   │   ├── hooks/
+│   │   │   ├── useDarkMode.test.tsx        Adjacent feature regression tests
+│   │   │   └── useDarkMode.ts              Theme preference React hook
+│   │   ├── interactions/                   Selection, inspector, transform, trim, arrange commands
+│   │   │   ├── inspectorGeometry.test.ts   Adjacent feature regression tests
+│   │   │   ├── inspectorGeometry.ts        Inspector dimension/position calculations
+│   │   │   ├── useAppKeyboardShortcuts.ts
+│   │   │   ├── useArrangeCommands.ts       Align, distribute, order, and grouping commands
+│   │   │   ├── useCadInspector.ts          Inspector state and edit commands
+│   │   │   ├── useCornerCommands.ts        Corner rounding/chamfer commands
+│   │   │   ├── useGuideCommands.ts         Guide creation/edit commands
+│   │   │   ├── useInspectorCommands.ts     Object-property editing commands
+│   │   │   ├── useSelectionCommands.ts     Selection and deletion commands
+│   │   │   ├── useSelectionFrame.ts        Selection-frame state for the canvas
+│   │   │   ├── useTransformCommands.ts     Move/scale/rotate/flip commands
+│   │   │   ├── useTrimCommands.ts          Vector trimming commands
+│   │   │   └── useVisibleSelection.ts      Derived visible selection state
+│   │   ├── job/                            Shared job stock model and setup UI
+│   │   │   ├── JobStockSetup.test.tsx      Adjacent feature regression tests
+│   │   │   ├── JobStockSetup.tsx           Job-level dimensions, thickness and material controls
+│   │   │   └── stock.ts                    Job stock defaults, normalization and geometry helpers
+│   │   ├── lib/                            Shared document utilities and pure feature algorithms
+│   │   │   ├── assets.ts                   IndexedDB bitmap asset cache
+│   │   │   ├── autosave.ts                 Local document autosave helpers
+│   │   │   ├── bitmap.test.ts              Bitmap utility coverage
+│   │   │   ├── bitmap.ts                   Bitmap decode, sampling, and placement helpers
+│   │   │   ├── corners.test.ts             Corner algorithm coverage
+│   │   │   ├── corners.ts                  Corner round/chamfer algorithms
+│   │   │   ├── engine.ts                   Engine adapter facade
+│   │   │   ├── groups.test.ts              Group operations coverage
+│   │   │   ├── groups.ts                   Group/ungroup operations
+│   │   │   ├── guides.test.ts              Guide helper coverage
+│   │   │   ├── guides.ts                   Construction guide model/helpers
+│   │   │   ├── history.test.ts             History coverage
+│   │   │   ├── history.ts                  Undo/redo history model
+│   │   │   ├── ids.ts                      Stable document ID generation
+│   │   │   ├── import.test.ts              Import helper coverage
+│   │   │   ├── import.ts                   Import normalisation helpers
+│   │   │   ├── library.test.ts             Library adapter coverage
+│   │   │   ├── library.ts                  Legacy/public library data adapter
+│   │   │   ├── nest.test.ts                Nesting coverage
+│   │   │   ├── nest.ts                     Part nesting algorithm
+│   │   │   ├── project.test.ts             Project model coverage
+│   │   │   ├── project.ts                  Project domain types/defaults
+│   │   │   ├── rulers.test.ts              Ruler coverage
+│   │   │   ├── tabs.test.ts                Tab helper coverage
+│   │   │   ├── tabs.ts                     Document-level tab helpers
+│   │   │   ├── trace.test.ts               Trace coverage
+│   │   │   ├── trace.ts                    Bitmap-to-vector tracing facade
+│   │   │   ├── transform.test.ts           Transform coverage
+│   │   │   ├── transform.ts                Document geometry transformations
+│   │   │   ├── trim.test.ts                Trim coverage
+│   │   │   ├── trim.ts                     Vector trim/split algorithms
+│   │   │   ├── units.test.ts               Unit conversion coverage
+│   │   │   ├── units.ts                    Canonical mm conversion and display-unit helpers
+│   │   │   ├── useStableCallback.test.tsx  Adjacent feature regression tests
+│   │   │   └── useStableCallback.ts        Stable callback identity with current implementation
+│   │   ├── test-stubs/                     Browser/Three.js substitutions for Jest
+│   │   │   ├── file.ts                     File API stub
+│   │   │   └── orbit-controls.ts           Three.js OrbitControls stub
+│   │   ├── toolpaths/                      Toolpath form state, operation picker, and output UI
+│   │   │   ├── CuttingFields.tsx           Common cutting depth/feed/plunge fields
+│   │   │   ├── CuttingRecipeFields.test.tsx  Adjacent feature regression tests
+│   │   │   ├── CuttingRecipeFields.tsx     Recommended cutting parameters and overrides
+│   │   │   ├── operationCatalog.test.ts    Adjacent feature regression tests
+│   │   │   ├── operationCatalog.ts         UI metadata for each toolpath operation
+│   │   │   ├── OutputWorkspace.tsx         G-code and 3D preview workspace
+│   │   │   ├── RasterLaserFields.tsx       Laser-raster and halftone settings
+│   │   │   ├── SurfaceCamFields.tsx        3D strategy, boundary, margin and stock-fit controls
+│   │   │   ├── TextureFields.tsx           Voronoi/crosshatch texture settings
+│   │   │   ├── ToolpathEmptyState.tsx      No-operation guidance
+│   │   │   ├── ToolpathFormAlerts.tsx      Form validation/warnings
+│   │   │   ├── ToolpathOperationPicker.tsx
+│   │   │   ├── ToolpathPanel.tsx           Main toolpath editor and preview coordinator
+│   │   │   ├── ToolpathRail.test.tsx       Adjacent feature regression tests
+│   │   │   ├── ToolpathRail.tsx            Existing-operation navigation rail
+│   │   │   ├── toolpathRequest.test.ts     Toolpath request coverage
+│   │   │   ├── toolpathRequest.ts          Translates form data into CAM requests
+│   │   │   ├── ToolpathSubmitControls.test.tsx  Adjacent feature regression tests
+│   │   │   ├── ToolpathSubmitControls.tsx
+│   │   │   ├── ToolSelectionFields.tsx     Tool picker and cutter details
+│   │   │   ├── ToolSlotSelector.test.tsx   Adjacent feature regression tests
+│   │   │   ├── ToolSlotSelector.tsx        Tool slot selection UI
+│   │   │   ├── useToolpathPresentation.ts
+│   │   │   ├── useToolpathStack.test.ts    Adjacent feature regression tests
+│   │   │   ├── useToolpathStack.ts         Operation list, draft, create, and update state
+│   │   │   └── VBitRasterFields.tsx        V-bit raster/heightmap settings
+│   │   ├── tools/                          Cutter library model and management UI
+│   │   │   ├── ImagePicker.tsx             Tool image selection UI
+│   │   │   ├── library.test.ts             Library adapter coverage
+│   │   │   ├── library.ts                  Legacy/public library data adapter
+│   │   │   ├── toolCatalog.ts              Tool catalogue lookup/filter utilities
+│   │   │   ├── ToolCatalogSelect.tsx       Tool catalogue selection control
+│   │   │   ├── ToolLibraryModal.tsx        Add/edit/manage tool library modal
+│   │   │   └── ToolSlotRow.tsx             One selectable tool-slot row
+│   │   ├── App.tsx                         Thin application controller and domain composition root
+│   │   ├── engine.test.ts                  End-to-end engine integration coverage
+│   │   ├── index.css                       Global styles, CSS variables, and Tailwind layers
+│   │   ├── main.tsx                        React bootstrap: mounts App into the Vite document
+│   │   ├── vite-env.d.ts                   Vite TypeScript declarations
+│   │   └── zzparse.test.tsx                Parsing/render regression coverage
+│   ├── .gitignore                          Ignores React build/cache/dependency output
+│   ├── babel.config.cjs                    Babel configuration used by Jest
+│   ├── biome.json                          Formatting/lint rules and vendor exclusions
+│   ├── checkfile.js                        Small local file-check helper
+│   ├── cypress.config.cjs                  Cypress browser runner configuration and download tasks
+│   ├── index.html                          Vite HTML entry document
+│   ├── jest.config.cjs                     Jest test environment and transform setup
+│   ├── jest.setup.cjs                      Shared Jest DOM matchers/setup
+│   ├── package.json                        Scripts, runtime dependencies, and tool versions
+│   ├── postcss.config.cjs                  PostCSS/Tailwind processing configuration
+│   ├── tailwind.config.ts                  Tailwind theme/content configuration
+│   ├── tsconfig.json                       Browser TypeScript compiler configuration
+│   ├── tsconfig.node.json                  Node/Vite TypeScript compiler configuration
+│   ├── vite.config.ts                      Vite dev/build configuration and Pages base path
+│   └── yarn.lock                           Locked dependency graph
+├── .gitattributes                          LF line endings for the React project
+├── .gitignore                              Ignores React build/cache/dependency output
+└── README.md                               This repository map and development guide
 ```
 
 See [`react/docs/architecture.md`](react/docs/architecture.md) for the concise
