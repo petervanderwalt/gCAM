@@ -27,6 +27,8 @@ export function handleCornerDown(
         if (hover) deps.onFilletCorner?.(hover.loopId, hover.index);
     }
     event.preventDefault();
+    // A corner edit consumes the click; mouse-up must not reselect the old corner.
+    deps.downRef.current = null;
     deps.forceTick();
     return true;
 }

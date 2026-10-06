@@ -75,39 +75,85 @@ test('finds a vector outline for hover feedback with a screen-sized hit target',
 test('snaps to vector midpoint and edge before the grid', () => {
     expect(
         findDrawSnapTarget(
-            [{ id: 'line', sourceType: 'line', points: [{ x: 0, y: 0 }, { x: 10, y: 0 }] }],
+            [
+                {
+                    id: 'line',
+                    sourceType: 'line',
+                    points: [
+                        { x: 0, y: 0 },
+                        { x: 10, y: 0 },
+                    ],
+                },
+            ],
             [],
             { x: 5.1, y: 0.2 },
             10,
             { snap: true, spacingMm: 5 },
         ),
-    ).toMatchObject({ point: { x: 5, y: 0 }, kind: 'midpoint', label: 'Midpoint' });
+    ).toMatchObject({
+        point: { x: 5, y: 0 },
+        kind: 'midpoint',
+        label: 'Midpoint',
+    });
     expect(
         findDrawSnapTarget(
-            [{ id: 'line', sourceType: 'line', points: [{ x: 0, y: 0 }, { x: 10, y: 0 }] }],
+            [
+                {
+                    id: 'line',
+                    sourceType: 'line',
+                    points: [
+                        { x: 0, y: 0 },
+                        { x: 10, y: 0 },
+                    ],
+                },
+            ],
             [],
             { x: 3.2, y: 0.2 },
             10,
             { snap: true, spacingMm: 5 },
         ),
-    ).toMatchObject({ point: { x: 3.2, y: 0 }, kind: 'edge', label: 'On vector' });
+    ).toMatchObject({
+        point: { x: 3.2, y: 0 },
+        kind: 'edge',
+        label: 'On vector',
+    });
 });
 
 test('ignores hidden and bitmap geometry and labels axis/grid snaps', () => {
     expect(
         findDrawSnapTarget(
             [
-                { id: 'hidden', points: [{ x: 1, y: 1 }, { x: 2, y: 1 }] },
-                { id: 'image', bitmapId: 'image', points: [{ x: 1, y: 1 }, { x: 2, y: 1 }] },
+                {
+                    id: 'hidden',
+                    points: [
+                        { x: 1, y: 1 },
+                        { x: 2, y: 1 },
+                    ],
+                },
+                {
+                    id: 'image',
+                    bitmapId: 'image',
+                    points: [
+                        { x: 1, y: 1 },
+                        { x: 2, y: 1 },
+                    ],
+                },
             ],
             ['hidden'],
             { x: 4.9, y: 0.2 },
             10,
             { snap: true, spacingMm: 5 },
         ),
-    ).toMatchObject({ kind: 'x-axis', label: 'X axis', point: { x: 4.9, y: 0 } });
+    ).toMatchObject({
+        kind: 'x-axis',
+        label: 'X axis',
+        point: { x: 4.9, y: 0 },
+    });
     expect(
-        findDrawSnapTarget([], [], { x: 7.4, y: 8.1 }, 10, { snap: true, spacingMm: 5 }),
+        findDrawSnapTarget([], [], { x: 7.4, y: 8.1 }, 10, {
+            snap: true,
+            spacingMm: 5,
+        }),
     ).toMatchObject({ kind: 'grid', label: 'Grid', point: { x: 5, y: 10 } });
 });
 

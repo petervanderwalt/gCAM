@@ -34,3 +34,10 @@ yarn-error.log*
 
 # coverage
 coverage
+
+# browser test runtime and artifacts
+.cache/
+cypress/downloads/
+cypress/screenshots/
+cypress/videos/
+cypress/results/

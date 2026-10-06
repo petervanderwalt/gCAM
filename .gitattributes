@@ -1,0 +1,2 @@
+# Keep the React app compatible with Biome's LF formatting on Windows.
+react/** text=auto eol=lf

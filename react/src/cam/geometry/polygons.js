@@ -169,7 +169,10 @@ export function booleanPolygons(selectedLoops, operation = 'union') {
             if (!solution.length) break;
         }
     } else if (operation === 'xor') {
-        solution = execute(ClipperLib.ClipType.ctXor, paths);
+        solution = [paths[0]];
+        for (const path of paths.slice(1)) {
+            solution = execute(ClipperLib.ClipType.ctXor, solution, [path]);
+        }
     } else {
         solution = execute(ClipperLib.ClipType.ctUnion, paths);
     }

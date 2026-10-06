@@ -7,12 +7,26 @@ test.each([
     [false, ['vector-1', 'vector-2'], ['vector-2']],
     [true, ['vector-1'], ['vector-1', 'vector-2']],
     [true, ['vector-1', 'vector-2'], ['vector-1']],
-])('click with ctrl=%s resolves selection %j to %j', (ctrlKey, selected, expected) => {
-    const onSelect = jest.fn();
-    finishSelection({ button: 0, clientX: 55, clientY: 45, ctrlKey, shiftKey: false, metaKey: false } as React.MouseEvent<HTMLCanvasElement>,
-        selectionDeps(selected as string[], onSelect), { x: 55, y: 45 }, null);
-    expect(onSelect).toHaveBeenCalledWith(expected);
-});
+])(
+    'click with ctrl=%s resolves selection %j to %j',
+    (ctrlKey, selected, expected) => {
+        const onSelect = jest.fn();
+        finishSelection(
+            {
+                button: 0,
+                clientX: 55,
+                clientY: 45,
+                ctrlKey,
+                shiftKey: false,
+                metaKey: false,
+            } as React.MouseEvent<HTMLCanvasElement>,
+            selectionDeps(selected as string[], onSelect),
+            { x: 55, y: 45 },
+            null,
+        );
+        expect(onSelect).toHaveBeenCalledWith(expected);
+    },
+);
 
 function selectionDeps(selected: string[], onSelect: (ids: string[]) => void) {
     return {

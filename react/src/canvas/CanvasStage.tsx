@@ -366,6 +366,10 @@ export function CanvasStage({
                 );
                 centeredRef.current = true;
             }
+            // Expose the rendered coordinate transform for canvas automation.
+            const renderedCamera = JSON.stringify(cameraRef.current);
+            if (canvas.dataset.camera !== renderedCamera)
+                canvas.dataset.camera = renderedCamera;
             drawCanvasScene({
                 ctx,
                 width: canvas.width,

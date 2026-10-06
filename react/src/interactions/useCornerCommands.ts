@@ -41,8 +41,6 @@ export function useCornerCommands<TLoop extends CornerLoop, TStack>(
         if (!(options.cornerRadius > 0)) return;
         options.setCornerTool('fillet');
         options.setTransformMode(null);
-        // Null is the existing fillet mode; only dogbone needs explicit state.
-        options.setCornerTool(null);
         options.setStatus(
             `Fillet r=${options.formatLength(options.cornerRadius)}: hover a corner, then click to apply.`,
         );

@@ -167,7 +167,8 @@ function selectAt(
         if (linkedId) {
             deps.onSelect(
                 (event.shiftKey || event.ctrlKey || event.metaKey) &&
-                selected.length === 1 && selected[0] === linkedId
+                    selected.length === 1 &&
+                    selected[0] === linkedId
                     ? []
                     : [linkedId],
             );
@@ -199,8 +200,8 @@ function selectAt(
             !(event.shiftKey || event.ctrlKey || event.metaKey)
                 ? [best]
                 : selected.includes(best)
-                ? selected.filter((id) => id !== best)
-                : [...selected, best],
+                  ? selected.filter((id) => id !== best)
+                  : [...selected, best],
         );
     else if (!(event.shiftKey || event.ctrlKey || event.metaKey))
         deps.onSelect([]);

@@ -4,7 +4,8 @@
 import { ToolbarMiniForm } from './ToolbarControls';
 import { numericInput } from './styles';
 import type { BooleanOperation } from '../../lib/engine';
-import { displayValue, lengthUnit, toMm } from '../../lib/units';
+import { lengthUnit } from '../../lib/units';
+import { UnitInput } from '../../components/UnitInput';
 import type { CanvasToolbarProps, ToolbarAction } from './types';
 
 interface ToolbarFormsProps {
@@ -23,8 +24,6 @@ export function ToolbarForms({
     onBooleanOperation,
     close,
 }: ToolbarFormsProps) {
-    const displayLength = (value: number) => displayValue(value, props.units);
-    const parseLength = (value: string) => toMm(Number(value), props.units);
     const unit = lengthUnit(props.units);
     const lengthField = (
         label: string,
@@ -34,12 +33,12 @@ export function ToolbarForms({
     ) => (
         <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-300">
             {label} ({unit})
-            <input
-                type="number"
-                min={0.5}
-                step={0.5}
-                value={displayLength(value)}
-                onChange={(event) => onChange(parseLength(event.target.value))}
+            <UnitInput
+                units={props.units}
+                minMm={0.5}
+                stepMm={0.5}
+                valueMm={value}
+                onChangeMm={onChange}
                 aria-label={`${label} in ${unit}`}
                 className={className}
             />

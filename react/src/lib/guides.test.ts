@@ -1,4 +1,9 @@
-import { findGuideAtPoint, findGuideIntersection, findGuideSource, snapToGuides } from './guides';
+import {
+    findGuideAtPoint,
+    findGuideIntersection,
+    findGuideSource,
+    snapToGuides,
+} from './guides';
 
 test('snaps to the nearest point on an arbitrary-angle guide', () => {
     const guides = [

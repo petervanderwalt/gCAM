@@ -32,9 +32,12 @@ function offsetAtEvent(
 
 export function updateGuideHover(
     event: CanvasMouseEvent,
-    deps: CanvasPointerControllerProps,
+    deps: CanvasPointerControllerProps & {
+        guideHoverRef?: { current: string | null };
+    },
 ): void {
     const { viewRef, guideHoverRef, canvasRef, cameraRef } = deps;
+    if (!guideHoverRef) return;
     if (
         deps.activeTool !== 'select' ||
         viewRef.current.drawTool ||

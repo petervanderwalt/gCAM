@@ -295,6 +295,18 @@ test('boolean difference cuts the overlap out', () => {
     const [cut] = applyBoolean([{ points: a }, { points: b }], 'difference');
     expect(Math.abs(polygonArea(cut.points))).toBeCloseTo(300, 0);
 });
+
+test('boolean XOR removes the overlap between filled vectors', () => {
+    const a: { x: number; y: number }[] = squareLoops()[0].points;
+    const b = a.map((p) => ({ x: p.x + 10, y: p.y + 10 }));
+    const result = applyBoolean([{ points: a }, { points: b }], 'xor');
+    expect(
+        result.reduce(
+            (sum, loop) => sum + Math.abs(polygonArea(loop.points)),
+            0,
+        ),
+    ).toBeCloseTo(600, 0);
+});
 test('offset expands and shrinks the square', () => {
     const loops = [{ points: squareLoops()[0].points }];
     const big = boundsOfPoints(offsetLoops(loops, 3)[0].points);

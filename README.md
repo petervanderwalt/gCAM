@@ -6,6 +6,8 @@ gCAM is a exploration of CAM workflows - to become a CAM app at some point
 
 ## Development
 
+Use Node 24, Node 22, or Node 20.19+.
+
 ```powershell
 cd react
 yarn
@@ -14,6 +16,11 @@ yarn dev
 
 Useful checks are `yarn test`, `yarn check-types`, `yarn lint`,
 `yarn format:check`, and `yarn build`. CI runs all of them for pull requests.
+
+Run browser workflows with `yarn test:e2e`, or open the interactive runner with
+`yarn cy:open`. These start an isolated server on port 5180. See the
+[Cypress workflow guide](react/cypress/README.md) for coverage and fixtures.
+Simulation is excluded from these tests.
 
 ## Structure
 

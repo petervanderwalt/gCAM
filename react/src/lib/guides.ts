@@ -121,20 +121,34 @@ export function findGuideIntersection(
     for (let firstIndex = 0; firstIndex < guides.length; firstIndex += 1) {
         const first = guides[firstIndex];
         if (!hasGuideGeometry(first)) continue;
-        for (let secondIndex = firstIndex + 1; secondIndex < guides.length; secondIndex += 1) {
+        for (
+            let secondIndex = firstIndex + 1;
+            secondIndex < guides.length;
+            secondIndex += 1
+        ) {
             const second = guides[secondIndex];
             if (!hasGuideGeometry(second)) continue;
-            const denominator = first.direction.x * second.direction.y - first.direction.y * second.direction.x;
+            const denominator =
+                first.direction.x * second.direction.y -
+                first.direction.y * second.direction.x;
             if (Math.abs(denominator) < 1e-9) continue;
             const betweenX = second.point.x - first.point.x;
             const betweenY = second.point.y - first.point.y;
-            const alongFirst = (betweenX * second.direction.y - betweenY * second.direction.x) / denominator;
+            const alongFirst =
+                (betweenX * second.direction.y -
+                    betweenY * second.direction.x) /
+                denominator;
             const intersection = {
                 x: first.point.x + alongFirst * first.direction.x,
                 y: first.point.y + alongFirst * first.direction.y,
             };
-            const distancePx = Math.hypot(intersection.x - point.x, intersection.y - point.y) * safeScale;
-            if (distancePx <= hitRadiusPx && (!nearest || distancePx < nearest.distancePx)) {
+            const distancePx =
+                Math.hypot(intersection.x - point.x, intersection.y - point.y) *
+                safeScale;
+            if (
+                distancePx <= hitRadiusPx &&
+                (!nearest || distancePx < nearest.distancePx)
+            ) {
                 nearest = { point: intersection, distancePx };
             }
         }
@@ -155,7 +169,9 @@ export function findGuideAtPoint(
     for (const guide of guides) {
         if (!hasGuideGeometry(guide)) continue;
         const projected = projectToGuide(point, guide);
-        const distance = Math.hypot(projected.x - point.x, projected.y - point.y) * safeScale;
+        const distance =
+            Math.hypot(projected.x - point.x, projected.y - point.y) *
+            safeScale;
         if (distance <= bestDistance) {
             nearest = guide;
             bestDistance = distance;
