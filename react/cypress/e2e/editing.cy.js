@@ -48,6 +48,9 @@ describe('Canvas selection and editing', () => {
         cy.get('[aria-label="W in mm"]').clear().type('100');
         cy.get('[aria-label="H in mm"]').clear().type('100');
         cy.contains('button', /^Nest$/).click();
+        cy.contains('button', 'Stop and keep best')
+            .should('be.enabled')
+            .click();
         cy.snapshot().then((p) => {
             const boxes = p.loops
                 .filter((loop) => p.selected.includes(loop.id))

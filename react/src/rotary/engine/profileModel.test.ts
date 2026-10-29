@@ -162,3 +162,33 @@ test('adaptive sampling bounds the distance to a strongly curved Bezier span', (
     }
     expect(error).toBeLessThanOrEqual(0.005);
 });
+
+test('Christmas starters retain three snowballs, a flat top hat and bauble caps', () => {
+    const snowman = templateProfile('snowman');
+    const at = (x: number) =>
+        snowman.filter((p) => p.x === x + 20).map((p) => p.r);
+    expect([at(29), at(80), at(119)]).toEqual([[30], [23], [18]]);
+    expect(at(136)).toEqual([12, 24]);
+    expect(at(57)).toEqual([16]);
+    expect(at(101)).toEqual([13]);
+    expect(at(0)).toEqual([3, 10]);
+    expect(at(140)).toEqual([24, 14]);
+    expect(at(160)).toEqual([14, 3]);
+    for (const name of [
+        'christmasTree',
+        'snowman',
+        'roundBauble',
+        'teardropBauble',
+        'finialBauble',
+        'acornBauble',
+        'doubleBellBauble',
+        'curvedChristmasTree',
+        'roundedChristmasTree',
+        'groovedChristmasTree',
+    ]) {
+        expect(TEMPLATES[name].group).toBe('Holidays');
+        const samples = sampleProfile(templateProfile(name), 32);
+        expect(Math.max(...samples.map((p) => p.r))).toBeLessThanOrEqual(40);
+        expect(Math.min(...samples.map((p) => p.r))).toBeGreaterThan(0);
+    }
+});

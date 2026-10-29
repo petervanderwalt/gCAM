@@ -398,28 +398,39 @@ export default function App() {
             setStatus,
         });
 
-    const { handleNest, handleBoolean, handleOffset, replaceSelection } =
-        useArrangeCommands<ViewLoop, StackEntry>({
-            loops,
-            selected,
-            offsetAmount,
-            sheetW,
-            sheetH,
-            nestBorder,
-            nestSpacing,
-            selectedLoops,
-            expandedSelectedIds,
-            withIds,
-            formatLength,
-            pushHistory,
-            refreshBounds,
-            setLoops,
-            setSelected,
-            setStack,
-            setDraftPreview,
-            setOffsetPreview,
-            setStatus,
-        });
+    const {
+        handleNest,
+        handleBoolean,
+        handleOffset,
+        replaceSelection,
+        nestProgress,
+        nestPreview,
+        nestAttempt,
+        stopNest,
+        cancelNest,
+    } = useArrangeCommands<ViewLoop, StackEntry>({
+        loops,
+        selected,
+        offsetAmount,
+        sheetW,
+        sheetH,
+        nestBorder,
+        nestSpacing,
+        nestRotation: arrange.nestRotation,
+        stockOrigin: stock.origin,
+        selectedLoops,
+        expandedSelectedIds,
+        withIds,
+        formatLength,
+        pushHistory,
+        refreshBounds,
+        setLoops,
+        setSelected,
+        setStack,
+        setDraftPreview,
+        setOffsetPreview,
+        setStatus,
+    });
 
     const {
         handleExportProject,
@@ -752,6 +763,11 @@ export default function App() {
         onActionsChange: setConfigActions,
     };
     const workspaceModel = createWorkspaceModel({
+        nestPreview,
+        nestAttempt,
+        nesting: nestProgress
+            ? { progress: nestProgress, onStop: stopNest, onCancel: cancelNest }
+            : null,
         activeTab: sideTab,
         onTabChange: (tab) => {
             if (tab === 'toolpaths' || tab === 'rotary')

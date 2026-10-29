@@ -56,3 +56,58 @@ export function fitTemplateStock(
         );
     return { points: fitted, stock: { ...stock, length, diameter } };
 }
+
+/** Uniformly resize the part inside the measured blank, retaining fixture clearance. */
+export function fitProfileToStock(
+    points: ProfilePoint[],
+    stock: RotaryStock,
+    entries: Pick<RotaryToolpathEntry, 'tool' | 'ops'>[],
+): ProfilePoint[] {
+    const margins = entries.map(({ tool, ops }) => {
+        const settings = ops.mesh ?? defaultFixtureSettings;
+        const clearance = fixtureXClearance(tool, settings);
+        return { chuck: clearance, tail: settings.tailClearance + clearance };
+    });
+    const start = stock.grip + Math.max(...margins.map((m) => m.chuck)) + 0.001;
+    const end = stock.length - Math.max(...margins.map((m) => m.tail)) - 0.001;
+    const samples = sampleProfile(points, 16, 0.005);
+    const minX = Math.min(...samples.map((p) => p.x));
+    const length = Math.max(...samples.map((p) => p.x)) - minX;
+    const radius = Math.max(...samples.map((p) => p.r)) + 0.005;
+    const factor = Math.min(
+        (end - start) / length,
+        stock.diameter / (2 * radius),
+    );
+    if (
+        points.length < 2 ||
+        ![start, end, length, radius, factor, stock.grip].every(
+            Number.isFinite,
+        ) ||
+        stock.grip < 0 ||
+        length <= 0 ||
+        radius <= 0 ||
+        factor <= 0
+    )
+        throw new Error(
+            'The profile and cutter clearances must fit inside a positive stock length and diameter.',
+        );
+    if (
+        stock.supports?.enabled &&
+        (stock.supports.endDiameter > stock.diameter ||
+            stock.supports.chuckOverlap + stock.supports.tailOverlap >=
+                length * factor)
+    )
+        throw new Error(
+            'The stock supports do not fit the resized part. Reduce their diameters or end overlaps first.',
+        );
+    const scale = (p: { x: number; r: number }) => ({
+        x: start + (p.x - minX) * factor,
+        r: p.r * factor,
+    });
+    return points.map((p) => ({
+        ...p,
+        ...scale(p),
+        h1: scale(p.h1),
+        h2: scale(p.h2),
+    }));
+}

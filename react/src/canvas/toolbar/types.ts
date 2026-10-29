@@ -64,6 +64,8 @@ export interface CanvasToolbarProps {
     sheetH: number;
     nestBorder?: number;
     onNestBorder?: (v: number) => void;
+    nestRotation?: number;
+    onNestRotation?: (value: number) => void;
     nestSpacing?: number;
     onNestSpacing?: (v: number) => void;
     onSheetW: (v: number) => void;

@@ -1,3 +1,4 @@
+import { NestProgressDialog } from '../canvas/toolbar/NestProgressDialog';
 /**
  * Purpose: Application composition module for EditorWorkspace.
  */
@@ -19,6 +20,7 @@ import { ToolpathRail } from '../toolpaths/ToolpathRail';
 type SidebarProps = ComponentProps<typeof Sidebar>;
 
 interface EditorWorkspaceProps {
+    nesting?: ComponentProps<typeof NestProgressDialog> | null;
     simulationSource: 'toolpaths' | 'rotary';
     activeTab: SidebarProps['activeTab'];
     onTabChange: SidebarProps['onTabChange'];
@@ -43,6 +45,7 @@ interface EditorWorkspaceProps {
 
 /** The editor's tabbed work area, isolated from document and command wiring. */
 export function EditorWorkspace({
+    nesting,
     activeTab,
     simulationSource,
     onTabChange,
@@ -103,6 +106,7 @@ export function EditorWorkspace({
                                 {...canvasProps}
                                 additiveSelection={additiveSelection}
                             />
+                            {nesting && <NestProgressDialog {...nesting} />}
                             {treeOpen && (
                                 <ObjectTree
                                     {...objectTreeProps}

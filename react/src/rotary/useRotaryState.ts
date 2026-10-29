@@ -1,6 +1,6 @@
 import { validateRotaryMesh } from './engine/meshCoordinates';
 import { defaultSupports } from './engine/supports';
-import { fitTemplateStock } from './engine/templateStock';
+import { fitProfileToStock, fitTemplateStock } from './engine/templateStock';
 import {
     defaultMeshSettings,
     meshSettingsForTool,
@@ -590,6 +590,16 @@ export function useRotaryState(
         [pushHistory, stock, tool, opsBase, toolpaths],
     );
 
+    const fitProfile = () => {
+        const fitted = fitProfileToStock(points, stock, [
+            { tool, ops: opsBase },
+            ...toolpaths,
+        ]);
+        pushHistory();
+        setPoints(fitted);
+        setSel(-1);
+    };
+
     const importStlFile = useCallback(
         async (
             file: File,
@@ -815,6 +825,7 @@ export function useRotaryState(
         nudgePoint,
         setPointValues,
         loadTemplate,
+        fitProfile,
         importStlFile,
         snapshotProject,
         restoreProject,
@@ -894,6 +905,7 @@ export interface RotaryStateApi {
     nudgePoint: (dx: number, dr: number) => void;
     setPointValues: (which: 'x' | 'r' | 'd', value: number) => void;
     loadTemplate: (templateName: string) => void;
+    fitProfile: () => void;
     importStlFile: (
         file: File,
         axis?: 'x' | 'y' | 'z' | 'auto',

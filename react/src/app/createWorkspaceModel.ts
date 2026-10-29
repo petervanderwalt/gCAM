@@ -1,3 +1,4 @@
+import { boundsOfPoints } from '../geometry/bounds.js';
 /**
  * Purpose: Application composition module for createWorkspaceModel.
  */
@@ -36,6 +37,9 @@ type DocumentState = ReturnType<typeof useDocumentWorkspace>;
  * untyped escape hatches.
  */
 export interface WorkspaceModelOptions {
+    nestPreview?: CanvasProps['loops'] | null;
+    nestAttempt?: CanvasProps['loops'] | null;
+    nesting?: ComponentProps<typeof EditorWorkspace>['nesting'];
     simulationSource: 'toolpaths' | 'rotary';
     activeTab: ComponentProps<typeof EditorWorkspace>['activeTab'];
     onTabChange: ComponentProps<typeof EditorWorkspace>['onTabChange'];
@@ -110,25 +114,41 @@ export function createWorkspaceModel(
             onTabChange: options.onTabChange,
             canvasProps: {
                 activeTool: options.drawing.activeTool,
-                loops: options.document.loops.map((loop) => ({
-                    ...loop,
-                    layerColor: options.document.layers.find(
-                        (layer) => layer.id === (loop.layerId || 'default'),
-                    )?.color,
-                })),
-                bounds: options.document.bounds,
-                preview: options.preview,
-                inspectorPreview: options.inspectorPreview,
-                draftPreview: options.previews.draftPreview.length
-                    ? options.previews.draftPreview
-                    : options.previews.offsetPreview.length
-                      ? options.previews.offsetPreview
-                      : options.previews.booleanPreview,
+                loops: (options.nestPreview ?? options.document.loops).map(
+                    (loop) => ({
+                        ...loop,
+                        layerColor: options.document.layers.find(
+                            (layer) => layer.id === (loop.layerId || 'default'),
+                        )?.color,
+                    }),
+                ),
+                bounds: options.nestPreview
+                    ? boundsOfPoints(
+                          options.nestPreview.flatMap((loop) => loop.points),
+                      )
+                    : options.document.bounds,
+                preview: options.nesting
+                    ? (options.nestAttempt ?? []).map((loop) => ({
+                          entryId: `nest-attempt-${loop.id}`,
+                          points: loop.points,
+                          intensity: 0.4,
+                      }))
+                    : options.preview,
+                inspectorPreview: options.nesting
+                    ? null
+                    : options.inspectorPreview,
+                draftPreview: options.nesting
+                    ? []
+                    : options.previews.draftPreview.length
+                      ? options.previews.draftPreview
+                      : options.previews.offsetPreview.length
+                        ? options.previews.offsetPreview
+                        : options.previews.booleanPreview,
                 draftProgress: options.previews.draftProgress,
                 darkMode: options.configPanelProps.darkMode,
                 selected: options.document.selected,
                 tabMode: options.drawing.tabMode,
-                tabMarkers: options.tabMarkers,
+                tabMarkers: options.nesting ? [] : options.tabMarkers,
                 drawTool:
                     options.drawing.activeTool === 'draw'
                         ? options.drawing.drawTool
@@ -163,6 +183,7 @@ export function createWorkspaceModel(
                 onSelect: options.document.setSelected,
                 ...options.objectTreeActions,
             },
+            nesting: options.nesting,
             treeOpen: options.drawing.treeOpen,
             showEmptyState: options.showEmptyState,
             onNewCanvas: options.onNewCanvas,

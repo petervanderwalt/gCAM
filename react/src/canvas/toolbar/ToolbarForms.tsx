@@ -30,12 +30,13 @@ export function ToolbarForms({
         value: number,
         onChange: (value: number) => void,
         className = numericInput,
+        minimum = 0.5,
     ) => (
         <label className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-300">
             {label} ({unit})
             <UnitInput
                 units={props.units}
-                minMm={0.5}
+                minMm={minimum}
                 stepMm={0.5}
                 valueMm={value}
                 onChangeMm={onChange}
@@ -139,6 +140,43 @@ export function ToolbarForms({
                     <>
                         {lengthField('W', props.sheetW, props.onSheetW)}
                         {lengthField('H', props.sheetH, props.onSheetH)}
+                        {props.onNestSpacing &&
+                            lengthField(
+                                'Part gap',
+                                props.nestSpacing ?? 5,
+                                props.onNestSpacing,
+                                numericInput,
+                                0,
+                            )}
+                        {props.onNestBorder &&
+                            lengthField(
+                                'Edge margin',
+                                props.nestBorder ?? 5,
+                                props.onNestBorder,
+                                numericInput,
+                                0,
+                            )}
+                        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                            Rotation
+                            <select
+                                aria-label="Nesting rotation"
+                                value={props.nestRotation ?? 90}
+                                onChange={(event) =>
+                                    props.onNestRotation?.(
+                                        Number(event.target.value),
+                                    )
+                                }
+                                className="rounded border border-slate-300 bg-transparent p-1 dark:border-robin-900"
+                            >
+                                <option value={0}>Off</option>
+                                <option value={90}>90° steps</option>
+                                <option value={15}>15° steps</option>
+                            </select>
+                        </label>
+                        <p className="w-full text-xs text-slate-500">
+                            Part gap is between outlines. Allow for the endmill
+                            diameter plus material for holding tabs.
+                        </p>
                     </>
                 }
                 onApply={() => {

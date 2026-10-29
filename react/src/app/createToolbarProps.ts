@@ -192,6 +192,8 @@ export function createToolbarProps({
         sheetH: arrange.sheetH,
         nestBorder: arrange.nestBorder,
         onNestBorder: arrange.setNestBorder,
+        nestRotation: arrange.nestRotation,
+        onNestRotation: arrange.setNestRotation,
         nestSpacing: arrange.nestSpacing,
         onNestSpacing: arrange.setNestSpacing,
         onSheetW: arrange.setSheetW,

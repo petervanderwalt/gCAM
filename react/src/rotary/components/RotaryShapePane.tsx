@@ -24,6 +24,7 @@ export function RotaryShapePane({
         color: darkMode ? '#e2e8f0' : '#0f172a',
     };
     const [snap, setSnap] = useState(true);
+    const [loadedTemplate, setLoadedTemplate] = useState('');
     const [profileViewKey, setProfileViewKey] = useState(0);
     const [importError, setImportError] = useState('');
     const [importing, setImporting] = useState(false);
@@ -225,6 +226,28 @@ export function RotaryShapePane({
                                     />
                                     Snap 1 mm
                                 </label>
+                                <button
+                                    type="button"
+                                    className={action}
+                                    title="Scale length and diameter together to fit the stock, keeping cutter clearance at both ends"
+                                    onClick={() => {
+                                        try {
+                                            R.fitProfile();
+                                            setImportError('');
+                                            setProfileViewKey(
+                                                (value) => value + 1,
+                                            );
+                                        } catch (error) {
+                                            setImportError(
+                                                error instanceof Error
+                                                    ? error.message
+                                                    : 'Could not resize the profile.',
+                                            );
+                                        }
+                                    }}
+                                >
+                                    Fit to stock
+                                </button>
                                 <label className="text-sm flex min-w-0 items-center gap-2">
                                     Template
                                     <select
@@ -234,11 +257,14 @@ export function RotaryShapePane({
                                                 ? 'dark'
                                                 : 'light',
                                         }}
-                                        value=""
+                                        value={loadedTemplate}
                                         onChange={(event) => {
                                             if (!event.target.value) return;
                                             try {
                                                 R.loadTemplate(
+                                                    event.target.value,
+                                                );
+                                                setLoadedTemplate(
                                                     event.target.value,
                                                 );
                                                 setImportError('');

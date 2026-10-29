@@ -1,0 +1,43 @@
+{
+  "kind": "gcam.project",
+  "version": 2,
+  "snapshot": {
+    "loops": [
+      {
+        "id": "outer",
+        "groupId": "letter-d",
+        "points": [
+          { "x": 0, "y": 0 },
+          { "x": 40, "y": 0 },
+          { "x": 40, "y": 15 },
+          { "x": 0, "y": 15 },
+          { "x": 0, "y": 0 }
+        ]
+      },
+      {
+        "id": "inner",
+        "groupId": "letter-d",
+        "points": [
+          { "x": 10, "y": 4 },
+          { "x": 20, "y": 4 },
+          { "x": 20, "y": 10 },
+          { "x": 10, "y": 10 },
+          { "x": 10, "y": 4 }
+        ]
+      }
+    ],
+    "selected": ["outer", "inner"],
+    "hidden": [],
+    "stack": [],
+    "bitmaps": [],
+    "guides": [],
+    "fileName": "Nesting regression",
+    "stock": {
+      "widthMm": 20,
+      "heightMm": 45,
+      "thicknessMm": 18,
+      "origin": "front-left",
+      "material": "sheet-goods"
+    }
+  }
+}

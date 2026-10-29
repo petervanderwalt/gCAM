@@ -1,4 +1,4 @@
-import { fitTemplateStock } from './templateStock';
+import { fitProfileToStock, fitTemplateStock } from './templateStock';
 import { TEMPLATES, templateProfile, sampleProfile } from './profileModel';
 import { defaultSupports, supportZones } from './supports';
 import { runChecks } from './checks';
@@ -69,4 +69,43 @@ test('does not silently change machine capacity when an oversized cutter setup c
             wide,
         ]).stock.ext,
     ).toBe(true);
+});
+
+test('fit profile scales up and down uniformly using the limiting stock dimension', () => {
+    const original = templateProfile('snowman');
+    const before = JSON.stringify(original);
+    for (const blank of [
+        { ...stock, length: 150, diameter: 90 },
+        { ...stock, length: 500, diameter: 30 },
+        { ...stock, length: 500, diameter: 100 },
+    ]) {
+        const fitted = fitProfileToStock(original, blank, [entry]);
+        const k = fitted[3].r / original[3].r;
+        expect(k).toBeGreaterThan(0);
+        expect(fitted[3].x - fitted[0].x).toBeCloseTo(
+            (original[3].x - original[0].x) * k,
+        );
+        expect(fitted[3].h2.r).toBeCloseTo(original[3].h2.r * k);
+        const samples = sampleProfile(fitted, 32, 0.005);
+        expect(Math.max(...samples.map((p) => p.r)) * 2).toBeLessThanOrEqual(
+            blank.diameter,
+        );
+        expect(samples[0].x).toBeGreaterThan(blank.grip);
+        expect(samples[samples.length - 1].x).toBeLessThan(blank.length);
+    }
+    expect(
+        fitProfileToStock(original, { ...stock, length: 500, diameter: 100 }, [
+            entry,
+        ])[3].r,
+    ).toBeGreaterThan(original[3].r);
+    expect(JSON.stringify(original)).toBe(before);
+});
+test('fit profile rejects stock with no usable length', () => {
+    expect(() =>
+        fitProfileToStock(
+            templateProfile('snowman'),
+            { ...stock, length: 20 },
+            [entry],
+        ),
+    ).toThrow(/clearances/);
 });
